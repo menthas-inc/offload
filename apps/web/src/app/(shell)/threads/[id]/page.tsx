@@ -8,6 +8,8 @@
 // gets the same two panes you did.
 
 import { use, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ARCHIVED_PARAM, NOTE_PARAM, ROW_PARAM } from "@offload/widgets";
 import { Panes } from "../../../../components/shell/Panes";
 import { MyThreads } from "../../../../components/panes/MyThreads";
 import { Thread } from "../../../../components/panes/Thread";
@@ -16,6 +18,11 @@ import { fetchThread } from "../../../../lib/threads";
 
 export default function ThreadRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  // 049. Opened from Search at a row or a note.
+  const search = useSearchParams();
+  const row = search.get(ROW_PARAM);
+  const note = search.get(NOTE_PARAM);
+  const at = row || note ? { row, note, archived: search.get(ARCHIVED_PARAM) === "1" } : undefined;
   const { groups, loose, order, ready, reload: reloadThreads } = useThreads();
   const [name, setName] = useState<string>("Thread");
   // 037. The crumb wears the thread's icon once the thread is read.
@@ -46,12 +53,12 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
   return (
     <Panes
       crumbs={[
-        { label: "My threads", href: "/threads", icon: "message-circle" },
+        { label: "Threads", href: "/threads", icon: "message-circle" },
         { label: name, href: `/threads/${id}`, ...(mark ? { thread: { id, ...mark } } : {}) },
       ]}
       panes={[
         <MyThreads key="threads" groups={groups} loose={loose} order={order} loading={!ready} onChanged={reload} />,
-        <Thread key={id} id={id} onChanged={reload} />,
+        <Thread key={`${id}:${row ?? note ?? ""}`} id={id} onChanged={reload} {...(at ? { at } : {})} />,
       ]}
     />
   );

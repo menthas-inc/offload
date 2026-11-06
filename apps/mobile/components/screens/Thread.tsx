@@ -25,6 +25,7 @@ import { LayoutSections, type LayoutHandlers } from "./LayoutSections";
 import { TYPED_ROW_PLACEHOLDER } from "../../lib/typed-row";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
+import { ThreadNotice } from "../shell/ThreadNotice";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -36,7 +37,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
+import { ALL_LABELS, ARCHIVED_PARAM, changeToken, isAll, keepLive, listLabelledCopy, nameList, NOTE_PARAM, ROW_PARAM, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   cadenceLabel,
@@ -49,6 +50,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
+import { Reveal } from "../shell/reveal";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { forgetRendition } from "../shell/PhotoThumb";
@@ -137,12 +139,27 @@ const SHEET_CHROME = 48;
 
 export default function Thread() {
   const COLOR = useColors();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; [ROW_PARAM]?: string; [NOTE_PARAM]?: string; [ARCHIVED_PARAM]?: string }>();
+  const { id } = params;
   const router = useRouter();
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(params[ARCHIVED_PARAM] === "1");
+  // 049. What Search opened the thread at: read back to once, kept unfolded,
+  // marked and scrolled to. A row the read does not hold is not marked.
+  const target = useRef(params[ROW_PARAM] ?? null);
+  const [reveal, setReveal] = useState<string | null>(params[ROW_PARAM] ?? params[NOTE_PARAM] ?? null);
+  const scroll = useRef<ScrollView>(null);
+  const scrolledTo = useRef<string | null>(null);
+  const revealed = useCallback((view: View) => {
+    // The content view, a host component: measureLayout refuses the ScrollView itself.
+    // Present at runtime, missing from RN's types.
+    const content = (scroll.current as unknown as { getInnerViewRef?: () => View | null } | null)?.getInnerViewRef?.();
+    if (!content || scrolledTo.current === reveal) return;
+    scrolledTo.current = reveal;
+    view.measureLayout(content, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - 120), animated: false }));
+  }, [reveal]);
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
   // 020. The photo open in the viewer, by row id, and the row a move sheet
   // is up for. The viewer pages through every photo row on the page.
@@ -165,8 +182,8 @@ export default function Thread() {
   const [archiving, setArchiving] = useState<ContentRow | null>(null);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
-  // 037. Edit thread, and whether the icon or the name opened it.
-  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  // 037. Edit thread, and whether the icon, the name or a notice opened it.
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | "layout" | null>(null);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed.
   const [suggestionGone, setSuggestionGone] = useState(false);
@@ -176,7 +193,9 @@ export default function Thread() {
   const toast = useToast();
   // 025. The filter bar's pick, kept per thread on this phone; the label sheet
   // open on a row; the label's list open for a label, or for a new one.
-  const [pick, setPickState] = useState<LabelPick>(() => (id ? readPick(id) : ALL_LABELS));
+  // 049. Opened at a row, a kept filter could hide it, so the page opens on
+  // All for this visit and the kept pick stays for the next.
+  const [pick, setPickState] = useState<LabelPick>(() => (id && !params[ROW_PARAM] ? readPick(id) : ALL_LABELS));
   const [labelling, setLabelling] = useState<ContentRow | null>(null);
   // The note editor, drawn here at the root: see NotesSection's onSheet.
   const [noteSheet, setNoteSheet] = useState<ReactNode>(null);
@@ -245,10 +264,16 @@ export default function Thread() {
   const load = useCallback(async (live = false) => {
     if (!id) return;
     try {
+      const through = target.current;
+      target.current = null;
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
+        fetchContent(id, { archived: showArchived, ...(through ? { through } : filterOf(pick)) }),
       ]);
+      if (through) {
+        if (page?.rows.some((row) => row.id === through)) setArrived(new Set([through]));
+        else setReveal(null);
+      }
       if (!writes.idle()) return;
       if (live && (!bundle || !page)) return;
       // 028. The caller's own default thread is never drawn as a thread: from
@@ -648,7 +673,9 @@ export default function Thread() {
    *  Co-owned, so anybody in the thread may change them. The bar is drawn at
    *  the press, and Undo sends back everything that was there, whose pick it
    *  was included. */
-  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): void {
+  /** `notice`: the switch came from the thread notice, so its line says where
+   *  to change it later, and wraps to be read whole. */
+  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }, notice = false): void {
     if (!thread) return;
     const before: ThreadLook = { name: thread.name, icon: thread.icon, hue: thread.hue, iconSetBy: thread.iconSetBy };
     const after = threadLookAfter(before, change, shown);
@@ -684,11 +711,13 @@ export default function Thread() {
           return true;
         }),
       unwrite: () => editThread(id, undo).then((result) => result !== null && !isLabelsFull(result)),
-      did: change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
+      did: change.layout
+        ? `Showing as ${LAYOUT_NAMES[change.layout]}${notice ? ". You can always change this in thread settings." : ""}`
+        : "Thread updated",
       failed: "Couldn't save that",
       unfailed: "Couldn't put that back",
       // Under the thread's read, at the top of the page.
-      place: { id: `thread:${id}`, icon: "pencil", form: "under" },
+      place: notice ? { id: `thread:${id}`, icon: "check", form: "under", wrap: true } : { id: `thread:${id}`, icon: "pencil", form: "under" },
     };
     void perform(op, toast, writes);
   }
@@ -1051,6 +1080,30 @@ export default function Thread() {
           now: new Date(),
           zone,
         });
+  // 2026-10-31. To do's quick add and Add a note, raised from the More sheet
+  // and from an empty thread's two buttons. To do's needs no To do section:
+  // the row is written as a task and the section earns itself.
+  const raiseTodo = (): void =>
+    raiseFor({
+      threadId: id,
+      threadName: thread.name,
+      write: "quickAdd",
+      section: "todo",
+      title: "Add to To do",
+      placeholder: TYPED_ROW_PLACEHOLDER,
+      charLimit: QUICK_ADD_CHARS,
+    });
+  const raiseNote = (): void =>
+    raiseFor({
+      threadId: thread.id,
+      threadName: thread.name,
+      write: "note",
+      title: "Add a note",
+      placeholder: "What is true about this thread?",
+      charLimit: NOTE_CHARS,
+      showCounter: true,
+    });
+
   const layoutHandlers: LayoutHandlers = {
     onEdit: setRenaming,
     onDelete: remove,
@@ -1177,7 +1230,9 @@ export default function Thread() {
           stays mounted, out of sight and reach, so its scroll is where it was
           on the way back. */}
       <View className="flex-1">
+      <Reveal.Provider value={{ id: reveal, found: revealed }}>
       <ScrollView
+        ref={scroll}
         contentContainerClassName="pb-space-9"
         pointerEvents={onMap ? "none" : "auto"}
         accessibilityElementsHidden={onMap}
@@ -1212,47 +1267,40 @@ export default function Thread() {
         {/* Edit thread's line, under the read, or at the top without one. */}
         <UndoAt id={`thread:${thread.id}`} />
 
-        {/* Thread layouts: the heads-up another member sees once after somebody
-            else switched, then the suggestion line offload draws (6.9). */}
+        {/* The thread notice (2026-10-31): a member's switch, once, then
+            offload's layout suggestion (6.9). Newest on top. */}
         {headsUp ? (
-          <View className="px-gutter-screen pt-space-4">
-            <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
-              {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
-            </Text>
-          </View>
+          <ThreadNotice
+            person={{
+              uid: headsUp.by.accountId,
+              initials: thread.members.find((one) => one.accountId === headsUp.by.accountId)?.initials ?? "",
+              name: headsUp.by.displayName,
+            }}
+            message={`${headsUp.by.displayName} switched this to the ${LAYOUT_NAMES[headsUp.layout]} layout`}
+            action="Change"
+            actionLabel="Change this thread's layout"
+            onAction={() => setEditingThread("layout")}
+            // Already seen on the server; this hides it for the view.
+            onDismiss={() => setHeadsUp(null)}
+          />
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
-          <View className="flex-row items-center px-gutter-screen pt-space-4">
-            <Pressable
-              onPress={() => {
-                if (!thread.layoutSuggestion) return;
-                setSuggestionGone(true);
-                saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
-              }}
-              hitSlop={{ top: 6, bottom: 6 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
-              className={`flex-row items-center gap-space-3 border border-transparent bg-surface-accent-soft ${isAndroid ? "rounded-a-sm" : "rounded-pill"}`}
-              style={{ minHeight: 32, paddingLeft: 10, paddingRight: 12, flexShrink: 1, boxShadow: `inset 0 0 0 1px ${COLOR.edgeAccent}` }}
-            >
-              <Glyph name="sparkles" size={13} color={COLOR.accent} />
-              <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
-                {suggestionLine(thread.layoutSuggestion)}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setSuggestionGone(true);
-                if (id) void dismissLayoutSuggestion(id);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Dismiss suggestion"
-              className="items-center justify-center"
-              style={{ width: 44, height: 44, marginVertical: -6 }}
-            >
-              <Glyph name="x" size={14} color={COLOR.quiet} />
-            </Pressable>
-          </View>
+          <ThreadNotice
+            stacked={headsUp !== null}
+            message={suggestionLine(thread.layoutSuggestion)}
+            action="Switch"
+            actionLabel={`Switch this thread to the ${LAYOUT_NAMES[thread.layoutSuggestion]} layout`}
+            onAction={() => {
+              if (!thread.layoutSuggestion) return;
+              setSuggestionGone(true);
+              saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue }, true);
+            }}
+            dismissLabel="Dismiss suggestion"
+            onDismiss={() => {
+              setSuggestionGone(true);
+              if (id) void dismissLayoutSuggestion(id);
+            }}
+          />
         ) : null}
 
         {/* The rail is above the widgets, and only on a thread with something
@@ -1271,11 +1319,12 @@ export default function Thread() {
             onDelete={remove}
             onEdit={setRenaming}
             onToggle={tick}
+            onOpenPhoto={openFileOf}
           />
         )}
 
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} />
+          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} threadId={thread.id} notes={shownNotes} members={thread.members} onNotes={patchNotes} toast={toast} writes={writes} onSheet={setNoteSheet} />
         ) : (
         <>
         {showArchived ? null : (
@@ -1330,13 +1379,19 @@ export default function Thread() {
           </View>
         ) : null}
 
-        {rest.length === 0 && !showArchived && inWidgets.size === 0 && !filtering ? (
-          <Text
-            className="px-gutter-screen py-space-8 font-core text-text-tertiary"
-            style={{ fontSize: 14 }}
-          >
-            Nothing in this one yet. Dump something and offload will file it.
-          </Text>
+        {/* 2026-10-31. The two ways in, in the middle of the screen: the kit's
+            EmptyState, with two buttons where it allows one. A thread with
+            notes is not empty. */}
+        {rest.length === 0 && !showArchived && inWidgets.size === 0 && !filtering && shownNotes.length === 0 ? (
+          <View className="items-center px-space-9 py-space-11" style={{ gap: 12 }}>
+            <Text className={`text-center font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, lineHeight: 22, maxWidth: 280 }}>
+              Nothing in this one yet. Add something, or dump it and offload will file it.
+            </Text>
+            <View className="flex-row flex-wrap justify-center" style={{ gap: 8, marginTop: 6 }}>
+              <WayIn label="Add a to do" icon="square-check-big" onPress={raiseTodo} />
+              <WayIn label="Add a note" icon="brain" onPress={raiseNote} />
+            </View>
+          </View>
         ) : null}
 
         {/* One row per series, standing for all of its occurrences, with how
@@ -1412,6 +1467,7 @@ export default function Thread() {
         ) : null}
         <PlateSpace />
       </ScrollView>
+      </Reveal.Provider>
       {map.made ? (
         <ThreadMap
           points={map.points}
@@ -1487,6 +1543,11 @@ export default function Thread() {
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
+        onOpenPhoto={(row) => {
+          setRenaming(null);
+          openFileOf(row);
+        }}
+        onRemoveAction={removeAction}
         labels={thread.labels}
         onSave={(row, patch, made) => {
           setRenaming(null);
@@ -1516,20 +1577,9 @@ export default function Thread() {
         actions={[
           ...tools.moreFirst.map((tool) => MORE_FIRST[tool]),
           { label: "Edit thread", icon: "pencil", run: () => setEditingThread("name") },
-          {
-            label: "Add a note",
-            icon: "brain",
-            run: () =>
-              raiseFor({
-                threadId: thread.id,
-                threadName: thread.name,
-                write: "note",
-                title: "Add a note",
-                placeholder: "What is true about this thread?",
-                charLimit: NOTE_CHARS,
-                showCounter: true,
-              }),
-          },
+          // Default only: the other layouts have their own way in, or none.
+          ...(isDefaultLayout ? [{ label: "Add a to do", icon: "square-check-big", run: raiseTodo }] : []),
+          { label: "Add a note", icon: "brain", run: raiseNote },
           ...(thread.calendars && !tools.moreFirst.includes("calendars")
             ? [{ label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) }]
             : []),
@@ -1824,5 +1874,24 @@ function EditSheet({
         </View>
       </DragSheet>
     </>
+  );
+}
+
+/** One of an empty thread's two ways in: the kit's secondary Button, or the
+ *  outlined pill on Android. */
+function WayIn({ label, icon, onPress }: { label: string; icon: "square-check-big" | "brain"; onPress: () => void }) {
+  const COLOR = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className={`flex-row items-center border px-space-6 ${isAndroid ? "rounded-pill border-a-outline" : "rounded-sm border-border-strong bg-surface-raised"}`}
+      style={{ minHeight: 44, gap: 6 }}
+    >
+      <Glyph name={icon} size={18} color={COLOR.ink} />
+      <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14.5 }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }

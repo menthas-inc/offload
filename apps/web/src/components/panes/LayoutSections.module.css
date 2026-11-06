@@ -1,14 +1,15 @@
-/* Thread layouts, the web's section chrome. Tokens only. */
+/* Thread layouts, the web's section chrome. Tokens only, and the space scale is
+   by step, not pixels: --space-4 is 8px. */
 
 .block {
-  margin-top: var(--space-16);
+  margin-top: var(--space-6);
 }
 
 /* A label section heading: dot, name, count, chevron (6.1). */
 .heading {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-4);
   width: 100%;
   min-height: 44px;
   padding: 0;
@@ -25,7 +26,7 @@
   flex: 0 0 auto;
 }
 .headingName {
-  font: var(--text-title-3-role);
+  font: var(--text-title-3);
   font-weight: var(--weight-semibold);
 }
 .headingCount {
@@ -38,7 +39,7 @@
 .addRow {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-4);
   min-height: 58px;
   color: var(--text-tertiary);
 }
@@ -56,7 +57,7 @@
 .nothing {
   font: var(--text-body-sm-role);
   color: var(--text-tertiary);
-  padding: var(--space-8) 0;
+  padding: var(--space-4) 0;
 }
 
 /* Gallery grid (6.4). */
@@ -68,7 +69,7 @@
 .tile {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-3);
   padding: 0;
   border: none;
   background: none;
@@ -95,7 +96,7 @@
   object-fit: cover;
 }
 .tileLetters {
-  font: var(--text-display-role);
+  font: var(--text-display);
   font-weight: var(--weight-semibold);
   color: var(--text-accent);
   padding: 12px 14px;
@@ -123,10 +124,10 @@
 .fold {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-4);
   width: 100%;
   min-height: 44px;
-  padding: 0 var(--space-12);
+  padding: 0 var(--space-5);
   border: none;
   border-radius: var(--radius-lg);
   background: var(--surface-fill);
@@ -141,8 +142,8 @@
 /* Timeline day (6.6). */
 .day {
   display: flex;
-  gap: var(--space-12);
-  padding: var(--space-16) 0;
+  gap: var(--space-6);
+  padding: var(--space-6) 0;
   border-bottom: 1px solid var(--border-hairline);
 }
 .gutter {
@@ -169,17 +170,27 @@
   font: var(--text-body-role);
   font-family: var(--font-quiet);
   color: var(--text-secondary);
-  padding: var(--space-8) 0;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-4) 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.noteLine:disabled {
+  cursor: default;
 }
 
 /* The others row (6.7). */
 .othersRow {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-4);
   width: 100%;
   min-height: 52px;
-  margin-top: var(--space-16);
+  margin-top: var(--space-6);
   padding: 0;
   border: none;
   border-top: 1px solid var(--border-hairline);

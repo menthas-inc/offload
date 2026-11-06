@@ -36,6 +36,7 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect, type ReactNode } from "react";
+import { useRevealed } from "./reveal";
 import { useRouter } from "expo-router";
 import Animated, {
   ReduceMotion,
@@ -51,7 +52,7 @@ import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { PdfOpening } from "./PdfOpening";
-import { PdfActions } from "./PdfActions";
+import { Actions } from "./Actions";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -221,16 +222,20 @@ export function ContentRowView({
     return withSpring(0, { damping: 20, stiffness: 220 });
   };
 
+  // 049. Search opened the page at this row.
+  const revealed_ = useRevealed(row.id);
   // The change mark: a moss ground settling to transparent over 1400ms. Moss
   // because it already means "offload did this, you didn't", which is exactly
   // what happened. Reduced motion drops it rather than shortening it, because
   // a flash that is only briefer is still a flash.
-  const mark = useSharedValue(arrived ? 1 : 0);
+  // 049. A row Search opened its page at takes the same mark.
+  const marked = arrived === true || Boolean(revealed_.ref);
+  const mark = useSharedValue(marked ? 1 : 0);
   useEffect(() => {
-    if (!arrived) return;
+    if (!marked) return;
     mark.value = 1;
     mark.value = withTiming(0, { duration: 1400, reduceMotion: ReduceMotion.System });
-  }, [arrived, mark]);
+  }, [marked, mark]);
 
   const pan = Gesture.Pan()
     .enabled(!provisional)
@@ -309,7 +314,7 @@ export function ContentRowView({
   }));
 
   return (
-    <Animated.View className="relative" style={stacking}>
+    <Animated.View className="relative" style={stacking} {...revealed_}>
       <Animated.View
         className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
@@ -624,12 +629,14 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
-          {/* 044. The links the PDF carried, in the row's text column, outside
+          {/* 044, 050. What the dump carried that one tap acts on, and
+              Directions for a placed row, in the row's text column, outside
               the title's press so each is its own tappable element. Not on an
               archived row. */}
-          {row.actions && !row.archivedAt ? (
-            <PdfActions
+          {(row.actions || row.place) && !row.archivedAt ? (
+            <Actions
               actions={row.actions}
+              place={row.place}
               // Author only, the same gate the row's delete uses.
               canRemove={row.canDelete && Boolean(onRemoveAction)}
               onRemove={onRemoveAction}

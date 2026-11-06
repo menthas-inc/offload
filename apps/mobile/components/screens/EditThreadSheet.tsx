@@ -49,8 +49,9 @@ export function EditThreadSheet({
   heading?: string;
   action?: string;
   thread: ThreadLook & { id: string; layout?: Layout; layoutSetBy?: "offload" | "person" };
-  /** What was tapped. The name opens the keyboard; the icon does not. */
-  from: "icon" | "name";
+  /** What was tapped. The name opens the keyboard; the icon does not; a
+   *  notice's Change brings the picked layout into view. */
+  from: "icon" | "name" | "layout";
   /** Cancel, the scrim, a swipe down and Android's back. Drops everything. */
   onClose: () => void;
   /** The change to write, and what the bar draws at the press. The sheet has
@@ -65,6 +66,7 @@ export function EditThreadSheet({
   const [focused, setFocused] = useState(false);
   const [gridWidth, setGridWidth] = useState(0);
   const field = useRef<TextInput>(null);
+  const layouts = useRef<ScrollView>(null);
 
   const icon = previewThreadIcon(thread, { name, icon: picked });
   const canSave = name.trim().length > 0;
@@ -91,6 +93,9 @@ export function EditThreadSheet({
       keyboard="lift"
       onOpen={() => {
         if (from === "name") field.current?.focus();
+        // shortcut: a medium LayoutTile taken as 64 wide plus the gap of 10; a label
+        // wider than its tile at a large text size lands short. Measure if that shows.
+        if (from === "layout") layouts.current?.scrollTo({ x: LAYOUTS.indexOf(layout) * 74, animated: true });
       }}
     >
       <View className="flex-row items-center justify-between">
@@ -202,6 +207,7 @@ export function EditThreadSheet({
         Layout
       </Text>
       <ScrollView
+        ref={layouts}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

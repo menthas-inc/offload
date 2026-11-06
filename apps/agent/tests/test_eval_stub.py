@@ -113,3 +113,64 @@ def test_a_fixture_row_is_a_row_create_event_can_take():
     assert _call(case, "create_event", {"content_id": "e1"}).get("ok") is True
     assert _call(case, "create_event", {"content_id": "e2"})["error"] == "no_time"
     assert _call(case, "create_event", {"content_id": "e9"})["error"] == "unknown_content"
+
+
+def test_a_row_finding_its_event_runs_the_server_s_bound():
+    # The Core API refuses an event it does not hold and one at another moment.
+    # A stub that took any `event` would pass a model that links a double
+    # booking, so it compares the row's time, read in the case's zone.
+    case = _case_with_rows(
+        [
+            {"contentId": "e1", "type": "event", "title": "Review", "occursAt": "2026-09-17T14:00"},
+            {"contentId": "e2", "type": "event", "title": "Lunch", "occursAt": "2026-09-17T12:00"},
+        ]
+    )
+    case.fixture["events"] = [
+        {"sourceRef": "cal-1:r", "title": "Review", "startsAt": "2026-09-17T13:00:00Z"}
+    ]
+    found = _call(case, "create_event", {"content_id": "e1", "event": "cal-1:r"})
+    assert found == {"ok": True, "alreadyOn": True}
+    other = _call(case, "create_event", {"content_id": "e2", "event": "cal-1:r"})
+    assert other["error"] == "different_time"
+    unknown = _call(case, "create_event", {"content_id": "e1", "event": "e1"})
+    assert unknown["error"] == "unknown_event"
+
+
+# ------------------------------------------------------------------ 050 actions
+
+
+def test_the_actions_stub_resolves_a_typed_number_and_a_picture_s_quote():
+    # 050 T6b. The stub runs the worker's own resolve over the turn's set the
+    # model was shown, so a case about a typed dump or a picture can pass and,
+    # more to the point, fail. Before 050 it returned nothing unless the row
+    # was a PDF's, so every such case passed vacuously.
+    from offload_agent.context import Found
+
+    run = _run()
+    fx = {"_found": [Found("tel:+12125550142", "dump", "typed")]}
+    typed = {"type": "event", "actions": [{"link": 1, "label": "Call Dana"}]}
+    assert [a["url"] for a in run._resolve_actions(fx, typed)] == ["tel:+12125550142"]
+    picture = {
+        "type": "event",
+        "photo": 1,
+        "body": "A message\nText: Dana R. 212 555 0142",
+        "actions": [{"found": "212 555 0142", "label": "Call Dana"}],
+    }
+    assert [a["kind"] for a in run._resolve_actions({}, picture)] == ["call"]
+    assert run._resolve_actions({}, {**picture, "photo": None}) == []
+
+
+def test_no_actions_looks_at_every_row_not_only_a_pdf_s():
+    from offload_agent.context import Found
+
+    run = _run()
+    fx = {"_found": [Found("tel:+12125550142", "dump", "typed")]}
+    calls = [
+        (
+            "add_content",
+            {"type": "task", "title": "Call Dana", "actions": [{"link": 1, "label": "Call Dana"}]},
+        )
+    ]
+    assert run._carried_actions(calls, fx) == [
+        [{"label": "Call Dana", "url": "tel:+12125550142", "kind": "call", "source": "typed"}]
+    ]

@@ -26,6 +26,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from offload_agent.found import label_ok
 from offload_agent.harness.thread_icons import THREAD_ICON_NAMES
 
 # A location's title is the one string that ever reaches a geocoder, so it is
@@ -102,6 +103,7 @@ def _date_shape(v: str | None) -> str | None:
         raise ValueError("expected a day and time that exist, as YYYY-MM-DD or ISO 8601") from None
     return text
 
+
 ContentType = Literal["link", "image", "screenshot", "voice", "file", "task", "event", "location"]
 
 #: The layouts offload may name at creation. Not "default", which is the absence.
@@ -150,28 +152,14 @@ class CreateThread(BaseModel):
 _PHOTO_ROWS = ("image", "screenshot", "event", "location", "task")
 
 
-#: 044. Dashes offload never writes (the en, em and friends; the ASCII hyphen
-#: is fine). A label carrying one is dropped, as is one that is host-shaped.
-_LABEL_DASHES = "‒–—―−"
-_HOST_SHAPED = re.compile(r"\.[a-z]{2,}", re.IGNORECASE)
-
-
-def _usable_label(label: str) -> bool:
-    """A short, sentence-case label with no dash, no scheme and no host, so the
-    only host-shaped text beside a PDF is the one the client computes (AC-6)."""
-    label = label.strip()
-    if not 1 <= len(label) <= 24:
-        return False
-    if any(d in label for d in _LABEL_DASHES):
-        return False
-    return "://" not in label and _HOST_SHAPED.search(label) is None
-
-
 class ActionItem(BaseModel):
-    """044. A link the PDF carried, named by its number in the candidate set
-    (never a URL the model wrote), and the label the model wrote for the tap."""
+    """044, 050. Something the dump carried that one tap can act on, and the
+    label the model wrote for the tap. Named by its number in the turn's set,
+    or, for a picture's row, quoted from that row's own `Text:` line (`found`).
+    Never a destination the model composed: the worker resolves both."""
 
-    link: int
+    link: int | None = None
+    found: str | None = None
     label: str
 
 
@@ -252,11 +240,13 @@ class AddContent(BaseModel):
     # PDF you were shown.
     pdf: int | None = None
 
-    # 044. Up to two links the PDF carried, offered beside it. Each names a
-    # candidate by its number (never a URL the model writes) and a short label.
+    # 044, 050. Up to two things the dump carried that one tap can act on,
+    # offered on the row. Each names an entry of the turn's set by its number,
+    # or on a picture's row quotes it from the row's `Text:` line, never a
+    # destination the model writes, with a short label.
     # Permissive: a bad entry is dropped in the validator below, never raised,
     # so a decoration cannot cost a whole dump (the 2026-10-17 boundary rule).
-    # The worker resolves each number to the harvested URL; the model, and this
+    # The worker resolves each to a gathered destination; the model, and this
     # schema, never carry one.
     actions: list[ActionItem] | None = None
 
@@ -291,15 +281,20 @@ class AddContent(BaseModel):
             raise ValueError("a file is a PDF: give its number as pdf")
         if self.pdf is not None and not 1 <= self.pdf <= 2:
             raise ValueError("pdf is 1 or 2")
-        # 044. actions ride a file row that carries a PDF; anywhere else they
-        # are dropped, not raised. A bad entry (link below one, or a label that
-        # is empty, over 24, dashed or host-shaped) drops that one entry.
+        # 044, 050. actions ride any row. A bad entry is dropped, never
+        # raised, so a decoration cannot cost the dump (2026-10-17): a label
+        # that fails `label_ok`, neither or both of `link` and `found`, a
+        # `link` below one, or a `found` on a row that carries no picture.
         if self.actions is not None:
-            if self.type != "file" or self.pdf is None:
-                self.actions = None
-            else:
-                kept = [a for a in self.actions if a.link >= 1 and _usable_label(a.label)]
-                self.actions = kept or None
+            kept = [
+                a
+                for a in self.actions
+                if label_ok(a.label)
+                and (a.link is None) != (a.found is None)
+                and (a.link is None or a.link >= 1)
+                and (a.found is None or (self.photo is not None and 1 <= len(a.found) <= 300))
+            ]
+            self.actions = kept or None
         return self
 
     @field_validator("rrule")
@@ -687,6 +682,10 @@ class CreateEvent(BaseModel):
     # one shared with Sam (2026-10-05). Never an id, never a guess, and
     # nothing here decides whether the write is confirmed.
     calendar: str | None = Field(default=None, max_length=120)
+    # The event this row already is, by the `sourceRef` `find_events` returned:
+    # an invitation on their calendar before the email reached offload. Nothing
+    # is written. The server takes only their own event at the row's own moment.
+    event: str | None = Field(default=None, max_length=400)
 
 
 class EditEvent(BaseModel):
@@ -752,6 +751,10 @@ _DESCRIPTIONS.update(
             "calendar gives 'my calendar'), 'my personal calendar', or who it is "
             "shared with, 'my calendar with Sam'. 'The calendar' and 'our "
             "calendar' say none. "
+            "When `find_events` shows the row is already there, give `event` "
+            "that event's `sourceRef`: nothing is written and nothing is "
+            "asked. Refused `different_time` or `unknown_event`: it is not "
+            "that event. "
             "If it needs guests, add them: offload will ask "
             "them to confirm before anybody is emailed. Refused `no_time`: set "
             "the time on that row with `edit_content` and call this again with "

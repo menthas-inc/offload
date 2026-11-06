@@ -14,6 +14,15 @@ export function photoCaption(body: string | null | undefined): string | null {
   return caption.length > 0 ? caption : null;
 }
 
+/** 2026-11-02. The body with its caption replaced and the `Text:` words kept,
+ *  for the row sheet's details field. Null when nothing is left. */
+export function withCaption(body: string | null | undefined, caption: string): string | null {
+  const at = body ? body.search(/(^|\n)Text:/) : -1;
+  const words = at < 0 || !body ? "" : body.slice(at).replace(/^\n/, "");
+  const next = [caption.trim(), words].filter((part) => part.length > 0).join("\n");
+  return next.length > 0 ? next : null;
+}
+
 /** Per message, photos and PDFs together, and the server holds the same
  *  number. */
 export const MAX_PHOTOS = 10;

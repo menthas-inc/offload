@@ -426,6 +426,8 @@ def listing(
         lines += ["What the assistant knows about them across threads, to read and never change:"]
         lines += [_entry(text=memory.text) for memory in memories]
         lines += [""]
+    else:
+        lines += ["No memories are shown to you here, so no note gives way to one.", ""]
     lines += ["Your notes, oldest first:"]
     lines += [note_entry(note) for note in yours] or ["(none)"]
     if others:

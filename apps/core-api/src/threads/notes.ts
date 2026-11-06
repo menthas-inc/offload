@@ -1032,7 +1032,19 @@ export async function applyCompaction(
     for (const id of sources) folded.add(id);
   }
 
-  for (const id of plan.supersede) if (touchable(id)) folded.add(id);
+  // offload's own note that a memory cites goes to history, never out: the
+  // memory goes with a source that was removed.
+  const cited = plan.remove.length
+    ? await trx
+        .selectFrom("notes")
+        .select(sql<string>`attrs->>'from_note'`.as("id"))
+        .where("scope", "=", "account")
+        .where("deleted_at", "is", null)
+        .where(sql`attrs->>'from_note'`, "in", plan.remove)
+        .execute()
+    : [];
+  const kept = cited.map((row) => row.id).filter((id) => held.get(id)?.origin === "learned");
+  for (const id of [...plan.supersede, ...kept]) if (touchable(id)) folded.add(id);
 
   let superseded = 0;
   if (folded.size > 0) {
@@ -1046,7 +1058,13 @@ export async function applyCompaction(
         // is never purged by us, which is OFF-1 as amended expressed as a
         // `purge_after` that stays null. Without this the folded list is the
         // one thing on a thread that grows forever.
-        purge_after: sql`case when origin = 'learned' then now() + interval '30 days' end`,
+        // A memory's note stays with no clock: `sweepMemories` reads a source
+        // row that has gone as a person deleting it, and takes the memory.
+        purge_after: sql`case when origin = 'learned' and not exists (
+          select 1 from notes memory
+           where memory.scope = 'account' and memory.subject_id = notes.account_id
+             and memory.deleted_at is null and memory.attrs->>'from_note' = notes.id::text
+        ) then now() + interval '30 days' end`,
       })
       .where("id", "in", [...folded])
       .where("superseded_at", "is", null)

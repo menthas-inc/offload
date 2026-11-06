@@ -47,15 +47,15 @@ export const FOLDED_AT_FIRST_LABELS: Record<Layout, readonly string[]> = {
 
 /** Layouts offload may suggest, and the phrase the line reads (6.9). */
 const PHRASES: Record<Exclude<Layout, "default">, string> = {
-  todo: "a list to get through",
-  events: "a trip or an event",
-  gallery: "things to get round to",
+  todo: "a checklist",
+  events: "a trip or event",
+  gallery: "a collection",
   project: "a project",
   timeline: "a diary",
 };
 
 export function suggestionLine(layout: Exclude<Layout, "default">): string {
-  return `Looks like ${PHRASES[layout]}`;
+  return `Looks like ${PHRASES[layout]}, switch to the ${LAYOUT_NAMES[layout]} layout?`;
 }
 
 /** Which open rows reach Today's To do (decision 11). A date or a reminder

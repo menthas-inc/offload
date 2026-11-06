@@ -1,0 +1,1893 @@
+{
+ "person": "tom",
+ "threads": [
+  {
+   "key": "work",
+   "name": "Work: Becker Bau"
+  },
+  {
+   "key": "kids",
+   "name": "Kids"
+  },
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "football",
+   "name": "Football: Karlshorster FC"
+  },
+  {
+   "key": "car",
+   "name": "Car: Octavia"
+  },
+  {
+   "key": "diy",
+   "name": "DIY at home"
+  },
+  {
+   "key": "tax",
+   "name": "Steuer und Geld"
+  },
+  {
+   "key": "bike",
+   "name": "Cycling"
+  }
+ ],
+ "rows": [
+  {
+   "id": "t001",
+   "thread": "work",
+   "title": "Safety induction Becker Bau",
+   "body": "Monday 9:00 with Herr Kowalski. Bring ID and safety shoes."
+  },
+  {
+   "id": "t002",
+   "thread": "work",
+   "title": "Buy steel-toe boots",
+   "body": ""
+  },
+  {
+   "id": "t003",
+   "thread": "work",
+   "title": "Hard hat with name sticker",
+   "body": ""
+  },
+  {
+   "id": "t004",
+   "thread": "work",
+   "title": "Hi-vis vest x3",
+   "body": ""
+  },
+  {
+   "id": "t005",
+   "thread": "work",
+   "title": "Bauleitung Kickoff Projekt Lichtenberg",
+   "body": "Thursday 8:00 in the site container."
+  },
+  {
+   "id": "t006",
+   "thread": "work",
+   "title": "Wohnanlage Lichtenberg, Frankfurter Allee 211",
+   "body": "Phase 2, 48 flats. Ground works should be finished by the end of November."
+  },
+  {
+   "id": "t007",
+   "thread": "work",
+   "title": "Concrete delivery Tuesday 7:00, truck 3",
+   "body": "Pump arrives at 6:30. Gate has to be open and the street cleaned afterwards."
+  },
+  {
+   "id": "t008",
+   "thread": "work",
+   "title": "Check scaffolding inspection report",
+   "body": ""
+  },
+  {
+   "id": "t009",
+   "thread": "work",
+   "title": "Gerüstabnahme Block B",
+   "body": "Prüfer comes Wednesday. Have the Prüfprotokoll ready on site."
+  },
+  {
+   "id": "t010",
+   "thread": "work",
+   "title": "Order rebar from Stahl Hoffmann",
+   "body": "Need 12 tonnes BSt 500 by Friday. Ask for the delivery note with batch numbers."
+  },
+  {
+   "id": "t011",
+   "thread": "work",
+   "title": "Betonprüfung Ergebnisse 28 Tage",
+   "body": ""
+  },
+  {
+   "id": "t012",
+   "thread": "work",
+   "title": "Call Dieter about the crane booking",
+   "body": ""
+  },
+  {
+   "id": "t013",
+   "thread": "work",
+   "title": "Crane rental Liebherr, 3 days",
+   "body": "Tower crane for the roof slab. Confirm the dates with Dieter."
+  },
+  {
+   "id": "t014",
+   "thread": "work",
+   "title": "Bautagebuch ausfüllen",
+   "body": "Weather, headcount, deliveries, anything unusual. Every evening before leaving."
+  },
+  {
+   "id": "t015",
+   "thread": "work",
+   "title": "Fill in the site diary every evening",
+   "body": ""
+  },
+  {
+   "id": "t016",
+   "thread": "work",
+   "title": "Weekly report to Frau Brandt by Friday noon",
+   "body": ""
+  },
+  {
+   "id": "t017",
+   "thread": "work",
+   "title": "Frau Brandt, Projektleiterin",
+   "body": "Phone 0172 555 0143. Prefers email before 9."
+  },
+  {
+   "id": "t018",
+   "thread": "work",
+   "title": "Subcontractors: electrical, plumbing, drywall",
+   "body": "Get contact numbers and insurance certificates from all three."
+  },
+  {
+   "id": "t019",
+   "thread": "work",
+   "title": "Elektro Schulz invoice query",
+   "body": "Invoice 2290 is 800 euros higher than the quote. Ask Herr Schulz why."
+  },
+  {
+   "id": "t020",
+   "thread": "work",
+   "title": "Rainy week: plan indoor work first",
+   "body": ""
+  },
+  {
+   "id": "t021",
+   "thread": "work",
+   "title": "Weather delay claim form",
+   "body": "Document every day with more than 10 mm of rain for the client."
+  },
+  {
+   "id": "t022",
+   "thread": "work",
+   "title": "Arbeitsschutz Unterweisung Quartal 4",
+   "body": ""
+  },
+  {
+   "id": "t023",
+   "thread": "work",
+   "title": "Check first aid kit in the site container",
+   "body": ""
+  },
+  {
+   "id": "t024",
+   "thread": "work",
+   "title": "Mängelliste Haus 3",
+   "body": "14 open points, mostly paint and window seals."
+  },
+  {
+   "id": "t025",
+   "thread": "work",
+   "title": "Snag list photos Haus 3",
+   "body": ""
+  },
+  {
+   "id": "t026",
+   "thread": "work",
+   "title": "Baustellenverordnung (BaustellV) | Bundesministerium für Arbeit und Soziales",
+   "body": ""
+  },
+  {
+   "id": "t027",
+   "thread": "work",
+   "title": "DIN 18202 Toleranzen im Hochbau, Übersicht",
+   "body": ""
+  },
+  {
+   "id": "t028",
+   "thread": "work",
+   "title": "How to read a structural drawing | Construction Manager Magazine",
+   "body": ""
+  },
+  {
+   "id": "t029",
+   "thread": "work",
+   "title": "Best site management apps 2026 compared",
+   "body": ""
+  },
+  {
+   "id": "t030",
+   "thread": "work",
+   "title": "Meeting with architect Studio Nord, Wednesday 14:00",
+   "body": ""
+  },
+  {
+   "id": "t031",
+   "thread": "work",
+   "title": "Ask the architect about the stair void dimensions",
+   "body": ""
+  },
+  {
+   "id": "t032",
+   "thread": "work",
+   "title": "Idea: weekly toolbox talk on Monday mornings",
+   "body": "Ten minutes, one topic, the crew signs the sheet."
+  },
+  {
+   "id": "t033",
+   "thread": "work",
+   "title": "Toolbox talk topic: working at height",
+   "body": ""
+  },
+  {
+   "id": "t034",
+   "thread": "work",
+   "title": "Check fall protection harnesses",
+   "body": ""
+  },
+  {
+   "id": "t035",
+   "thread": "work",
+   "title": "Probation review in March",
+   "body": "Six months from the start. Frau Brandt said we will sit down before then."
+  },
+  {
+   "id": "t036",
+   "thread": "work",
+   "title": "Company car or Kilometergeld?",
+   "body": "Ask HR what the rule is for driving to the site."
+  },
+  {
+   "id": "t037",
+   "thread": "work",
+   "title": "Arbeitsvertrag unterschreiben und zurückschicken",
+   "body": ""
+  },
+  {
+   "id": "t038",
+   "thread": "work",
+   "title": "Betriebsarzt Termin",
+   "body": "Mandatory check-up for site staff. Book through Lisa in the office."
+  },
+  {
+   "id": "t039",
+   "thread": "work",
+   "title": "Lisa in the office handles HR and invoices",
+   "body": ""
+  },
+  {
+   "id": "t040",
+   "thread": "work",
+   "title": "Lunch with the crew on Friday",
+   "body": "Currywurst at the stand on the corner, I pay."
+  },
+  {
+   "id": "t041",
+   "thread": "work",
+   "title": "Bring cake for the first Friday",
+   "body": ""
+  },
+  {
+   "id": "t042",
+   "thread": "work",
+   "title": "Learn the names of the crew",
+   "body": "Ahmed, Piotr, Jonas, Marek, Sven. The foreman is Ahmed."
+  },
+  {
+   "id": "t043",
+   "thread": "work",
+   "title": "Ahmed Yilmaz, Polier",
+   "body": ""
+  },
+  {
+   "id": "t044",
+   "thread": "work",
+   "title": "Piotr needs the A1 certificate for the subcontract",
+   "body": ""
+  },
+  {
+   "id": "t045",
+   "thread": "work",
+   "title": "Gehwegsperrung Genehmigung verlängern",
+   "body": "The permit for closing the pavement runs out on 15 November."
+  },
+  {
+   "id": "t046",
+   "thread": "work",
+   "title": "Lärmschutz: no loud work before 7 or after 18",
+   "body": ""
+  },
+  {
+   "id": "t047",
+   "thread": "work",
+   "title": "Skip container full, call Remondis",
+   "body": "Last pickup was a week ago. Order two for next month."
+  },
+  {
+   "id": "t048",
+   "thread": "work",
+   "title": "Dumpster pickup Thursday",
+   "body": ""
+  },
+  {
+   "id": "t049",
+   "thread": "work",
+   "title": "Beschwerde Nachbarin Frau Weber",
+   "body": "She rang twice about dust and noise. Talk to her in person."
+  },
+  {
+   "id": "t050",
+   "thread": "work",
+   "title": "Check formwork before the pour",
+   "body": "Look at the ties and the bracing, then sign off with Ahmed."
+  },
+  {
+   "id": "t051",
+   "thread": "work",
+   "title": "Schalung abnehmen Freitag",
+   "body": ""
+  },
+  {
+   "id": "t052",
+   "thread": "work",
+   "title": "Insulation delivery pushed to next week",
+   "body": ""
+  },
+  {
+   "id": "t053",
+   "thread": "work",
+   "title": "Replace the heater in the site container",
+   "body": "It trips the fuse. Ask Lisa for a budget of 100 euros."
+  },
+  {
+   "id": "t054",
+   "thread": "work",
+   "title": "Print the plans A1 at the copy shop",
+   "body": "Five sets of the new floor plan revision C."
+  },
+  {
+   "id": "t055",
+   "thread": "work",
+   "title": "Idea: drone photos for progress reports",
+   "body": "Ask Frau Brandt if the client allows flying over the site."
+  },
+  {
+   "id": "t056",
+   "thread": "work",
+   "title": "SiGe-Plan review",
+   "body": ""
+  },
+  {
+   "id": "t057",
+   "thread": "kids",
+   "title": "Lena swimming lesson Tuesdays 16:30",
+   "body": "Maya takes her, I pick her up when I can."
+  },
+  {
+   "id": "t058",
+   "thread": "kids",
+   "title": "Elternabend Kita Felix, 12 November",
+   "body": ""
+  },
+  {
+   "id": "t059",
+   "thread": "kids",
+   "title": "Laternenumzug Kita, 11 November",
+   "body": "Felix needs a lantern. Lena wants to help make it."
+  },
+  {
+   "id": "t060",
+   "thread": "kids",
+   "title": "Buy school folders for Lena",
+   "body": "Blue ones, A4, with the elastic. The teacher sent a list."
+  },
+  {
+   "id": "t061",
+   "thread": "kids",
+   "title": "Felix needs new rain boots, size 28",
+   "body": "The old ones leak at the left heel."
+  },
+  {
+   "id": "t062",
+   "thread": "kids",
+   "title": "Gummistiefel für die Kita",
+   "body": ""
+  },
+  {
+   "id": "t063",
+   "thread": "kids",
+   "title": "Lena's birthday party",
+   "body": "14 March. Ask whether the climbing hall has free slots."
+  },
+  {
+   "id": "t064",
+   "thread": "kids",
+   "title": "Birthday present for Felix: Duplo or Lego?",
+   "body": ""
+  },
+  {
+   "id": "t065",
+   "thread": "kids",
+   "title": "Zahnarzt Kinder, 20.11. 15:00",
+   "body": "Dr. Richter, bring both Bonushefte."
+  },
+  {
+   "id": "t066",
+   "thread": "kids",
+   "title": "Elternsprechtag Lena, Thursday 17:00",
+   "body": ""
+  },
+  {
+   "id": "t067",
+   "thread": "kids",
+   "title": "Tierpark Berlin Öffnungszeiten und Preise",
+   "body": ""
+  },
+  {
+   "id": "t068",
+   "thread": "kids",
+   "title": "Best picture books for five year olds | Zeit Online",
+   "body": ""
+  },
+  {
+   "id": "t069",
+   "thread": "kids",
+   "title": "Sandwiches for the school trip on Friday",
+   "body": ""
+  },
+  {
+   "id": "t070",
+   "thread": "kids",
+   "title": "Lena needs 3 euros for the class trip",
+   "body": ""
+  },
+  {
+   "id": "t071",
+   "thread": "kids",
+   "title": "Pick up Felix from Kita at 16:00 on Tuesday",
+   "body": ""
+  },
+  {
+   "id": "t072",
+   "thread": "kids",
+   "title": "Winter jackets for both kids",
+   "body": "Check last year's sizes first. Felix probably needs 116."
+  },
+  {
+   "id": "t073",
+   "thread": "kids",
+   "title": "Schwimmbeutel nicht vergessen",
+   "body": ""
+  },
+  {
+   "id": "t074",
+   "thread": "kids",
+   "title": "Playdate with Emil on Saturday",
+   "body": "His mum Katrin said any time after 14:00."
+  },
+  {
+   "id": "t075",
+   "thread": "kids",
+   "title": "Nikolaus: Stiefel putzen am 5.12.",
+   "body": ""
+  },
+  {
+   "id": "t076",
+   "thread": "kids",
+   "title": "Advent calendar for the kids",
+   "body": "Lego for Felix, something with sticker sheets for Lena."
+  },
+  {
+   "id": "t077",
+   "thread": "kids",
+   "title": "Autumn break at Oma's in Hamburg",
+   "body": "Drive up on the 18th, back on the 25th."
+  },
+  {
+   "id": "t078",
+   "thread": "kids",
+   "title": "Impfpass mitbringen",
+   "body": ""
+  },
+  {
+   "id": "t079",
+   "thread": "kids",
+   "title": "Felix has a cough, call the pediatrician if it lasts",
+   "body": ""
+  },
+  {
+   "id": "t080",
+   "thread": "kids",
+   "title": "Idea: Sunday bike ride to Tempelhofer Feld with the kids",
+   "body": ""
+  },
+  {
+   "id": "t081",
+   "thread": "kids",
+   "title": "Seepferdchen Kurs for Felix",
+   "body": "Waiting list at the Schwimmhalle, ask Maya to put us down."
+  },
+  {
+   "id": "t082",
+   "thread": "kids",
+   "title": "Felix recorder lesson, bring the Blockflöte",
+   "body": ""
+  },
+  {
+   "id": "t083",
+   "thread": "football",
+   "title": "Training Tuesday 20:00 Sportplatz Karlshorst",
+   "body": "Bring both pairs of boots in case the pitch is wet."
+  },
+  {
+   "id": "t084",
+   "thread": "football",
+   "title": "Match vs Spandau Veterans, Sunday 11:00",
+   "body": "Meet at 10:15 at the pitch."
+  },
+  {
+   "id": "t085",
+   "thread": "football",
+   "title": "Spiel gegen Pankow Sonntag",
+   "body": ""
+  },
+  {
+   "id": "t086",
+   "thread": "football",
+   "title": "Mitgliedsbeitrag überweisen",
+   "body": "120 euros to Karlshorster FC, reference is my name."
+  },
+  {
+   "id": "t087",
+   "thread": "football",
+   "title": "Buy new shin guards",
+   "body": "Mine cracked on Sunday. Medium size."
+  },
+  {
+   "id": "t088",
+   "thread": "football",
+   "title": "Football boots size 44, studs worn out",
+   "body": ""
+  },
+  {
+   "id": "t089",
+   "thread": "football",
+   "title": "Kit wash this week, my turn",
+   "body": "Eleven shirts, wash at 40 degrees."
+  },
+  {
+   "id": "t090",
+   "thread": "football",
+   "title": "Coach Marcel's group chat",
+   "body": ""
+  },
+  {
+   "id": "t091",
+   "thread": "football",
+   "title": "Drinks for after the match",
+   "body": ""
+  },
+  {
+   "id": "t092",
+   "thread": "football",
+   "title": "Union vs Hertha tickets",
+   "body": "The derby is in December. Ask Jonas whether he can get four tickets."
+  },
+  {
+   "id": "t093",
+   "thread": "football",
+   "title": "Union Berlin Spielplan 2026/27 | Kicker",
+   "body": ""
+  },
+  {
+   "id": "t094",
+   "thread": "football",
+   "title": "Knee strengthening exercises for footballers | Physio Blog",
+   "body": ""
+  },
+  {
+   "id": "t095",
+   "thread": "football",
+   "title": "Knee twinged on Sunday",
+   "body": ""
+  },
+  {
+   "id": "t096",
+   "thread": "football",
+   "title": "Physio Termin Donnerstag 18:30",
+   "body": ""
+  },
+  {
+   "id": "t097",
+   "thread": "football",
+   "title": "Bring ball pump and cones to training",
+   "body": "Marcel asked for it last time."
+  },
+  {
+   "id": "t098",
+   "thread": "football",
+   "title": "Vereinsfeier Dezember Anmeldung",
+   "body": "Sign up by 1 December, partners welcome."
+  },
+  {
+   "id": "t099",
+   "thread": "football",
+   "title": "Idea: five-a-side with the Becker Bau crew",
+   "body": ""
+  },
+  {
+   "id": "t100",
+   "thread": "football",
+   "title": "Torwarthandschuhe leihen",
+   "body": "Ask Jonas for his, ours are torn."
+  },
+  {
+   "id": "t101",
+   "thread": "car",
+   "title": "TÜV Termin Dezember",
+   "body": "HU is due in December. Book at the Prüfstelle in Marzahn."
+  },
+  {
+   "id": "t102",
+   "thread": "car",
+   "title": "Winterreifen aufziehen",
+   "body": "Reifenservice Kowalczyk, they have an appointment slot on Saturday mornings."
+  },
+  {
+   "id": "t103",
+   "thread": "car",
+   "title": "Swap to winter tyres before the first frost",
+   "body": ""
+  },
+  {
+   "id": "t104",
+   "thread": "car",
+   "title": "Ölwechsel bei 15000 km",
+   "body": "Longlife oil only. Do it with the service."
+  },
+  {
+   "id": "t105",
+   "thread": "car",
+   "title": "Kfz-Versicherung vergleichen",
+   "body": "Renewal is 30 November. Compare Check24 with what HUK charges now."
+  },
+  {
+   "id": "t106",
+   "thread": "car",
+   "title": "Car insurance: cancel by 30 November if switching",
+   "body": ""
+  },
+  {
+   "id": "t107",
+   "thread": "car",
+   "title": "Anwohnerparken Ausweis verlängern",
+   "body": "Needs the Fahrzeugschein and the Meldebescheinigung."
+  },
+  {
+   "id": "t108",
+   "thread": "car",
+   "title": "Parking permit renewal, Bürgeramt Lichtenberg",
+   "body": ""
+  },
+  {
+   "id": "t109",
+   "thread": "car",
+   "title": "Scheibenwischer wechseln",
+   "body": ""
+  },
+  {
+   "id": "t110",
+   "thread": "car",
+   "title": "Washer fluid, winter mix",
+   "body": ""
+  },
+  {
+   "id": "t111",
+   "thread": "car",
+   "title": "New child seat for Felix, group 2/3",
+   "body": "Look at the ADAC test results first."
+  },
+  {
+   "id": "t112",
+   "thread": "car",
+   "title": "Dashcam?",
+   "body": ""
+  },
+  {
+   "id": "t113",
+   "thread": "car",
+   "title": "Collect fuel receipts for the tax return",
+   "body": ""
+  },
+  {
+   "id": "t114",
+   "thread": "car",
+   "title": "ADAC Autotest Skoda Octavia Kombi 2.0 TDI",
+   "body": ""
+  },
+  {
+   "id": "t115",
+   "thread": "car",
+   "title": "Roof box for the Hamburg trip",
+   "body": "Borrow Jonas's box if it fits the Octavia."
+  },
+  {
+   "id": "t116",
+   "thread": "car",
+   "title": "Check tyre pressure",
+   "body": ""
+  },
+  {
+   "id": "t117",
+   "thread": "car",
+   "title": "Verbandskasten und Warndreieck Ablaufdatum prüfen",
+   "body": ""
+  },
+  {
+   "id": "t118",
+   "thread": "car",
+   "title": "Octavia service at Autohaus Nowak",
+   "body": "30000 km service, ask about the clutch noise."
+  },
+  {
+   "id": "t119",
+   "thread": "diy",
+   "title": "Balkon: Holzdielen ölen",
+   "body": "Needs a dry weekend, the weather has to stay above 10 degrees."
+  },
+  {
+   "id": "t120",
+   "thread": "diy",
+   "title": "Hang shelves in the kids' room",
+   "body": ""
+  },
+  {
+   "id": "t121",
+   "thread": "diy",
+   "title": "Dübel und Schrauben für das Regal",
+   "body": "6 mm Dübel for the wall, 4.5 x 50 Schrauben."
+  },
+  {
+   "id": "t122",
+   "thread": "diy",
+   "title": "Buy an 8 mm masonry bit",
+   "body": ""
+  },
+  {
+   "id": "t123",
+   "thread": "diy",
+   "title": "Bohrmaschine Akku ersetzen",
+   "body": ""
+  },
+  {
+   "id": "t124",
+   "thread": "diy",
+   "title": "Silicone the bathroom, mould in the corner",
+   "body": ""
+  },
+  {
+   "id": "t125",
+   "thread": "diy",
+   "title": "Schimmel Bad Ecke, Silikon erneuern",
+   "body": ""
+  },
+  {
+   "id": "t126",
+   "thread": "diy",
+   "title": "How to hang a heavy mirror on drywall | Heimwerker Forum",
+   "body": ""
+  },
+  {
+   "id": "t127",
+   "thread": "diy",
+   "title": "Toom Baumarkt Gartenmöbel Sale",
+   "body": ""
+  },
+  {
+   "id": "t128",
+   "thread": "diy",
+   "title": "Paint for Lena's room, soft green",
+   "body": "Alpina Feine Farben, 2.5 l. Try a sample on the wall first."
+  },
+  {
+   "id": "t129",
+   "thread": "diy",
+   "title": "Wandfarbe Kinderzimmer",
+   "body": ""
+  },
+  {
+   "id": "t130",
+   "thread": "diy",
+   "title": "Fix the squeaky door in the hallway",
+   "body": "Probably just the top hinge. A drop of oil."
+  },
+  {
+   "id": "t131",
+   "thread": "diy",
+   "title": "Kitchen tap drips, new cartridge",
+   "body": ""
+  },
+  {
+   "id": "t132",
+   "thread": "diy",
+   "title": "Wasserhahn Küche tropft",
+   "body": "Probably the cartridge. Photograph the model name first."
+  },
+  {
+   "id": "t133",
+   "thread": "diy",
+   "title": "Rauchmelder Batterien wechseln",
+   "body": ""
+  },
+  {
+   "id": "t134",
+   "thread": "diy",
+   "title": "Idea: build a loft bed for Felix",
+   "body": "Pine, 90x200, rails at 1.2 m. Measure the ceiling height first."
+  },
+  {
+   "id": "t135",
+   "thread": "diy",
+   "title": "Holz bei Holz Possling bestellen",
+   "body": ""
+  },
+  {
+   "id": "t136",
+   "thread": "diy",
+   "title": "Ask the landlord about drilling into the balcony",
+   "body": ""
+  },
+  {
+   "id": "t137",
+   "thread": "diy",
+   "title": "Vermieter Herr Lange, Reparaturmeldung Heizkörper",
+   "body": ""
+  },
+  {
+   "id": "t138",
+   "thread": "diy",
+   "title": "Radiator in the living room stays cold, bleed it",
+   "body": ""
+  },
+  {
+   "id": "t139",
+   "thread": "diy",
+   "title": "Light bulbs E27 warm white",
+   "body": ""
+  },
+  {
+   "id": "t140",
+   "thread": "diy",
+   "title": "Zweitschlüssel für Ingrid machen lassen",
+   "body": ""
+  },
+  {
+   "id": "t141",
+   "thread": "tax",
+   "title": "Steuererklärung 2025 abgeben",
+   "body": "With the Steuerberater the deadline is end of July. Use ELSTER if doing it alone."
+  },
+  {
+   "id": "t142",
+   "thread": "tax",
+   "title": "ELSTER Zertifikat erneuern",
+   "body": "It expires in January. Takes a few days by post."
+  },
+  {
+   "id": "t143",
+   "thread": "tax",
+   "title": "Belege sammeln: Fahrtkosten, Arbeitskleidung",
+   "body": ""
+  },
+  {
+   "id": "t144",
+   "thread": "tax",
+   "title": "Arbeitskleidung absetzen",
+   "body": "Boots, helmet and work trousers count as Werbungskosten."
+  },
+  {
+   "id": "t145",
+   "thread": "tax",
+   "title": "Homeoffice Pauschale prüfen",
+   "body": "I worked from home three weeks before the start date, probably not worth it."
+  },
+  {
+   "id": "t146",
+   "thread": "tax",
+   "title": "Kita fees receipts for the tax return",
+   "body": ""
+  },
+  {
+   "id": "t147",
+   "thread": "tax",
+   "title": "Steuer-ID von Lena und Felix heraussuchen",
+   "body": ""
+  },
+  {
+   "id": "t148",
+   "thread": "tax",
+   "title": "Lohnsteuerbescheinigung vom alten Arbeitgeber",
+   "body": "Ask Meier Hochbau for the 2026 slip since I left in September."
+  },
+  {
+   "id": "t149",
+   "thread": "tax",
+   "title": "Call tax advisor Frau Okonkwo",
+   "body": ""
+  },
+  {
+   "id": "t150",
+   "thread": "tax",
+   "title": "Steuerberater Honorar schätzen lassen",
+   "body": ""
+  },
+  {
+   "id": "t151",
+   "thread": "tax",
+   "title": "Steuerklasse wechseln: III/V oder IV/IV | Finanztip",
+   "body": ""
+  },
+  {
+   "id": "t152",
+   "thread": "tax",
+   "title": "Steuerklassenwechsel mit Maya besprechen",
+   "body": "Does IV/IV with Faktor make more sense now that I have a new salary?"
+  },
+  {
+   "id": "t153",
+   "thread": "tax",
+   "title": "Spendenquittung Verein ablegen",
+   "body": "The football club sent it by email, print it for the folder."
+  },
+  {
+   "id": "t154",
+   "thread": "tax",
+   "title": "Kindergeld Bescheid einscannen",
+   "body": ""
+  },
+  {
+   "id": "t155",
+   "thread": "tax",
+   "title": "Hausratversicherung Beitrag prüfen",
+   "body": ""
+  },
+  {
+   "id": "t156",
+   "thread": "tax",
+   "title": "Check bank fees on the Girokonto",
+   "body": ""
+  },
+  {
+   "id": "t157",
+   "thread": "tax",
+   "title": "Dauerauftrag Miete kontrollieren",
+   "body": ""
+  },
+  {
+   "id": "t158",
+   "thread": "bike",
+   "title": "Race bike: new chain and cassette",
+   "body": "Chain is at 0.75 wear. Check the cassette teeth too."
+  },
+  {
+   "id": "t159",
+   "thread": "bike",
+   "title": "Rennrad Kette wechseln",
+   "body": ""
+  },
+  {
+   "id": "t160",
+   "thread": "bike",
+   "title": "Ride the Spreeradweg to Bad Saarow",
+   "body": "Take the train back. A weekend in spring maybe."
+  },
+  {
+   "id": "t161",
+   "thread": "bike",
+   "title": "Fahrradlicht Akku laden",
+   "body": "It died halfway home on Thursday."
+  },
+  {
+   "id": "t162",
+   "thread": "bike",
+   "title": "Helmet for Lena, size S",
+   "body": ""
+  },
+  {
+   "id": "t163",
+   "thread": "bike",
+   "title": "Fahrradhelm Kinder Größe 52",
+   "body": ""
+  },
+  {
+   "id": "t164",
+   "thread": "bike",
+   "title": "Bike trailer for Felix",
+   "body": "Used ones on Kleinanzeigen, max 150 euros."
+  },
+  {
+   "id": "t165",
+   "thread": "bike",
+   "title": "Saddle hurts, try a new one",
+   "body": "Maybe a wider one, the shop in Friedrichshain does fittings."
+  },
+  {
+   "id": "t166",
+   "thread": "bike",
+   "title": "Reifen Schwalbe Marathon 28mm",
+   "body": ""
+  },
+  {
+   "id": "t167",
+   "thread": "bike",
+   "title": "Best bike lights under 50 euros | Radfahren Testmagazin",
+   "body": ""
+  },
+  {
+   "id": "t168",
+   "thread": "bike",
+   "title": "Berlin Radschnellweg Karte und Planung",
+   "body": ""
+  },
+  {
+   "id": "t169",
+   "thread": "bike",
+   "title": "Cycle to work via Rummelsburg",
+   "body": "About 14 km each way, mostly on cycle lanes."
+  },
+  {
+   "id": "t170",
+   "thread": "bike",
+   "title": "Regenjacke für Radfahren",
+   "body": ""
+  },
+  {
+   "id": "t171",
+   "thread": "bike",
+   "title": "Rain jacket for the ride to the site",
+   "body": "Something bright. Not more than 120 euros."
+  },
+  {
+   "id": "t172",
+   "thread": "bike",
+   "title": "Bike lock key number, take a photo",
+   "body": ""
+  },
+  {
+   "id": "t173",
+   "thread": "bike",
+   "title": "Fahrrad Codierung bei der Polizei",
+   "body": ""
+  },
+  {
+   "id": "t174",
+   "thread": "bike",
+   "title": "Check tubes and pump before Sunday's ride",
+   "body": ""
+  },
+  {
+   "id": "t175",
+   "thread": "bike",
+   "title": "Reflective ankle straps",
+   "body": ""
+  },
+  {
+   "id": "t176",
+   "thread": "misc",
+   "title": "Milk, eggs, bread",
+   "body": "Also oat milk for Maya."
+  },
+  {
+   "id": "t177",
+   "thread": "misc",
+   "title": "Milch, Eier, Brot",
+   "body": ""
+  },
+  {
+   "id": "t178",
+   "thread": "misc",
+   "title": "Batteries AA",
+   "body": ""
+  },
+  {
+   "id": "t179",
+   "thread": "misc",
+   "title": "Geburtstag Oma 14.11.",
+   "body": "Call in the morning, send flowers to Hamburg."
+  },
+  {
+   "id": "t180",
+   "thread": "misc",
+   "title": "Blumen für Oma bestellen",
+   "body": ""
+  },
+  {
+   "id": "t181",
+   "thread": "misc",
+   "title": "Cancel the gym membership",
+   "body": "Notice period is three months, so write the letter now."
+  },
+  {
+   "id": "t182",
+   "thread": "misc",
+   "title": "Handyvertrag Telekom, Tarif wechseln",
+   "body": ""
+  },
+  {
+   "id": "t183",
+   "thread": "misc",
+   "title": "Personalausweis verlängern",
+   "body": "Book online. The Bürgeramt Lichtenberg is full until January."
+  },
+  {
+   "id": "t184",
+   "thread": "misc",
+   "title": "Deutsche Bahn Sparpreis Berlin Hamburg",
+   "body": ""
+  },
+  {
+   "id": "t185",
+   "thread": "misc",
+   "title": "Date night with Maya: find a babysitter",
+   "body": ""
+  },
+  {
+   "id": "t186",
+   "thread": "misc",
+   "title": "Hochzeitstag 9. Dezember, Restaurant buchen",
+   "body": "Table for two at the Vietnamese place on Kastanienallee. Ask for the quiet corner."
+  },
+  {
+   "id": "t187",
+   "thread": "misc",
+   "title": "Dr. Haas, Hausarzt",
+   "body": "Lower back after lifting at work. Ask for a referral to physio."
+  },
+  {
+   "id": "t188",
+   "thread": "misc",
+   "title": "Pick up parcel from the Packstation",
+   "body": "The code expires on Friday."
+  },
+  {
+   "id": "t189",
+   "thread": "misc",
+   "title": "Return the jacket to Zalando",
+   "body": "Too small. Label is in the hallway drawer."
+  },
+  {
+   "id": "t190",
+   "thread": "misc",
+   "title": "Zahnreinigung für mich buchen",
+   "body": ""
+  },
+  {
+   "id": "t191",
+   "thread": "misc",
+   "title": "Anna's wedding gift",
+   "body": "Wedding is 6 June. They have a registry at Manufactum."
+  },
+  {
+   "id": "t192",
+   "thread": "misc",
+   "title": "Christmas present ideas: Maya, kids, mum",
+   "body": ""
+  },
+  {
+   "id": "t193",
+   "thread": "misc",
+   "title": "Easy sourdough bread recipe | Chefkoch",
+   "body": "Maya wants to try it this weekend."
+  },
+  {
+   "id": "t194",
+   "thread": "misc",
+   "title": "Buy Maya a book for Christmas",
+   "body": "She mentioned the new Juli Zeh novel."
+  },
+  {
+   "id": "t195",
+   "thread": "misc",
+   "title": "Alex's birthday, 22 January",
+   "body": ""
+  },
+  {
+   "id": "t196",
+   "thread": "work",
+   "title": "Mittagspause Baustelle: Bäcker nebenan",
+   "body": "The Bäckerei on the corner opens at 6. Good for ordering rolls for the crew on pour days."
+  },
+  {
+   "id": "t197",
+   "thread": "kids",
+   "title": "Lena reading list for the Herbstferien",
+   "body": "Three books from the school library, due back after the break."
+  },
+  {
+   "id": "t198",
+   "thread": "football",
+   "title": "Skate at Eisbahn Wuhlheide with the team?",
+   "body": "Marcel suggested it for the Christmas outing, ask who is in."
+  },
+  {
+   "id": "t199",
+   "thread": "car",
+   "title": "Autowäsche vor dem Winter",
+   "body": ""
+  },
+  {
+   "id": "t200",
+   "thread": "diy",
+   "title": "Ladder: borrow from the neighbour",
+   "body": "Herr Petrov has a 3 m one, bring it back with a bottle of wine."
+  },
+  {
+   "id": "t201",
+   "thread": "work",
+   "title": "Order more safety glasses",
+   "body": ""
+  },
+  {
+   "id": "t202",
+   "thread": "work",
+   "title": "Cleaning schedule for the toilet cabins",
+   "body": ""
+  },
+  {
+   "id": "t203",
+   "thread": "kids",
+   "title": "Kinderschuhe Größe 31 für Lena",
+   "body": ""
+  },
+  {
+   "id": "t204",
+   "thread": "kids",
+   "title": "Faschingskostüm für Felix",
+   "body": ""
+  },
+  {
+   "id": "t205",
+   "thread": "football",
+   "title": "Trikot Nummer 4 bestellen",
+   "body": ""
+  },
+  {
+   "id": "t206",
+   "thread": "car",
+   "title": "Fußmatten für den Winter",
+   "body": ""
+  },
+  {
+   "id": "t207",
+   "thread": "diy",
+   "title": "Glühbirne im Flur ersetzen",
+   "body": ""
+  },
+  {
+   "id": "t208",
+   "thread": "tax",
+   "title": "Compare tax software for next year",
+   "body": ""
+  },
+  {
+   "id": "t209",
+   "thread": "bike",
+   "title": "Buy a floor pump",
+   "body": ""
+  },
+  {
+   "id": "t210",
+   "thread": "misc",
+   "title": "Toilet paper and bin bags",
+   "body": ""
+  },
+  {
+   "id": "t211",
+   "thread": "misc",
+   "title": "Geschenkpapier",
+   "body": ""
+  },
+  {
+   "id": "t212",
+   "thread": "work",
+   "title": "Copy of the Bauleiter certificate for HR",
+   "body": ""
+  },
+  {
+   "id": "t213",
+   "thread": "misc",
+   "title": "Haircut",
+   "body": ""
+  },
+  {
+   "id": "t214",
+   "thread": "kids",
+   "title": "Wechselkleidung in die Kita",
+   "body": ""
+  },
+  {
+   "id": "t215",
+   "thread": "diy",
+   "title": "Leiter vom Nachbarn zurückbringen",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "tn01",
+   "thread": "work",
+   "text": "Site manager (Bauleiter) on the Wohnanlage Lichtenberg project for Becker Bau. Reports to Frau Brandt."
+  },
+  {
+   "id": "tn02",
+   "thread": "work",
+   "text": "Work on site starts at 7:00. Toolbox talk on Mondays."
+  },
+  {
+   "id": "tn03",
+   "thread": "work",
+   "text": "Safety shoes and a hard hat are mandatory on site at all times."
+  },
+  {
+   "id": "tn04",
+   "thread": "work",
+   "text": "The foreman is Ahmed Yilmaz. Electrical subcontractor is Elektro Schulz."
+  },
+  {
+   "id": "tn05",
+   "thread": "work",
+   "text": "The weekly report goes to Frau Brandt on Friday by noon."
+  },
+  {
+   "id": "tn06",
+   "thread": "kids",
+   "text": "Lena is 8 and in second grade at the Grundschule am Fennpfuhl."
+  },
+  {
+   "id": "tn07",
+   "thread": "kids",
+   "text": "Felix is 5 and goes to Kita Sonnenschein until 16:30."
+  },
+  {
+   "id": "tn08",
+   "thread": "kids",
+   "text": "Felix has his recorder lesson on Wednesdays."
+  },
+  {
+   "id": "tn09",
+   "thread": "kids",
+   "text": "Lena swims on Tuesdays at 16:30."
+  },
+  {
+   "id": "tn10",
+   "thread": "kids",
+   "text": "Maya's mother Ingrid takes the kids on Sundays."
+  },
+  {
+   "id": "tn11",
+   "thread": "football",
+   "text": "Karlshorster FC, Alte Herren. Training on Tuesdays at 20:00, matches on Sundays."
+  },
+  {
+   "id": "tn12",
+   "thread": "football",
+   "text": "Coach is Marcel. I play right back."
+  },
+  {
+   "id": "tn13",
+   "thread": "football",
+   "text": "The membership fee is 120 euros a year."
+  },
+  {
+   "id": "tn14",
+   "thread": "car",
+   "text": "Skoda Octavia Kombi, 2019, diesel. Serviced at Autohaus Nowak."
+  },
+  {
+   "id": "tn15",
+   "thread": "car",
+   "text": "Car insurance is with HUK and renews on 30 November."
+  },
+  {
+   "id": "tn16",
+   "thread": "diy",
+   "text": "We rent the flat in Lichtenberg. The landlord is Herr Lange and repairs go through the Hausverwaltung."
+  },
+  {
+   "id": "tn17",
+   "thread": "diy",
+   "text": "The kids' room is the small one facing the courtyard."
+  },
+  {
+   "id": "tn18",
+   "thread": "tax",
+   "text": "The tax advisor is Frau Okonkwo. Tax class is IV."
+  },
+  {
+   "id": "tn19",
+   "thread": "tax",
+   "text": "Receipts go in the blue folder until they are scanned."
+  },
+  {
+   "id": "tn20",
+   "thread": "bike",
+   "text": "Race bike is a 2021 Canyon Endurace in size L. The commuter is an old Kreidler."
+  },
+  {
+   "id": "tn21",
+   "thread": "bike",
+   "text": "The commute to the site is about 14 km each way."
+  },
+  {
+   "id": "tn22",
+   "thread": "misc",
+   "text": "Default thread for errands, shopping and anything that does not fit elsewhere."
+  },
+  {
+   "id": "tn23",
+   "thread": "misc",
+   "text": "Oma lives in Hamburg and her birthday is on 14 November."
+  },
+  {
+   "id": "tn24",
+   "thread": "football",
+   "text": "Home pitch is the Sportplatz Karlshorst."
+  },
+  {
+   "id": "tn25",
+   "thread": "tax",
+   "text": "Deadline for the tax return with an advisor is the end of July."
+  }
+ ],
+ "memories": [
+  {
+   "id": "tm01",
+   "text": "They live in Berlin with their wife Maya and their kids Lena and Felix."
+  },
+  {
+   "id": "tm02",
+   "text": "They are a site manager at Becker Bau and started there in October 2026."
+  },
+  {
+   "id": "tm03",
+   "text": "Their wife is Maya."
+  },
+  {
+   "id": "tm04",
+   "text": "Their daughter Lena is 8 and their son Felix is 5."
+  },
+  {
+   "id": "tm05",
+   "text": "They drive a Skoda Octavia Kombi."
+  },
+  {
+   "id": "tm06",
+   "text": "They play football for Karlshorster FC."
+  },
+  {
+   "id": "tm07",
+   "text": "They cycle to work when it is dry."
+  },
+  {
+   "id": "tm08",
+   "text": "Their boss at Becker Bau is Frau Brandt, the Projektleiterin."
+  },
+  {
+   "id": "tm09",
+   "text": "Their mother-in-law is Ingrid."
+  },
+  {
+   "id": "tm10",
+   "text": "They go by Tom."
+  },
+  {
+   "id": "tm11",
+   "text": "They write in a mix of German and English."
+  },
+  {
+   "id": "tm12",
+   "text": "They have a tax advisor, Frau Okonkwo."
+  },
+  {
+   "id": "tm13",
+   "text": "They rent a flat in Lichtenberg, Berlin."
+  },
+  {
+   "id": "tm14",
+   "text": "Their brother is Alex."
+  },
+  {
+   "id": "tm15",
+   "text": "Their previous employer was Meier Hochbau."
+  },
+  {
+   "id": "tm16",
+   "text": "The foreman on their site is Ahmed."
+  },
+  {
+   "id": "tm17",
+   "text": "They ride a Canyon road bike."
+  },
+  {
+   "id": "tm18",
+   "text": "They support Union Berlin."
+  },
+  {
+   "id": "tm19",
+   "text": "Their mother lives in Hamburg."
+  },
+  {
+   "id": "tm20",
+   "text": "Their wedding anniversary is 9 December."
+  }
+ ],
+ "queries": [
+  {
+   "q": "what day is my daughter's pool time",
+   "relevant": [
+    "t057",
+    "tn09"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "yearly roadworthiness check",
+   "relevant": [
+    "t101"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "children's wellies for puddles",
+   "relevant": [
+    "t061",
+    "t062"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "pocket money my daughter takes on an excursion",
+   "relevant": [
+    "t070"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "mileage allowance for the commute",
+   "relevant": [
+    "t036"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "annual salary tax certificate from my former company",
+   "relevant": [
+    "t148",
+    "tm15"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "dinner out for our big day as a couple",
+   "relevant": [
+    "t186",
+    "tm20"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "feeding my team of builders",
+   "relevant": [
+    "t040",
+    "t041",
+    "t196"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "hue for my daughter's bedroom",
+   "relevant": [
+    "t128",
+    "t129"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "fixing the leaky faucet",
+   "relevant": [
+    "t131",
+    "t132"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "heating problem in our home",
+   "relevant": [
+    "t137",
+    "t138"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "workout to protect my joints",
+   "relevant": [
+    "t094"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weekly team practice",
+   "relevant": [
+    "t083",
+    "tn11"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "where to take small children to see animals",
+   "relevant": [
+    "t067"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "electrician charged more than agreed",
+   "relevant": [
+    "t019"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Kinderanhänger fürs Rad",
+   "relevant": [
+    "t164"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "employment contract to sign and send back",
+   "relevant": [
+    "t037"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "dentist appointment for the children",
+   "relevant": [
+    "t065"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Ingrid",
+   "relevant": [
+    "t140",
+    "tn10",
+    "tm09"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "TÜV",
+   "relevant": [
+    "t101"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "rebar",
+   "relevant": [
+    "t010"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Hamburg",
+   "relevant": [
+    "t077",
+    "t115",
+    "t179",
+    "t184",
+    "tn23",
+    "tm19"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Steuerklasse",
+   "relevant": [
+    "t151",
+    "t152",
+    "tn18"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Kita",
+   "relevant": [
+    "t058",
+    "t059",
+    "t062",
+    "t071",
+    "t146",
+    "t214",
+    "tn07"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Marcel",
+   "relevant": [
+    "t090",
+    "t097",
+    "t198",
+    "tn12"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Union",
+   "relevant": [
+    "t092",
+    "t093",
+    "tm18"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when does the concrete arrive",
+   "relevant": [
+    "t007"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what's the foreman called",
+   "relevant": [
+    "t042",
+    "t043",
+    "tn04",
+    "tm16"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is the football club membership",
+   "relevant": [
+    "t086",
+    "tn13"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when does the car insurance renew",
+   "relevant": [
+    "t105",
+    "t106",
+    "tn15"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "tax return deadline",
+   "relevant": [
+    "t141",
+    "tn25"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how do I get to the site by bike",
+   "relevant": [
+    "t169",
+    "tn21",
+    "tm07"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "weather in Munich tomorrow",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "how tall is the Eiffel Tower",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "what time is sunset today",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "latest iPhone price",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "how many calories in a banana",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "mortgage rates",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "asbestos survey report",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "10k running plan",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "Elterngeld Antrag",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "Wallbox installation cost",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "asdfghjkl",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "qwertzuiop",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "zzzzz 1234 ?!",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "lkjhg mnbvc",
+   "relevant": [],
+   "kind": "nonsense"
+  }
+ ]
+}

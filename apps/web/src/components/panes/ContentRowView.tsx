@@ -31,7 +31,7 @@ import { Line } from "../shell/InPlace";
 import { lineFor, useUndoEntry } from "../../lib/undo";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
-import { PdfActions } from "../shell/PdfActions";
+import { Actions } from "../shell/Actions";
 import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
@@ -53,6 +53,8 @@ export interface RowHandlers {
   asking: string | null;
   /** Rows that arrived while somebody was looking at the screen. */
   arrived: Set<string>;
+  /** 049. The row Search opened the page at: never folded away. */
+  reveal?: string | null;
   onDraft: (text: string) => void;
   onEdit: (row: ContentRow) => void;
   onSaveTitle: (row: ContentRow) => void;
@@ -198,6 +200,7 @@ export function ContentRowView({
       // exactly what happened. Blue is "this needs you", and a row that was
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
+      data-row-id={row.id}
       data-provisional={provisional ? true : undefined}
       data-picked={handlers.picked === row.id ? true : undefined}
       onMouseEnter={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}
@@ -371,11 +374,13 @@ export function ContentRowView({
           </span>
         ) : null}
 
-        {/* 044. The links the PDF carried, under the title and meta, where the
-            row lives for as long as the PDF does. Not drawn on an archived row. */}
-        {row.actions && !row.archivedAt ? (
-          <PdfActions
+        {/* 044, 050. What the dump carried that one tap acts on, and
+            Directions for a placed row, under the title and meta. Not drawn on
+            an archived row. */}
+        {(row.actions || row.place) && !row.archivedAt ? (
+          <Actions
             actions={row.actions}
+            place={row.place}
             // Author only, the same gate the row's delete uses.
             canRemove={row.canDelete && Boolean(handlers.onRemoveAction)}
             onRemove={

@@ -61,6 +61,11 @@ interface Props {
   /** A row was dragged to a new place. The writes hold the new order; the page
    *  owns the rows and the Undo, so it makes them. */
   onReorder: (writes: ReorderWrite[], moved: string) => void;
+  /** 2026-10-31. To do's quick add, open. The page owns it, because the More
+   *  menu and an empty thread's Add a to do open it too, and on a thread with
+   *  no to dos yet it is what draws the section at all. */
+  addingTodo: boolean;
+  onAddingTodo: (adding: boolean) => void;
 }
 
 export function Widgets({
@@ -71,8 +76,11 @@ export function Widgets({
   onToggle,
   onFold,
   onReorder,
+  addingTodo,
+  onAddingTodo,
 }: Props) {
-  const widgets = widgetsFor(rows, preference.widgets);
+  const earned = widgetsFor(rows, preference.widgets);
+  const widgets = addingTodo && !earned.some((widget) => widget.kind === "todo") ? [{ kind: "todo" as const, rows: [] }, ...earned] : earned;
   if (widgets.length === 0) return null;
 
   return (
@@ -87,6 +95,7 @@ export function Widgets({
           onToggle={onToggle}
           onFold={onFold}
           onReorder={onReorder}
+          {...(widget.kind === "todo" ? { adding: addingTodo, onAdding: onAddingTodo } : {})}
         />
       ))}
     </>
@@ -101,6 +110,8 @@ function WidgetBlock({
   onToggle,
   onFold,
   onReorder,
+  adding: shared,
+  onAdding,
 }: {
   widget: Widget<ContentRow>;
   hideDone: boolean;
@@ -109,14 +120,22 @@ function WidgetBlock({
   onToggle: (row: ContentRow) => void;
   onFold: (next: boolean) => void;
   onReorder: (writes: ReorderWrite[], moved: string) => void;
+  /** To do's quick add is the page's; every other section keeps its own. */
+  adding?: boolean;
+  onAdding?: (adding: boolean) => void;
 }) {
   const [allDone, setAllDone] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [own, setOwn] = useState(false);
+  const adding = shared ?? own;
+  const setAdding = onAdding ?? setOwn;
   // 2026-10-17. The section folds from its heading, kept in this browser;
   // Files starts folded. Folding with the add field open is its Cancel.
   const [folds, setFold] = useFolds();
   const section: FoldSection = widget.kind;
-  const folded = folds[section];
+  // 049. A row Search opened the page at is never folded away or cut short.
+  const revealing = widget.rows.some((row) => row.id === handlers.reveal);
+  // An open add field holds it open, since the field is inside.
+  const folded = folds[section] && !revealing && !adding;
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a
   // files section has nothing to hide and never draws the control.
   //
@@ -267,17 +286,17 @@ function WidgetBlock({
           that the work happened. The heading toggle above hides this whole
           block; "Show all" is the separate, narrower question of whether to
           see all of them once they are already showing. */}
-      {!hideDone && widget.kind !== "files" ? (
+      {(!hideDone || revealing) && widget.kind !== "files" ? (
         <>
           {/* 2026-09-29. A rule between what is left and what is finished:
               the finished rows cannot be dragged, so they draw no handle, and
               without the rule they read as the same list drawn wrong. */}
           {widget.kind === "todo" && left.length > 0 && done.length > 0 ? <hr className={styles.doneRule} /> : null}
-          <InPlace items={allDone ? done : done.slice(0, DONE_SHOWN)} idOf={(row) => row.id}>
+          <InPlace items={allDone || revealing ? done : done.slice(0, DONE_SHOWN)} idOf={(row) => row.id}>
             {(row) => <Row row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />}
           </InPlace>
 
-          {done.length > DONE_SHOWN && !allDone ? (
+          {done.length > DONE_SHOWN && !allDone && !revealing ? (
             <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>
               Show all {done.length} finished
             </button>

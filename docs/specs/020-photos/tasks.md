@@ -62,6 +62,7 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 - [x] **E2** `Conversation.tsx` `SentPhoto`; `ContentRow.tsx` the thumbnail tile; `Widgets.tsx` the grid; `Image` with the cookie header. *(AC-12, AC-29, AC-32)*
 - [x] **E3** `PhotoViewer`: the modal route, the platform bar on each phone with the three controls, pinch to zoom, swipe between the set, swipe down and back to close, the text under a pull, the move sheet. *(AC-30, AC-31, AC-33)*
 - [x] **E4** On-device checks on the Pixel 9 and an iPhone: ten chips with the keyboard up, a HEIC from the camera drawing in the grid within a minute, the viewer at 200% text, the remove control's hit area. *(AC-3, AC-15, AC-30)*
+- [x] **E6** (2026-11-02) Today's tile and the thread calendar's day rows open the viewer or the PDF; the row sheet shows the attachment and its caption, editable; a number in the caption is a Call pill on the row, in the sheet and in both viewers. Tests: `packages/widgets/src/photos.test.ts`, `apps/mobile/test/call-from-details.test.ts`, `apps/web/test/call-pill.test.tsx`. *(AC-39 to AC-41)*
 
 ## F. Share sheet
 

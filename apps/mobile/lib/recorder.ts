@@ -119,7 +119,9 @@ export class Session {
     // Recording ducks whatever else is playing; playback goes through the
     // silent switch, as a voice note does in every messaging app.
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await recorder.prepareToRecordAsync();
+    // With options iOS makes a new file, and its folder, for each note.
+    // Without, it reuses the launch's, whose folder sign-out deletes.
+    await recorder.prepareToRecordAsync(RECORDING_OPTIONS);
     const session = new Session(recorder, onSample, onStopped);
     session.startedAt = Date.now();
     recorder.record();

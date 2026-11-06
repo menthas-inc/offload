@@ -287,6 +287,54 @@
         "say": null,
         "rubric": "The row's time is 19:00 UTC, which is 3pm in Toronto on Monday 14 September. A row at 15:00Z or 14:00Z fails: that is 3pm somewhere else."
       }
+    },
+    {
+      "id": "by-tomorrow-is-a-day",
+      "why": "by a day means any time up to the end of it, so no clock time is invented",
+      "surface": "file",
+      "input": "send the insurance form by tomorrow",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-12",
+            "bare_day": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "next-wednesday-is-a-day",
+      "why": "a day named on its own is a day, not 09:00",
+      "surface": "file",
+      "input": "renew the parking permit next wednesday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-16",
+            "bare_day": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "monthly-on-the-5th-is-a-day",
+      "why": "a monthly bill on the 5th went in at 09:00Z, 5am in New York",
+      "surface": "file",
+      "input": "monthly reminder on the 5th to pay the mortgage",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-10-05",
+            "bare_day": true
+          }
+        ],
+        "say": null
+      }
     }
   ]
 }

@@ -11,6 +11,62 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-06 · Finished to-dos start hidden
+**Surface:** iOS, Android, web (a thread's To do section)
+**Raised by:** the product owner: done tasks and folded notes should both be hidden until somebody asks for them.
+
+**Was:** finished rows showed under the open ones until a member folded them.
+
+**Is:** they start folded for every member of every thread, with the existing count and chevron beside To do as the way to show them. The choice stays per member and per thread. Folded notes already sat behind Show N folded, so they did not change.
+
+**Considered and not taken:** an account-wide setting, which is a second control for what the chevron already does.
+
+**Design system impact:** kits that draw finished rows open under To do should start with them folded. No new token or component.
+
+### 2026-11-02 · Details in the row sheet, and found actions on every row (050)
+**Surface:** iOS, Android (row, row sheet, viewer, conversation); web (row, edit modal, viewer, conversation)
+**Raised by:** the product owner: a screenshot for a meeting held the number to call, and on the phones it could be neither read nor opened. Off a mock in the session of the same day (Today row, row sheet, viewer), then widened the same day from one Call pill to found actions, 044's PDF actions for anything a dump says (spec 050, reviewed by the project lead, client and security reviewers).
+
+**Was:** the phones' row sheet held the title, When, Repeats, Labels, Move and Remind me; the details field went on 2026-09-29. Today drew a photo row's tile with nothing behind the tap. Only a PDF's file row could carry actions: 044's label-only pills, a link each, behind a per-tap confirm, with literal 13px type.
+
+**Is:** the row sheet shows, under the title, the attachment's tile at 56 (it opens the viewer, or the PDF) and the caption beside it as an editable field, the `Text:` words kept as stored. Today's tile and a calendar day's rows open the viewer, as the thread's and Loose's do. Any row may carry up to two actions offload chose on the filing turn, drawn by one `Actions` pill component per client in 044's secondary style:
+- **Open** keeps 044's label-only pill with `arrow-up-right` after the label, and its confirm, now naming its source: *From the picture.*, *From your voice note.*, *From what you typed.*, *From the PDF.*, *From a mail from dhl.com.*
+- **Call** and **Email** lead with `phone` or `mail` in `--text-accent`, then the label, then the number or address in `--text-secondary` with tabular figures: *Call Dana  +1 212 555 0142*. No confirm of offload's: the destination is on the pill, and the platform's dialer or mail draft sends nothing by itself. Their Remove, author only, sits beside each in the phones' row sheet and the web's edit modal (in a thread).
+- **Directions** leads with `map-pin`, drawn on any row whose place resolved (030), from 030's own link.
+The pills sit on the row under the title and meta, in the sheet's details block, in the edit modal under the title, in the viewer under the caption, and under a sent picture or PDF in the conversation; never on a tile, a grid cell or a search row. Type is `--size-label` (`text-label` on the phones), not a literal; pills draw at 32 with the hit area reaching `--tap-min` through `::after` on the web and `hitSlop` on the phones, so 044's PDF pills change only in that their size is now the token.
+
+**Considered and not taken:** a Call pill found on the device by a pattern (shipped to a branch, never released: it could not tell the number that matters from a footer, and knew only numbers); a confirm for every kind (the web and the phones' own prompts already show a number or address that is on the pill); the details read-only.
+
+**Design system impact:** `assets/icons/phone.svg` (Lucide `phone`) joins the set; `mail.svg` and `map-pin.svg` are already in it. No new tokens or components. **To redraw:** `RowEditSheet` in `mobile_app/TodayParts.jsx` and its Android twin gain the details block (tile, editable caption) and the actions under it; the row's text column in every list may end with up to two action pills and Directions in the three kinds above; the viewer's caption ends with them; 044's PDF pill in the kits takes `--size-label`; the web edit modal (`web_app/WThing.jsx`'s edit) gains the actions with Remove under the title.
+
+### 2026-10-31 · The thread notice: one strip for what a thread tells you
+**Surface:** iOS, Android, web; the thread page
+**Raised by:** the product owner: the layout suggestion is ugly and small, and the next things a thread needs to say should use the same thing. Off `explorations/thread-notices.html` (A card, B strip, C offload's voice, D compact) and `explorations/thread-notice-final.html`. Handoff: `handoff/APPLY-2026-10-31-thread-notice.md`.
+
+**Was:** offload's layout suggestion as a 32px soft-moss pill, 13px, *Looks like a trip or an event*, with an x; tapping it switched without saying so. A member's switch as a plain 13px line.
+
+**Is:** `ThreadNotice`, a full-width strip under the read: solid moss and white from offload, ink from a person, 16 medium, two lines at most, one underlined word and an x. The suggestion reads *Looks like a trip or event, switch to the Events layout?* with Switch; switching leaves *Showing as Events. You can always change this in thread settings.* with Undo. A member's switch reads *Sam switched this to the Events layout* with Change.
+
+**As built, where the code departs from the handoff:** a person's face is `Avatar` at 28, not 24: the house Avatar's sizes start at 28 and it draws their mark, not initials on a hue, so `initials` and `hue` are not props of the app's strip. On the web the strip pays back the pane's own gutter (24) rather than 20, so its text lines up with the page's. The phones' underline has no offset (React Native has none), and the strip leaves as a 280ms fade with no height collapse; the web collapses height and fades, and writes a dismiss at the press rather than after the leave. On the phones Edit thread is short enough that its Layout row is always in view, so Change scrolls the layout strip to the picked one; on the web it focuses the picked tile. **Three lines at most, not two**: measured in the app's own Instrument Sans 16 medium in the strip as drawn (the glyph, Switch and the x take 134 of 335), the checklist, trip and collection lines need three at 375 and four of five at 360, so a two-line clamp cut *layout?*; the copy is the handoff's, unchanged (three lines over shorter copy: the owner, 2026-10-31), and the clamp lifts with Larger text on the web and above 1.3 on the phones. A person's face is hidden from a screen reader, as the contract's mark is, since the line names them. iOS announces the strip once on appearance, since a live region is Android's alone.
+
+**Considered and not taken:** a raised card with a sentence of why and two buttons (A); offload's serif voice with no box (C); one compact row that opens and folds several into a count (D); the soft moss tint for the strip, too pale.
+
+**Design system impact:** `ThreadNotice` (new) in `components/feedback/`; `UndoLine` gains `wrap`; `readme.md` gains **Thread notices** and Thread layouts' suggestion line. No new tokens or glyphs.
+
+### 2026-10-30 · Search, as its own tab and page; My threads becomes Threads
+**Surface:** iOS, Android, web; the tabs, the web sidebar, a new Search page
+**Raised by:** the product owner: searching through the composer is too slow. Off `explorations/search-entry.html` (A top bar, B beside the tabs, C a find mode in the composer, D pull down), `explorations/search-pull.html` (D, interactive) and `explorations/search-tab.html` (final, interactive). Handoff: `handoff/APPLY-2026-10-30-search.md`.
+
+**Was:** no search page on any client. Finding something meant asking in the composer, which goes through the model (013), or Memories' own filter. The tabs were Today, My threads, Memories.
+
+**Is:** a Search page that reads the index as you type and never calls the model: threads, things with their thread, memories, then *Ask offload about "…"*, which fills the composer unsent. Phones: a fourth tab, **Today, Threads, Search, Memories**, with Memories' field and a titled bar. Web: the sidebar item in the same place, ⌘K and /, a window over the page. A new `GET /search` with prefix matching on `content.search_text`. **My threads is renamed Threads.** The composer is unchanged.
+
+**Considered and not taken:** a magnifier in each root page's bar (A, the designer's recommendation); a search button beside the tab bar (B); a find mode in the composer (C), which mixes dumping and finding; pull down (D), drawn interactively, hard to discover alone; Search as the last tab, after Memories.
+
+**As built, where the code departs from the handoff (049, `docs/specs/049-search/`):** the middle group is headed **In your threads**, not *Things*, and the placeholder is **Search everything**: thing is retired in copy, and *Things* is also a kind of memory on the same page (owner, 2026-10-30). Search also finds **thread notes**, as a fourth group (up to 3) between In your threads and Memories, **archived rows**, after every live one and saying *Archived*, and **rows in Not in a thread** (owner). **From four letters the query is also read by meaning** once typing pauses (350 ms), with Voyage, and the results may reorder as that lands (owner); under four letters nothing leaves offload. Words match accents folded (*cafe* finds *Café*), offload's own search too. The read is **`POST /v1/search`** with the query in the body, not `GET /search?q=`, so it is in no address. A row's meta is the date an answer's row shows, or its kind (*to-do*, *event*, *link*, *photo*, *voice note*, *file*, *place*). The web window takes `WPalette`'s surface tokens (`--radius-lg`, `--border-hairline`, `--shadow-3`, the rise) and the sidebar's key cap rings in `--border-hairline` rather than `#3A3A38`; below 660 it is the page's width less the gutter. The thread chips are reachable by the arrows on the web. The flash on a row opened from Search is the existing change mark (moss, `--surface-accent-soft`, 1.4 s), not `--blue-600` at 14%. The phones' recent searches are cleared at sign-out; the web's are kept per account and cleared at sign-out. The phones count Search as home for the voice-note quick action. Under Reduce Motion the window does not rise.
+
+**Design system impact:** `readme.md` gains **Search**; the tab glyph line and the vocabulary row read Threads. No new tokens, glyphs or components (`search` is vendored). **To redraw:** the four tabs (Today, Threads, Search, Memories) in both mobile kits' plates and in `WSidebar` with the ⌘K cap; a Search screen in both mobile kits and the window in the web kit, headed *In your threads* with a Notes group, archived rows marked *Archived*, the placeholder *Search everything*; `WPalette`'s surface for the window. Until then `explorations/search-tab.html` is the reference, read with this entry's as-built list.
+
 ### 2026-10-29 · My threads as a grid, in your own order, with deeper thread colours
 **Surface:** iOS, Android, web; My threads, and every thread icon
 **Raised by:** the product owner: My threads should be a grid, keep its order rather than sort by activity, and the thread icons are too pale in both themes. Off `explorations/threads-grid.html` (three tiles, five mark treatments), `threads-grid-final.html` (the back glyph, the light ground), and `threads-grid-approval.html` (interactive, approved). Handoff: `handoff/APPLY-2026-10-29-threads-grid.md`.
@@ -4459,3 +4515,20 @@ exactly like "I refreshed and I cannot see your change".
 - The footer follows how they got in: the waitlist line if they joined it, *You are receiving this because the team at offload wanted you to try it.* if staff added the address directly.
 **Why:** the owner asked for the logos and a matching web button. The no-images rule was about blocked images costing nothing and about never carrying a tracking pixel; alt text keeps the first, and one fixed URL for every recipient keeps the second.
 **Design system impact:** `ui_kits/marketing_site/invite-email.html` and its README: the rule becomes *no images but the invite's two badges*, and the mock takes the new words, the badge row in place of the button, and the second footer. The *Open in browser* badge has no source file in the design system; its source is `apps/web/public/brands/open-in-browser.svg`. Also from this change: the shell's font family is quoted, so the code escapes it inside the `style` attribute; before that every email lost its font, the button's padding and its corners after the first quote.
+
+### 2026-10-31 · An empty thread offers Add a to do and Add a note
+**Surface:** iOS, Android, web, the thread page and its More menu
+**Raised by:** the owner: a new thread had no way to start a to do. Add a note was in the More menu and nothing else was.
+**Was:** an empty thread showed one quiet line, *Nothing in this one yet. Dump something on Today and offload will file it.*, with no button, as the readme's empty states section says of My threads and Memories. To do's add only existed on a To do section that already had rows.
+**Is:**
+- **Add a to do** in the More menu, before Add a note, with `square-check-big`, on Default only (the other layouts have their own way in, or none). On the web it opens To do's inline quick add, drawing the section if the thread has none; on the phones it raises the composer's quick add for To do, the same raise as the section's +.
+- An empty thread draws the `EmptyState` shape in the middle of the page: the body in the quiet serif, *Nothing in this one yet. Add something, or dump it on Today and offload will file it.* (on the phones *dump it and offload will file it*), and under it **two** secondary Buttons at md, *Add a to do* and *Add a note*, each with its glyph. On Android they are outlined pills. The block goes while either one is open. A thread that holds only notes is no longer called empty on the phones, which the web already did.
+**Why:** the owner asked for both. It breaks two lines of the system on purpose: `EmptyState` allows one action, and an emptied thread was meant to stay quiet with no button. A new thread is not a cleared screen; the first thing typed into it is the point of opening it.
+**Design system impact:** `EmptyState` should allow two actions, or a pair should be its own variant. The readme's empty states section should name an empty thread as the exception that offers its ways in. `ui_kits/web_app/WThing.jsx` and the phones' `ThreadScreen` should draw the empty thread this way, and the More menus should list *Add a to do*.
+
+### 2026-10-31 · A layout's notes open in the note editor
+**Surface:** iOS, Android, web, the Timeline layout and every layout's *Other things*
+**Raised by:** the owner: a Timeline entry could not be edited.
+**Was:** a note in a layout was plain text that nothing opened.
+**Is:** pressing it opens the same editor the Notes section opens: in place on the web, the note sheet on the phones, with the same rules for edit, delete, mute and move. On the web an edit's Undo line draws under the note; one that takes it off the day draws under the composer.
+**Design system impact:** none. The editor and the sheet are existing components; the 045 kit, when it is drawn, should show a Timeline note as pressable.

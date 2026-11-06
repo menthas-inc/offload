@@ -276,7 +276,7 @@ export function requestCopy(name: string | null): Copy {
 }
 
 export function shareCopy(name: string | null, threadName: string): Copy {
-  return { title: `${sender(name)} shared ${clamp(threadName)}`, body: "Waiting in My threads." };
+  return { title: `${sender(name)} shared ${clamp(threadName)}`, body: "Waiting in Threads." };
 }
 
 /** Somebody adding to a shared thread, coalesced: the count in the title,
@@ -307,6 +307,13 @@ export function dayLabel(at: Date, allDay: boolean, zone: string | null, locale 
 /** A date the model moved on a row that already had one. */
 export function movedCopy(title: string, from: string, to: string): Copy {
   return { title: `${clamp(title)} moved`, body: `Was ${from}, now ${to}.` };
+}
+
+/** Google's copy of an event went. `title` is null when the row goes with it:
+ *  an Activity row naming a row outlives nothing, so the words are left out
+ *  and the day says which one. */
+export function canceledCopy(title: string | null, day: string | null): Copy {
+  return { title: title ? `${clamp(title)} was canceled` : "An event was canceled", body: day ? `Was ${day}.` : null };
 }
 
 /** A verb acted on from a notification, quiet. */

@@ -15,6 +15,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, Text, View } from "react-native";
+import { ARCHIVED_PARAM, ROW_PARAM } from "@offload/widgets";
+import { Reveal } from "../shell/reveal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
@@ -51,9 +53,14 @@ interface Held {
 export default function Loose() {
   const COLOR = useColors();
   const router = useRouter();
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{ type?: string; [ROW_PARAM]?: string; [ARCHIVED_PARAM]?: string }>();
   const [chip, setChip] = useState<ChipKey | null>(() => asChip(params.type));
-  const [archived, setArchived] = useState(false);
+  const [archived, setArchived] = useState(params[ARCHIVED_PARAM] === "1");
+  // 049. The row Search opened the page at: read back to once, then scrolled
+  // to and marked through the reveal the rows read.
+  const target = useRef(params[ROW_PARAM] ?? null);
+  const [reveal, setReveal] = useState<string | null>(null);
+  const list = useRef<FlatList<unknown>>(null);
   const [held, setHeld] = useState<Held | null>(null);
   const [unread, setUnread] = useState(false);
   // Bumped by each whole read, which is what clears the rows drawn ahead of
@@ -68,9 +75,12 @@ export default function Loose() {
   const load = useCallback(async () => {
     setUnread(false);
     try {
+      const through = target.current;
+      target.current = null;
       if (archived) {
         const read = await fetchLooseArchived();
         if (!read) return setUnread(true);
+        if (through && read.rows.some((row) => row.id === through)) setReveal(through);
         setHeld({
           entries: read.rows.map((row) => ({ kind: "content" as const, row, suggestion: null })),
           nextCursor: read.nextCursor,
@@ -79,8 +89,9 @@ export default function Loose() {
         setReadAt((n) => n + 1);
         return;
       }
-      const read = await fetchLoose({ type: chip });
+      const read = await fetchLoose({ type: chip, through });
       if (!read) return setUnread(true);
+      if (through && read.rows.some((one) => one.kind === "content" && one.row.id === through)) setReveal(through);
       // The picked type emptied, or the chips went: back to All, which reads
       // again from here.
       const kept = keepChip(chip, read.byType);
@@ -95,6 +106,13 @@ export default function Loose() {
   }, [chip, archived]);
 
   const rows = useLooseRows(readAt, load, toast);
+
+  // 049. Once the row Search opened at is in the list: scroll it into view.
+  useEffect(() => {
+    if (!reveal || !held) return;
+    const index = placed.findIndex((one) => !("slot" in one) && one.row.kind === "content" && one.row.row.id === reveal);
+    if (index >= 0) requestAnimationFrame(() => list.current?.scrollToIndex({ index, viewPosition: 0.3, animated: false }));
+  }, [reveal, held]);
 
   useFocusEffect(
     useCallback(() => {
@@ -236,8 +254,14 @@ export default function Loose() {
           </View>
         )
       ) : (
+        <Reveal.Provider value={{ id: reveal, found: () => undefined }}>
         <FlatList
+          ref={list as never}
           data={placed}
+          onScrollToIndexFailed={(info) => {
+            list.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+            setTimeout(() => list.current?.scrollToIndex({ index: info.index, viewPosition: 0.3, animated: false }), 50);
+          }}
           keyExtractor={(one) => ("slot" in one ? one.entry.id : keyOf(one.row))}
           renderItem={({ item: one, index }) => (
             <>{placedItem(one, index < placed.length - 1, { idOf: keyOf, row: (entry, border) => rows.row(entry, { border }) })}</>
@@ -254,6 +278,7 @@ export default function Loose() {
           }}
           onEndReachedThreshold={0.5}
         />
+        </Reveal.Provider>
       )}
 
       {rows.sheets}

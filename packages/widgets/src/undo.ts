@@ -23,6 +23,7 @@ export interface UndoEntry {
   message: string;
   icon: string;
   form: UndoForm;
+  wrap?: boolean;
   action?: ToastAction;
   /** A refusal: circle-alert, Retry, no rule, announced as an alert. */
   failed: boolean;
@@ -92,6 +93,7 @@ export function createUndoStore(timing: Timing = realTiming): UndoStore {
         form: place.form,
         failed: isFailure(action),
         startedAt: timing.now(),
+        ...(place.wrap ? { wrap: true } : {}),
         ...(action ? { action } : {}),
       };
       entries = new Map(entries).set(place.id, entry);

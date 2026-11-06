@@ -4,6 +4,34 @@ path:
 
 ## Last sync
 
+date: 2026-10-31T17:59:39Z
+
+Read `main` (tree `94b3e9069ce8`) for the layout suggestion: `apps/mobile/components/screens/Thread.tsx` (the 32px pill, 13px, and the heads-up line), `apps/web/src/components/panes/Thread.tsx` (`looseStyles.suggestion`), `packages/widgets/src/layouts.ts` (`suggestionLine`, `PHRASES`). Nothing kept.
+
+### Updated in this project
+
+- **Thread notices**, four directions (A card, B strip, C offload's voice, D compact): `explorations/thread-notices.html`
+- **Thread notice, decided** (B, the strip): `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `handoff/thread-notice-standalone.html`
+- `components/feedback/ThreadNotice` (new), `UndoLine` gains `wrap`; `readme.md` **Thread notices**; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-30T21:03:21Z
+
+date: 2026-10-30T21:03:21Z
+
+Read `main` (tree `ca5aca2e9ffa`) for a search surface: `apps/mobile/components/screens/MyThreads.tsx`, `ThreadTile.tsx`, `lib/threadGrid.ts`, `shell/Plate.tsx`, `shell/Shell.tsx` (tabs: Today, My threads, Memories with `cloudy`), `shell/Composer.tsx`, `lib/composer.ts`, and `screens/Memories.tsx`, whose in-page search field is the only search the phones draw today and is reused here. No search page exists on any client. Nothing copied.
+
+### Updated in this project
+
+- **Search, entry points**: `explorations/search-entry.html` (A top bar, B beside the tabs, C composer find mode, D pull down)
+- **Search, pull down (D)**, interactive on My threads as built: `explorations/search-pull.html`
+- **Search, decided**: Today, Threads, Search, Memories on the phones and the web sidebar; ⌘K and /; composer unchanged. `explorations/search-tab.html`, `handoff/APPLY-2026-10-30-search.md`, `handoff/search-standalone.html`
+- Also read `apps/core-api/src/search/read.ts` (`search_text` is a tsvector; `websearch_to_tsquery` does not prefix)
+- `readme.md` **Search** (new), tab glyphs and vocabulary; `decisions.md` one entry
+
+### 2026-10-29T22:04:46Z
+
 date: 2026-10-29T22:04:46Z
 
 Read `main` (tree `7888d8aba97c`) for My threads and thread icons: `apps/mobile/components/screens/MyThreads.tsx`, `components/ThreadIcon.tsx`, `apps/web/src/components/ThreadIcon.tsx`, `packages/widgets/src/thread-icons.ts`, and the older cut in `apps/core-api/src/routes/threads.ts`. Found: `mixOklch` gives `#1C1B19` a hue (chroma 0.004 over its 1e-4 threshold), so dark mixes drift from the browser's; the new grounds are a table for that reason. Nothing copied.
@@ -13,8 +41,6 @@ Read `main` (tree `7888d8aba97c`) for My threads and thread icons: `apps/mobile/
 - **My threads as a grid**: `explorations/threads-grid.html`, `threads-grid-final.html`, `threads-grid-approval.html`; `handoff/APPLY-2026-10-29-threads-grid.md`, `handoff/threads-grid-standalone.html`
 - `--thread-ground-1` to `-10`, both themes; every thread icon deeper with a white glyph
 - `readme.md` **My threads** (new) and **Thread marks**; `decisions.md` one entry
-
-## Sync history
 
 ### 2026-10-19T22:13:28Z
 
@@ -26,6 +52,7 @@ Read `main` (trees `019ef168ee75`, then `1a4dc4c91ddd`) for thread layouts: `thr
 
 - **Thread layouts**, decided: `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `handoff/thread-layouts-standalone.html`
 - `components/layout/LayoutTile` (new); `readme.md` **Thread layouts**; `decisions.md` one entry
+- **Today: prism field and frosted plate**: `explorations/today-prism.html`, `handoff/APPLY-2026-10-19-today-glass.md`, `handoff/today-glass-standalone.html`; six tokens; read `apps/mobile/package.json`, `PrismField.tsx`, `Plate.tsx`, `Conversation.tsx`
 - Not yet folded: the 2026-10-17 section folds (`folds.ts`) are not drawn in the kits
 
 ### 2026-10-18T17:46:29Z
@@ -137,7 +164,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 
 | Screen | This project | Repo files |
 | --- | --- | --- |
-| My threads grid | `explorations/threads-grid-approval.html`, `handoff/APPLY-2026-10-29-threads-grid.md` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/routes/threads.ts` |
+| Thread notices | `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `components/feedback/ThreadNotice` | `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `packages/widgets/src/layouts.ts` |
 | Thread layouts | `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `components/layout/LayoutTile` | `apps/mobile/components/screens/Thread.tsx`, `packages/widgets/src/index.ts`, `folds.ts`, `apps/core-api/migrations/0016_thread_attrs.sql`, `threads/labels.ts`, `routes/threads.ts`, `routes/tools.ts`, `today/rows.ts`, `prompts/nightly.md`, `prompts/plan_v2.md`, `EditThreadSheet.tsx`, `panes/EditThread.tsx` |
 | Undo, in place (every list) | `components/feedback/UndoLine.jsx`, `ui_kits/mobile_app/UndoInPlace.jsx`, `explorations/undo-in-place.html` | `apps/mobile/lib/optimistic.ts`, `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx` |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |
@@ -155,6 +182,8 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 | A thread's map | `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` | `apps/mobile/components/screens/Thread.tsx`, `apps/mobile/components/shell/Widgets.tsx`, `apps/web/src/components/panes/Thread.tsx`, `apps/web/src/components/panes/Widgets.tsx`, `packages/widgets/src/index.ts`, `apps/core-api/src/places/resolve.ts`, `apps/agent/src/offload_agent/og.py` |
 | Things without a thread | `explorations/loose-items.html`, `handoff/APPLY-2026-10-01-loose.md`, `ui_kits/mobile_app/LooseParts.jsx` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/admin/promote.ts`, `apps/agent/src/offload_agent/harness/plan.py` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/layout.tsx`, `ui/nav.ts`, `ui/chrome.tsx`, `ui/table.tsx`, `ui/plot.tsx`, `admin.module.css` |
+| Search | `explorations/search-tab.html`, `handoff/APPLY-2026-10-30-search.md` | `apps/mobile/components/screens/MyThreads.tsx`, `ThreadTile.tsx`, `screens/Memories.tsx` (its search field), `shell/Plate.tsx`, `shell/Shell.tsx`, `shell/Composer.tsx`, `app/(tabs)/_layout.tsx`, `apps/web/src/components/shell/Sidebar.tsx`, `apps/core-api/src/search/read.ts` |
+| My threads grid | `explorations/threads-grid-approval.html`, `handoff/APPLY-2026-10-29-threads-grid.md` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/routes/threads.ts` |
 | Thread marks | `explorations/thread-marks-v2.html`, `handoff/APPLY-2026-10-03-thread-marks.md` | `apps/mobile/components/screens/Thread.tsx`, `MyThreads.tsx`, `apps/mobile/components/Glyph.tsx`, `apps/web/src/components/panes/Thread.tsx`, `MyThreads.tsx`, `ContentRowView.tsx` |
 | First run | `explorations/onboarding-v2.html`, `handoff/APPLY-2026-10-03-onboarding.md` | `apps/mobile/components/screens/Welcome.ios.tsx`, `Welcome.android.tsx`, `apps/mobile/lib/gate.ts`, `apps/mobile/components/TutorialArt.tsx`, `ConsentTicks.tsx`, `ConnectStep.tsx`, `GateBackdrop.tsx`, `apps/web/src/components/FirstRun.tsx` |
 | Settings | `explorations/settings-v2.html`, `handoff/APPLY-2026-10-02-settings.md` | `apps/mobile/app/settings/`, `apps/mobile/components/settings/`, `apps/mobile/components/people/PeoplePage.tsx`, `apps/mobile/lib/sessions.ts`, `apps/web/src/components/panes/Settings.tsx`, `SettingsRows.tsx`, `Account.tsx`, `DateTime.tsx`, `Appearance.tsx` |

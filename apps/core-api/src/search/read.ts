@@ -14,7 +14,8 @@
 // Everything here reads `readable_content` and `readable_notes` from 0026 and 0033.
 // No membership rule is written in this file.
 
-import { sql } from "kysely";
+import { sql, type RawBuilder } from "kysely";
+import type { Executor } from "../threads/access.js";
 import { calendarName } from "../connectors/calendars.js";
 import { db } from "../db.js";
 import { NOT_IN_A_THREAD, shownToModel } from "../threads/default.js";
@@ -22,6 +23,23 @@ import { NOT_IN_A_THREAD, shownToModel } from "../threads/default.js";
 /** Candidates per arm, before fusion. Enough for the fusion to reorder
  *  meaningfully, small enough that the post-filter stays cheap. */
 export const SHORTLIST = 60;
+
+/** 2026-10-31 (the owner). The furthest a meaning match may be, as cosine
+ *  distance. Without it the nearest sixty always came back, so "xqzvt plork"
+ *  filled every group and a web question drew rows from every thread. Measured
+ *  on voyage-4 in `docs/experiments/2026-10-meaning-floor`: at 0.56 every
+ *  nonsense query reads nothing and 21 of 22 held-out questions still find
+ *  their row; on eight synthetic accounts (2,030 items) 82% of real questions
+ *  find one and 59 of 61 web questions read nothing. It drops far
+ *  candidates, never near ones, so a negation's neighbour is still read and
+ *  the model still decides (AC-9). */
+export const MEANING_FLOOR = 0.56;
+
+/** A meaning arm's rows without the ones past the floor. Applied after the
+ *  index's top sixty rather than as a where clause: with `iterative_scan` on
+ *  (db.ts), a where that nothing passes, which is every nonsense query, keeps
+ *  the scan widening to pgvector's tuple limit on every arm and keystroke. */
+export const near = <T extends { d: number }>(rows: T[]): T[] => rows.filter((r) => r.d <= MEANING_FLOOR);
 
 /** What reaches the model, per result. The same figure as 006's `LIST_PAGE`,
  *  and for the same reason: it is the number that makes OFF-1 and OFF-8
@@ -190,7 +208,7 @@ export async function listContent(
   if (options.done === false) query = query.where("content.done_at", "is", null);
   if (options.matching) {
     query = query.where(
-      sql<boolean>`content.search_text @@ websearch_to_tsquery('simple', ${options.matching})`,
+      sql<boolean>`content.search_text @@ websearch_to_tsquery('offload_search', ${options.matching})`,
     );
   }
 
@@ -296,7 +314,7 @@ const RRF_K = 60;
  *  match still beats a live row the meaning arm only found nearby. */
 const ARCHIVED_BEHIND = SHORTLIST;
 
-function fuse(arms: string[][], archivedArms: string[][] = []): string[] {
+export function fuse(arms: string[][], archivedArms: string[][] = []): string[] {
   const score = new Map<string, number>();
   const add = (arm: string[], behind: number) =>
     arm.forEach((id, index) => {
@@ -317,11 +335,16 @@ export interface SearchOptions {
   queryVector?: string | null;
 }
 
-export async function search(accountId: string, options: SearchOptions): Promise<Result> {
-  // 2026-10-17 (the owner). Archived rows are found too, behind the live
-  // ones: archive takes a row off the list, never out of reach, and what has
-  // passed archives itself. Each arm runs once per pile, so neither pile's
-  // shortlist crowds out the other's.
+/** The content arms both searches run: words, and meaning when there is a
+ *  vector, each once per pile so neither pile's shortlist crowds out the
+ *  other's. `match` is the tsquery: the model's search passes
+ *  `websearch_to_tsquery`, the Search page (049) a prefix query. Lifted out of
+ *  `search()` unchanged so the two cannot drift on membership or lifecycle. */
+export async function contentArms(
+  accountId: string,
+  options: { match: RawBuilder<unknown>; vector: string | null; limit: number },
+  executor: Executor = db,
+): Promise<{ live: string[][]; archived: string[][] }> {
   // Which pile an arm reads, said as every other reader says it.
   const pile = (archived: boolean) => (archived ? sql`c.archived_at is not null` : sql`c.archived_at is null`);
   const textArm = async (archived: boolean) =>
@@ -332,27 +355,46 @@ export async function search(accountId: string, options: SearchOptions): Promise
       where c.viewer_account_id = ${accountId}::uuid
         and c.deleted_at is null and ${pile(archived)}
         and t.deleted_at is null
-        and c.search_text @@ websearch_to_tsquery('simple', ${options.query})
-      order by ts_rank(c.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
+        and c.search_text @@ ${options.match}
+      order by ts_rank(c.search_text, ${options.match}) desc,
                c.created_at desc
-      limit ${SHORTLIST}
-    `.execute(db);
+      limit ${options.limit}
+    `.execute(executor);
   const vectorArm = async (archived: boolean) =>
-    options.queryVector
-      ? sql<{ id: string }>`
-          select c.id::text as id
-          from content_chunks ch
-          join readable_content c on c.id = ch.content_id
-          join threads t on t.id = c.thread_id
-          where c.viewer_account_id = ${accountId}::uuid
-            and c.deleted_at is null and ${pile(archived)}
-            and t.deleted_at is null
-            and ch.embedding is not null
-          order by ch.embedding <=> ${options.queryVector}::halfvec(1024), c.created_at desc
-          limit ${SHORTLIST}
-        `.execute(db)
+    options.vector
+      ? {
+          rows: near(
+            (
+              await sql<{ id: string; d: number }>`
+                select c.id::text as id, (ch.embedding <=> ${options.vector}::halfvec(1024))::float8 as d
+                from content_chunks ch
+                join readable_content c on c.id = ch.content_id
+                join threads t on t.id = c.thread_id
+                where c.viewer_account_id = ${accountId}::uuid
+                  and c.deleted_at is null and ${pile(archived)}
+                  and t.deleted_at is null
+                  and ch.embedding is not null
+                order by ch.embedding <=> ${options.vector}::halfvec(1024), c.created_at desc
+                limit ${options.limit}
+              `.execute(executor)
+            ).rows,
+          ),
+        }
       : { rows: [] as { id: string }[] };
   const [text, vector, oldText, oldVector] = await Promise.all([textArm(false), vectorArm(false), textArm(true), vectorArm(true)]);
+  const ids = (result: { rows: { id: string }[] }) => result.rows.map((r) => r.id);
+  return { live: [ids(text), ids(vector)], archived: [ids(oldText), ids(oldVector)] };
+}
+
+export async function search(accountId: string, options: SearchOptions): Promise<Result> {
+  // 2026-10-17 (the owner). Archived rows are found too, behind the live
+  // ones: archive takes a row off the list, never out of reach, and what has
+  // passed archives itself.
+  const arms = await contentArms(accountId, {
+    match: sql`websearch_to_tsquery('offload_search', ${options.query})`,
+    vector: options.queryVector ?? null,
+    limit: SHORTLIST,
+  });
 
   // Read before the early return below. A question whose answer lives in a
   // standing rule matches no content at all, and returning nothing there would
@@ -360,10 +402,7 @@ export async function search(accountId: string, options: SearchOptions): Promise
   // looking like an empty corpus.
   const asides = await asidesFor(accountId, options);
 
-  const ranked = fuse(
-    [text.rows.map((r) => r.id), vector.rows.map((r) => r.id)],
-    [oldText.rows.map((r) => r.id), oldVector.rows.map((r) => r.id)],
-  );
+  const ranked = fuse(arms.live, arms.archived);
   const wanted = ranked.slice(0, ANSWER_RESULTS + 1);
   if (wanted.length === 0) {
     return { threadId: null, threadName: null, truncated: false, rows: [], asides };
@@ -425,38 +464,48 @@ export const ASIDES = 5;
  *  written every minute and never queried. The query vector is the one the
  *  content arm already has: no second embed.
  */
-async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
-  const viewer = sql`m.viewer_account_id = ${accountId}::uuid`;
-  const query = sql`websearch_to_tsquery('simple', ${options.query})`;
-
-  const noteFilter = sql`${viewer}
+/** A thread note the account may read and that still stands, over
+ *  `readable_notes m` left joined to `threads t`. Shared by the model's asides
+ *  and the Search page (049), so the two agree on what a live note is. */
+export function noteFilter(accountId: string): RawBuilder<unknown> {
+  return sql`m.viewer_account_id = ${accountId}::uuid
       and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
       -- A note scoped to a deleted thread is about somewhere that no longer
       -- exists, and it would still be steering the answer. The left join means
       -- an account-scoped note has no thread and stays.
       and (t.id is null or t.deleted_at is null)`;
+}
+
+async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
+  const viewer = sql`m.viewer_account_id = ${accountId}::uuid`;
+  const query = sql`websearch_to_tsquery('offload_search', ${options.query})`;
+  const notesLive = noteFilter(accountId);
   const noteText = await sql<{ id: string }>`
     select m.id::text as id
     from readable_notes m
     left join threads t on t.id = m.subject_id
-    where ${noteFilter}
+    where ${notesLive}
       and m.search_text @@ ${query}
     order by ts_rank(m.search_text, ${query}) desc, m.updated_at desc
     limit ${SHORTLIST}
   `.execute(db);
   const noteMeaning = options.queryVector
-    ? await sql<{ id: string }>`
-        select m.id::text as id
-        from note_chunks ch
-        join readable_notes m on m.id = ch.note_id
-        left join threads t on t.id = m.subject_id
-        where ${noteFilter}
-          and ch.embedding is not null
-        order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.updated_at desc
-        limit ${SHORTLIST}
-      `.execute(db)
-    : { rows: [] as { id: string }[] };
-  const noteIds = fuse([noteText.rows.map((r) => r.id), noteMeaning.rows.map((r) => r.id)]).slice(0, ASIDES);
+    ? near(
+        (
+          await sql<{ id: string; d: number }>`
+            select m.id::text as id, (ch.embedding <=> ${options.queryVector}::halfvec(1024))::float8 as d
+            from note_chunks ch
+            join readable_notes m on m.id = ch.note_id
+            left join threads t on t.id = m.subject_id
+            where ${notesLive}
+              and ch.embedding is not null
+            order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.updated_at desc
+            limit ${SHORTLIST}
+          `.execute(db)
+        ).rows,
+      )
+    : [];
+  const noteIds = fuse([noteText.rows.map((r) => r.id), noteMeaning.map((r) => r.id)]).slice(0, ASIDES);
   const noteRows = noteIds.length
     ? await sql<{ id: string; text: string; thread_name: string | null }>`
         select m.id::text as id, m.text as text,
@@ -495,19 +544,23 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
     limit ${SHORTLIST}
   `.execute(db);
   const messageMeaning = options.queryVector
-    ? await sql<{ id: string }>`
-        select m.id::text as id
-        from message_chunks ch
-        join readable_messages m on m.id = ch.message_id
-        where ${messageFilter}
-          and ch.account_id = ${accountId}::uuid
-          and ch.embedding is not null
-        order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.created_at desc
-        limit ${SHORTLIST}
-      `.execute(db)
-    : { rows: [] as { id: string }[] };
+    ? near(
+        (
+          await sql<{ id: string; d: number }>`
+            select m.id::text as id, (ch.embedding <=> ${options.queryVector}::halfvec(1024))::float8 as d
+            from message_chunks ch
+            join readable_messages m on m.id = ch.message_id
+            where ${messageFilter}
+              and ch.account_id = ${accountId}::uuid
+              and ch.embedding is not null
+            order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.created_at desc
+            limit ${SHORTLIST}
+          `.execute(db)
+        ).rows,
+      )
+    : [];
   // A long message is several chunks; it counts once, at its best rank.
-  const messageIds = fuse([messageText.rows.map((r) => r.id), [...new Set(messageMeaning.rows.map((r) => r.id))]]).slice(0, ASIDES);
+  const messageIds = fuse([messageText.rows.map((r) => r.id), [...new Set(messageMeaning.map((r) => r.id))]]).slice(0, ASIDES);
   const messageRows = messageIds.length
     ? await sql<{ id: string; text: string; role: "person" | "offload" }>`
         select m.id::text as id, said(m.text, m.transcript) as text, m.role as role

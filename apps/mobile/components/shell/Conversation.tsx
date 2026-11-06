@@ -62,7 +62,7 @@ import { Thinking } from "./Thinking";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
-import { PdfActions } from "./PdfActions";
+import { Actions } from "./Actions";
 import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
@@ -563,7 +563,7 @@ function Yours({
               }
             />
             {/* 044. The PDF's links, beside it the moment it is filed. */}
-            {photo.kind === "pdf" && photo.actions?.length ? <PdfActions actions={photo.actions} /> : null}
+            {photo.actions?.length ? <Actions actions={photo.actions} /> : null}
           </View>
         ))}
       </View>

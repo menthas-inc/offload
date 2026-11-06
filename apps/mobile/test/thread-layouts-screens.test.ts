@@ -35,6 +35,18 @@ describe("045 the phone screens", () => {
     }
   });
 
+  it("opens a layout's notes in the note editor, through the Notes section's own sheet", () => {
+    const sections = read("components/screens/LayoutSections.tsx");
+    const notes = read("components/shell/Notes.tsx");
+    // A Timeline day's note and an Other things note were plain Text that
+    // nothing opened. They press into the same sheet the Notes section opens.
+    expect(sections).toMatch(/useNoteSheet\(/);
+    expect(sections).toMatch(/onPress=\{\(\) => openNote\(note\)\}/);
+    expect(sections).not.toMatch(/<Text key=\{(item|note)\.id\}/);
+    expect(notes).toMatch(/const \{ open, close \} = useNoteSheet\(/);
+    expect(read("components/screens/Thread.tsx")).toMatch(/<LayoutSections[^>]*onSheet=\{setNoteSheet\}/);
+  });
+
   it("resets the suggestion's local hide only on a thread change", () => {
     const thread = read("components/screens/Thread.tsx");
     // setSuggestionGone(false) must not share the heads-up effect (deps include

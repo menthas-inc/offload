@@ -501,6 +501,13 @@ export function useLooseRows(
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
+        onRemoveAction={(held, url) => removeAction({ kind: "content", row: held, suggestion: null }, url)}
+        onOpenPhoto={(held) => {
+          setRenaming(null);
+          // 041. A PDF opens itself; a photo, the viewer.
+          if (held.photo?.kind === "pdf") openPdf(held.photo, held.title);
+          else setViewing(held);
+        }}
         onSave={(saved, fields) => {
           setRenaming(null);
           if (Object.keys(fields).length > 0) edit(saved, fields);

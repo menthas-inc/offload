@@ -56,6 +56,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from anthropic import AsyncAnthropic
 
@@ -612,12 +613,15 @@ class Recorder:
         #: 041. The PDF indexes filed, each once.
         self.pdfs_filed: set[int] = set()
         self.content_timed: dict[str, bool] = {}
+        #: When each row starts, for the bound on a row finding its event.
+        self.content_at: dict[str, str] = {}
         #: 2026-10-13. A fixture row is a row an earlier turn filed, and the
         #: server takes any of the account's own: timed ones go on, the rest
         #: are refused `no_time`, as a row this turn filed would be.
         for fixture_row in _rows_for(self.fx, None):
             row_id = str(fixture_row.get("contentId"))
             self.content_timed[row_id] = bool(fixture_row.get("occursAt"))
+            self.content_at[row_id] = str(fixture_row.get("occursAt") or "")
         self.refused_time_once = False
         #: Title of every row this turn added, by the id handed back, so an
         #: edit naming that id can be read as the title's final state.
@@ -755,6 +759,21 @@ class Recorder:
             if fx.get("calendar_write") == "no_time_once" and not self.refused_time_once:
                 self.refused_time_once = True
                 return {"ok": False, "error": "no_time"}
+            # The bound `rememberEvent` runs: an event the account holds, at
+            # the row's own moment.
+            if args.get("event"):
+                events = fx.get("events") or []
+                held = next((e for e in events if e.get("sourceRef") == args["event"]), None)
+                if held is None or not held.get("yours", True):
+                    return {"ok": False, "error": "unknown_event"}
+                zone = fx.get("time_zone", TIME_ZONE)
+                row_at = _moment(self.content_at.get(content_id, ""), zone)
+                event_at = _moment(held.get("startsAt", ""), zone)
+                if held.get("allDay") and row_at and event_at:
+                    row_at, event_at = row_at.date(), event_at.date()
+                if row_at != event_at:
+                    return {"ok": False, "error": "different_time"}
+                return {"ok": True, "alreadyOn": True}
             because = fx.get("calendar_waits")
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}
@@ -874,6 +893,7 @@ class Recorder:
                 # as the server does: a stub that wrote any row to a calendar
                 # could not see a row filed without one and filed again.
                 self.content_timed[out["contentId"]] = bool(args.get("occurs_at"))
+                self.content_at[out["contentId"]] = str(args.get("occurs_at") or "")
             else:
                 out["noteId"] = f"n{self.filed_ids}"
             return out
@@ -887,6 +907,7 @@ class Recorder:
             return {"ok": True, "done": True}
         if tool == "edit_content" and args.get("occurs_at"):
             self.content_timed[str(args.get("content_id"))] = True
+            self.content_at[str(args.get("content_id"))] = str(args["occurs_at"])
         if tool in {
             "edit_content",
             "move_content",
@@ -1313,13 +1334,28 @@ def _copy_problems(text: str) -> list[str]:
 
 
 def _resolve_actions(fx: dict, args: dict) -> list[dict]:
-    """044. The resolved {label, url} list for a file row's `actions`, run
-    through the worker's own bound against the fixture's harvested candidates."""
-    index = args.get("pdf")
-    names = fx.get("pdfs") or []
-    if not isinstance(index, int) or not 1 <= index <= len(names):
-        return []
-    return resolve_actions(_pdf_candidates(names[index - 1]), args.get("actions") or [])
+    """044, 050. A row's resolved actions, run through the worker's own bound
+    against the turn's set the model was shown (`_found`, put on the fixture
+    by `_run_file` from the same `found_set` production numbers), with a
+    picture's row checked against its own `Text:` line as the worker checks
+    it."""
+    return resolve_actions(
+        args.get("actions") or [],
+        found=fx.get("_found") or [],
+        pdf=args.get("pdf"),
+        body=args.get("body") if args.get("photo") is not None else None,
+    )
+
+
+def _carried_actions(calls: list[tuple[str, dict]], fx: dict) -> list[list[dict]]:
+    """050. Every row's resolved actions in a turn, any row type."""
+    return [
+        resolved
+        for tool, args in calls
+        if tool == "add_content"
+        for resolved in [_resolve_actions(fx, args)]
+        if resolved
+    ]
 
 
 def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str | None:
@@ -1390,9 +1426,16 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if "date_any" in matcher and not any(when.startswith(d) for d in matcher["date_any"]):
             return False
+        # The moment, not the spelling: a model may write it in UTC or their zone.
+        if "end" in matcher:
+            zone = fx.get("time_zone", TIME_ZONE)
+            if _moment(str(args.get("occurs_end_at") or ""), zone) != _moment(matcher["end"], zone):
+                return False
         if "priority_min" in matcher and (args.get("priority") or 50) < matcher["priority_min"]:
             return False
         if matcher.get("no_date") and when:
+            return False
+        if matcher.get("bare_day") and "T" in when:
             return False
         # 023. A rule is matched by its parts: every part the case names must
         # be in the rule the model wrote, so "every Tuesday" may arrive as
@@ -1616,6 +1659,8 @@ def _came_back(tool: str, body: dict | None) -> str:
     if not body.get("ok"):
         return f"  -> refused: {body.get('error')}"
     if tool in {"create_event", "edit_event", "delete_event"}:
+        if body.get("alreadyOn"):
+            return "  -> already on their calendar; nothing written"
         if body.get("waitingForThem"):
             return f"  -> held for the person's go-ahead, not written: {body.get('because')}"
         if body.get("asked"):
@@ -1780,17 +1825,6 @@ def _pdf_bytes(name: str) -> bytes:
     return (here if here.exists() else PDF_FIXTURES / name).read_bytes()
 
 
-#: 044. Candidates harvested per fixture, cached so the matcher resolves the
-#: same set the model was shown without a second subprocess per assertion.
-_PDF_CANDIDATES: dict[str, list[str]] = {}
-
-
-def _pdf_candidates(name: str) -> list[str]:
-    if name not in _PDF_CANDIDATES:
-        _PDF_CANDIDATES[name] = pdfs_mod.make(_pdf_bytes(name)).candidates
-    return _PDF_CANDIDATES[name]
-
-
 async def _pdfs(fx: dict) -> list[Pdf]:
     """041. The case's PDFs, by file name, through the worker's own clean, cut
     and request bound, so the model reads what it would. 044: the links each
@@ -1799,7 +1833,6 @@ async def _pdfs(fx: dict) -> list[Pdf]:
     out: list[Pdf] = []
     for at, name in enumerate(fx.get("pdfs") or []):
         made = pdfs_mod.make(_pdf_bytes(name))
-        _PDF_CANDIDATES[name] = made.candidates
         out.append(
             Pdf(
                 blob_id=f"pdf-{at + 1}",
@@ -1832,6 +1865,15 @@ async def _run_look(client: AsyncAnthropic, case: Case, model: str) -> Result:
         failures.append(f"kept {sorted(kept)}, wanted {want}")
     cost = _cost(model, 600 * len(pictures), 60)
     return Result(case, "", transcript, failures, True, transcript, cost=cost)
+
+
+def _moment(value: str, zone: str | None) -> datetime | None:
+    """A time as the Core API reads it: one with no offset is in their zone."""
+    try:
+        at = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return at if at.tzinfo else at.replace(tzinfo=ZoneInfo(zone or "UTC"))
 
 
 def _mail(fx: dict) -> Mail | None:
@@ -1904,6 +1946,9 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         spoken=bool(fx.get("spoken")),
         looking_at_notes=_notes_on_screen(fx),
     )
+    # 050. The numbered set the model is shown, kept for the matchers so they
+    # resolve the same numbers the worker would.
+    fx["_found"] = ctx.found_set()
     return await _file_with(client, case, model, ctx, rec)
 
 
@@ -2023,18 +2068,12 @@ async def _file_with(
     for matcher in expect.get("not_filed", []):
         if _match_filing(matcher, rec.calls, fx) is None:
             failures.append(f"filed a row that fits {matcher} and should not have: {filed}")
-    # 044. No PDF row carries any action (the common case; stated with
+    # 044, 050. No row carries any action (the common case; stated with
     # `action_count: 0` for clarity).
     if expect.get("no_actions"):
-        carried = [
-            resolved
-            for tool, args in rec.calls
-            if tool == "add_content" and args.get("type") == "file"
-            for resolved in [_resolve_actions(fx, args)]
-            if resolved
-        ]
+        carried = _carried_actions(rec.calls, fx)
         if carried:
-            failures.append(f"a PDF row carries actions and should carry none: {carried}")
+            failures.append(f"a row carries actions and should carry none: {carried}")
     if expect.get("files_something") and not any(
         t in {"add_content", "add_note"} for t, _ in rec.calls
     ):
@@ -2372,6 +2411,8 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     messages make it an ordinary thread's pass that may learn, the candidates
     make it the default thread's, which suggests threads. Notes are
     {id, written_at, theirs, origin, text}; `theirs` false is another member's.
+    `memories` is what the pass is shown of the account's, as `_memories` reads
+    them; none, as in a shared thread, is the default.
 
     Structural rules hold on every case, as the Core API holds them: nothing
     removed that a person typed, nothing touched that is not theirs, no fold
@@ -2405,6 +2446,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
         notes=rows,
         messages=None if propose else messages,
         candidates=candidates if propose else None,
+        memories=_memories(fx),
         to_label=to_label,
         anchors=anchors,
         rows=fx.get("rows"),

@@ -24,6 +24,8 @@ import structlog
 from sqlalchemy import TextClause, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from offload_agent.found import MAX_FOUND, gather, trim_invitation
+
 log = structlog.get_logger()
 
 
@@ -129,6 +131,19 @@ class Pdf:
     #: 044. http(s) links the PDF carried, harvested by the worker's child and
     #: held only for this turn. The model offers at most two of them by number.
     candidates: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class Found:
+    """050. One destination the turn may offer, numbered by its place in the
+    turn's set. `origin` is where it was gathered (`pdf:<n>`, `dump` or
+    `mail`) and holds a PDF's entry to that PDF's row; `source` and `sender`
+    are what the confirm says it came from."""
+
+    dest: str
+    origin: str
+    source: str
+    sender: str | None = None
 
 
 @dataclass(frozen=True)
@@ -288,6 +303,34 @@ class DumpContext:
     @property
     def may_look_up(self) -> bool:
         return self.may_search or self.may_read_links
+
+    def found_set(self) -> list[Found]:
+        """050. What the turn may offer, in one numbering: each PDF's entries
+        (044's harvest), then the dump's own words, a mail's note before its
+        forwarded part. Deduped by destination, the first origin kept. A
+        picture's words are never here; its row quotes them (`found_in`)."""
+        out: list[Found] = []
+        seen: set[str] = set()
+
+        def add(dest: str, origin: str, source: str, sender: str | None = None) -> None:
+            if dest not in seen:
+                seen.add(dest)
+                out.append(Found(dest, origin, source, sender))
+
+        for pdf in self.pdfs:
+            for dest in pdf.candidates[:MAX_FOUND]:
+                add(dest, f"pdf:{pdf.index}", "pdf")
+        if self.mail is not None:
+            local, at, host = self.mail.from_address.rpartition("@")
+            host = host.strip().lower()
+            sender = host if at and local and 0 < len(host) <= 255 else None
+            words = [*gather(self.mail.note), *trim_invitation(gather(self.mail.forwarded))]
+            for dest in words[:MAX_FOUND]:
+                add(dest, "mail", "mail", sender)
+        elif self.dump:
+            for dest in gather(self.dump, spoken=self.spoken):
+                add(dest, "dump", "voice" if self.spoken else "typed")
+        return out
 
 
 @dataclass(frozen=True)
@@ -572,8 +615,9 @@ UTC = "UTC"
 
 
 def clock_zone(account_zone: str | None, message_zone: str | None) -> str | None:
-    """The zone a dump is read in: the account's clock, else the device's word."""
-    return account_zone or message_zone or None
+    """The zone a dump is read in: where the device was when it was sent, else
+    the account's clock. "Tomorrow" on a trip is the trip's tomorrow."""
+    return message_zone or account_zone or None
 
 
 def known_zone(time_zone: str | None) -> str:
@@ -1277,12 +1321,11 @@ class AnswerContext:
         return self.country_override or self.country
 
 
-# The account's clock first, then the zone the device sent with the message:
-# an answer read in the device's zone while the dump was read
-# in the clock filed the wrong hour from a phone that was somewhere else.
+# As `clock_zone` reads a dump, the device's zone first: an answer and a dump
+# read in two zones filed the wrong hour from a phone that was somewhere else.
 _MESSAGE_ZONE = text(
     """
-    select coalesce(a.time_zone, m.time_zone)
+    select coalesce(m.time_zone, a.time_zone)
       from messages m
       join accounts a on a.id = m.account_id
      where m.id = :message_id and m.account_id = :account_id
@@ -1291,8 +1334,8 @@ _MESSAGE_ZONE = text(
 
 
 async def message_zone(conn: AsyncConnection, *, message_id: str, account_id: str) -> str | None:
-    """The zone the message is read in: the account's clock, else the device's
-    zone the message came with, else None for UTC."""
+    """The zone the message is read in: the device's zone it came with, else
+    the account's clock, else None for UTC."""
     return (
         await conn.execute(_MESSAGE_ZONE, {"message_id": message_id, "account_id": account_id})
     ).scalar()

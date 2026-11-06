@@ -120,9 +120,9 @@ describe("024 AC-7 a share, and additions to a shared thread", () => {
       .executeTakeFirstOrThrow();
     expect(await notifyPerson({ kind: "share", memberId: member.id })).toBe("sent");
     expect(memory.sent.map((m) => [m.title, m.body, m.channelId, m.data])).toEqual([
-      ["Ana shared Lisbon trip", "Waiting in My threads.", "shared_activity", { kind: "share", memberId: member.id }],
+      ["Ana shared Lisbon trip", "Waiting in Threads.", "shared_activity", { kind: "share", memberId: member.id }],
     ]);
-    expect(await activityOf(sam)).toEqual([{ kind: "share", sent: true, reason: null, title: "Ana shared Lisbon trip", body: "Waiting in My threads." }]);
+    expect(await activityOf(sam)).toEqual([{ kind: "share", sent: true, reason: null, title: "Ana shared Lisbon trip", body: "Waiting in Threads." }]);
   });
 
   // 034 AC-12. A disabled member gets no push and no record of one.

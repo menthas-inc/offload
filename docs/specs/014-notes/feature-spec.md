@@ -281,3 +281,13 @@ Audited against `docs/constitution/principles.md` read fresh, after the three re
 ## Amended 2026-10-02 by 028
 
 A note moves between threads, by its author, or by any member once its author has left, into a thread the caller is in: the note sheet's Move on every surface, and 028's suggestions. It keeps its words, its origin, its untrusted mark and when it was put down. Its labels stay where they are and are unseen in the new thread, because a label belongs to a thread. A learned note whose words the destination already holds is refused rather than duplicated.
+
+## Amended 2026-11-06, the owner
+
+**A plan kept as a note passes on its own.** Compaction's third job, a note whose date has passed is set aside, only ever reached the notes a model was shown, and a note derived from a connected app or an email is never shown to one. So "Kyle staying with us, Sun Nov 1 to Wed Nov 4", from a forwarded invitation, stood on the thread a week after Kyle left, while "Chiara is staying 21 to 25 October", from a dump of the owner's own, was set aside the night after her last day. The hourly `content.passed` job now does it for every thread note, with no model: a note with `occurs_at`, no rule and no `due_at`, once its last day (`occurs_end_at`, else `occurs_at`) is over in its author's clock, and only when that last day was still ahead on the day the note was written.
+
+**That last clause is what keeps a dated fact.** "The house was built in 1931", "we lived in Lisbon 2010 to 2015" and "the boiler was serviced today" had reached their date when they were written, so they were records from the start and are never set aside by this. "The lease ends on 30 June", written in advance, is treated as a plan: when the day is over it is off the prompt. A plan written on its own day ("dinner tonight") is not reached either, and stays with the nightly pass. A note with `due_at` stays as a late to-do stays, and one with a rule has a next time.
+
+**It ends where the nightly pass leaves one: set aside**, in the folded history and off the prompt and the section. Not muted, which is a person's control and leaves the row in the section. It carries no `purge_after`: AC-9's thirty days are for what a fold replaced, and a passed plan was replaced by nothing, so it stays on the thread as the privacy page's section 13 says. `apps/core-api/src/threads/passed.ts`.
+
+**A note a memory cites is kept as well.** A learned memory goes when its source note has gone, read as a person deleting it, so a note set aside while a memory cites it takes no `purge_after` either, and a `remove` of one is a set-aside (038's amendment of the same day).

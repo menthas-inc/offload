@@ -1,0 +1,1883 @@
+{
+ "person": "behrooz",
+ "threads": [
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "app",
+   "name": "App fixes"
+  },
+  {
+   "key": "studio",
+   "name": "Studio"
+  },
+  {
+   "key": "home",
+   "name": "Home"
+  },
+  {
+   "key": "whistler",
+   "name": "Whistler ski trip"
+  },
+  {
+   "key": "job",
+   "name": "Job search"
+  },
+  {
+   "key": "groceries",
+   "name": "Groceries"
+  },
+  {
+   "key": "trips",
+   "name": "Future trips"
+  },
+  {
+   "key": "health",
+   "name": "Health"
+  },
+  {
+   "key": "reading",
+   "name": "Reading"
+  }
+ ],
+ "rows": [
+  {
+   "id": "b001",
+   "thread": "app",
+   "title": "Fix the loose tick on web",
+   "body": "The check mark sits a pixel high next to done items."
+  },
+  {
+   "id": "b002",
+   "thread": "app",
+   "title": "Android back gesture closes the sheet twice",
+   "body": "Only on the Pixel. Open the share sheet, swipe back, the thread behind it closes too."
+  },
+  {
+   "id": "b003",
+   "thread": "app",
+   "title": "Dark mode flash on launch",
+   "body": "White frame for a split second before the theme loads."
+  },
+  {
+   "id": "b004",
+   "thread": "app",
+   "title": "Push notification badge count wrong",
+   "body": ""
+  },
+  {
+   "id": "b005",
+   "thread": "app",
+   "title": "Retry button on failed upload",
+   "body": "Show it inline under the message, not in a toast."
+  },
+  {
+   "id": "b006",
+   "thread": "app",
+   "title": "Search results jump when the keyboard opens",
+   "body": "Happens on iOS only, list reflows after about 200ms."
+  },
+  {
+   "id": "b007",
+   "thread": "app",
+   "title": "Upgrade Expo SDK",
+   "body": "Wait for the next patch release first."
+  },
+  {
+   "id": "b008",
+   "thread": "app",
+   "title": "Write migration for thread icons",
+   "body": ""
+  },
+  {
+   "id": "b009",
+   "thread": "app",
+   "title": "Photo upload hangs on slow wifi",
+   "body": "The timeout never fires. Add a 30s abort and show the retry."
+  },
+  {
+   "id": "b010",
+   "thread": "app",
+   "title": "Typo on the onboarding screen",
+   "body": ""
+  },
+  {
+   "id": "b011",
+   "thread": "app",
+   "title": "Reminders fire an hour late after the clocks change",
+   "body": "Store the zone with the reminder, not the offset."
+  },
+  {
+   "id": "b012",
+   "thread": "app",
+   "title": "Cache the thread list",
+   "body": "Stale while revalidate, keep it under 200 entries."
+  },
+  {
+   "id": "b013",
+   "thread": "app",
+   "title": "Look at Sentry errors from last week",
+   "body": "Three new ones around the share sheet."
+  },
+  {
+   "id": "b014",
+   "thread": "app",
+   "title": "Worklets | React Native Reanimated",
+   "body": ""
+  },
+  {
+   "id": "b015",
+   "thread": "app",
+   "title": "Add index on content created_at",
+   "body": ""
+  },
+  {
+   "id": "b016",
+   "thread": "app",
+   "title": "Voice note transcription cuts the last word",
+   "body": "Probably the trailing silence trim. Check the 400ms pad."
+  },
+  {
+   "id": "b017",
+   "thread": "app",
+   "title": "Reply to TestFlight feedback from Dan",
+   "body": ""
+  },
+  {
+   "id": "b018",
+   "thread": "app",
+   "title": "Idea: swipe to archive a thread",
+   "body": "Same gesture as mail. Undo toast for five seconds."
+  },
+  {
+   "id": "b019",
+   "thread": "app",
+   "title": "Idea: lock screen widget for today's tasks",
+   "body": ""
+  },
+  {
+   "id": "b020",
+   "thread": "app",
+   "title": "Fix flaky test in the notifications suite",
+   "body": ""
+  },
+  {
+   "id": "b021",
+   "thread": "app",
+   "title": "Rotate the Resend API key",
+   "body": "Update it on Railway and in the local env file."
+  },
+  {
+   "id": "b022",
+   "thread": "app",
+   "title": "Ship 0.3.2 to TestFlight",
+   "body": "After the tick fix."
+  },
+  {
+   "id": "b023",
+   "thread": "app",
+   "title": "Write the changelog",
+   "body": "Plain sentences, no jargon."
+  },
+  {
+   "id": "b024",
+   "thread": "app",
+   "title": "Pull to refresh does nothing on Android",
+   "body": ""
+  },
+  {
+   "id": "b025",
+   "thread": "app",
+   "title": "How to debug Metro bundler hangs - Stack Overflow",
+   "body": ""
+  },
+  {
+   "id": "b026",
+   "thread": "app",
+   "title": "PostgreSQL: Documentation: CREATE INDEX",
+   "body": ""
+  },
+  {
+   "id": "b027",
+   "thread": "app",
+   "title": "Empty state for the Memories tab",
+   "body": "One line and a quiet illustration."
+  },
+  {
+   "id": "b028",
+   "thread": "app",
+   "title": "Loose tick on web still off by 1px",
+   "body": ""
+  },
+  {
+   "id": "b029",
+   "thread": "app",
+   "title": "Grey captions fail contrast",
+   "body": "The dates in the timeline are under 4.5:1 in light mode."
+  },
+  {
+   "id": "b030",
+   "thread": "app",
+   "title": "Redo App Store screenshots",
+   "body": ""
+  },
+  {
+   "id": "b031",
+   "thread": "app",
+   "title": "Check the Railway bill",
+   "body": ""
+  },
+  {
+   "id": "b032",
+   "thread": "app",
+   "title": "Backup restore drill",
+   "body": "Do it once a quarter. Last one was in July."
+  },
+  {
+   "id": "b033",
+   "thread": "app",
+   "title": "Rate limit on invite codes",
+   "body": ""
+  },
+  {
+   "id": "b034",
+   "thread": "app",
+   "title": "Standup 9:30",
+   "body": "The offload sync, every weekday."
+  },
+  {
+   "id": "b035",
+   "thread": "app",
+   "title": "Review Dependabot PRs",
+   "body": "Merge the patch bumps, read the majors."
+  },
+  {
+   "id": "b036",
+   "thread": "studio",
+   "title": "Finish drum bus compression",
+   "body": "Slow attack, fast release, two dB of reduction at most."
+  },
+  {
+   "id": "b037",
+   "thread": "studio",
+   "title": "Buy a new XLR cable",
+   "body": "The old one crackles when it moves."
+  },
+  {
+   "id": "b038",
+   "thread": "studio",
+   "title": "Mix track 4, Slow Fire",
+   "body": "Vocals are too far back. Automate the reverb send in the chorus."
+  },
+  {
+   "id": "b039",
+   "thread": "studio",
+   "title": "Sidechain the bass to the kick",
+   "body": ""
+  },
+  {
+   "id": "b040",
+   "thread": "studio",
+   "title": "How to Mix Low End - Sound on Sound",
+   "body": ""
+  },
+  {
+   "id": "b041",
+   "thread": "studio",
+   "title": "Serum Wavetable Tutorial - YouTube",
+   "body": ""
+  },
+  {
+   "id": "b042",
+   "thread": "studio",
+   "title": "Book rehearsal room Thursday 7pm",
+   "body": "Same room as last time, two hours."
+  },
+  {
+   "id": "b043",
+   "thread": "studio",
+   "title": "Idea: sample the radiator knock for percussion",
+   "body": "Record it close with the SM57, pitch it down."
+  },
+  {
+   "id": "b044",
+   "thread": "studio",
+   "title": "Back up session files to the external drive",
+   "body": "Do it before the Ableton update."
+  },
+  {
+   "id": "b045",
+   "thread": "studio",
+   "title": "Restring the Telecaster",
+   "body": "Tens, not nines. Stretch them well."
+  },
+  {
+   "id": "b046",
+   "thread": "studio",
+   "title": "Update Ableton Live",
+   "body": ""
+  },
+  {
+   "id": "b047",
+   "thread": "studio",
+   "title": "Master at minus 14 LUFS",
+   "body": "Streaming target. Leave a dB of headroom."
+  },
+  {
+   "id": "b048",
+   "thread": "studio",
+   "title": "Send demo to Leila at Moonrise",
+   "body": "The three-song one, not the rough mixes."
+  },
+  {
+   "id": "b049",
+   "thread": "studio",
+   "title": "Pay studio rent",
+   "body": "E-transfer to Marcus on the 1st."
+  },
+  {
+   "id": "b050",
+   "thread": "studio",
+   "title": "Monitors need acoustic panels",
+   "body": ""
+  },
+  {
+   "id": "b051",
+   "thread": "studio",
+   "title": "Vocal take with Nadia Saturday",
+   "body": "Bring the Neumann. Warm up for 20 minutes first."
+  },
+  {
+   "id": "b052",
+   "thread": "studio",
+   "title": "Buy a pop filter",
+   "body": "Double mesh if they have it."
+  },
+  {
+   "id": "b053",
+   "thread": "studio",
+   "title": "Best Audio Interfaces Under 500 Dollars | Gearhead Weekly",
+   "body": ""
+  },
+  {
+   "id": "b054",
+   "thread": "studio",
+   "title": "Fix ground hum in the synth rack",
+   "body": ""
+  },
+  {
+   "id": "b055",
+   "thread": "studio",
+   "title": "Export stems for the remix",
+   "body": "Twenty-four bit, no dither."
+  },
+  {
+   "id": "b056",
+   "thread": "studio",
+   "title": "Idea: ambient intro from the field recording at Whistler",
+   "body": "Wind and the chairlift hum, layered under pads."
+  },
+  {
+   "id": "b057",
+   "thread": "studio",
+   "title": "Learn modular patching",
+   "body": "Start with the one-oscillator patches."
+  },
+  {
+   "id": "b058",
+   "thread": "studio",
+   "title": "Metronome drifts in session 7",
+   "body": ""
+  },
+  {
+   "id": "b059",
+   "thread": "studio",
+   "title": "Tune the snare",
+   "body": ""
+  },
+  {
+   "id": "b060",
+   "thread": "studio",
+   "title": "Upload the EP to the distributor",
+   "body": ""
+  },
+  {
+   "id": "b061",
+   "thread": "studio",
+   "title": "Mix Slow Fire",
+   "body": ""
+  },
+  {
+   "id": "b062",
+   "thread": "studio",
+   "title": "Order cables from Long and McQuade",
+   "body": "Two TRS, one XLR, short ones."
+  },
+  {
+   "id": "b063",
+   "thread": "studio",
+   "title": "Vocal chain",
+   "body": "EQ, then 3:1 compressor, then de-esser. Keep the order."
+  },
+  {
+   "id": "b064",
+   "thread": "studio",
+   "title": "Reference mix: warm, lots of air above 10k",
+   "body": ""
+  },
+  {
+   "id": "b065",
+   "thread": "studio",
+   "title": "Rename the session folders",
+   "body": "Date first, then track name."
+  },
+  {
+   "id": "b066",
+   "thread": "home",
+   "title": "Pay mortgage",
+   "body": ""
+  },
+  {
+   "id": "b067",
+   "thread": "home",
+   "title": "Call Mike re boiler",
+   "body": ""
+  },
+  {
+   "id": "b068",
+   "thread": "home",
+   "title": "Change the furnace filter",
+   "body": ""
+  },
+  {
+   "id": "b069",
+   "thread": "home",
+   "title": "Fix the leaky bathroom tap",
+   "body": "Drips overnight, the cold side."
+  },
+  {
+   "id": "b070",
+   "thread": "home",
+   "title": "Renew home insurance",
+   "body": "Policy ends Dec 12. Compare two other quotes first."
+  },
+  {
+   "id": "b071",
+   "thread": "home",
+   "title": "Paint the hallway",
+   "body": ""
+  },
+  {
+   "id": "b072",
+   "thread": "home",
+   "title": "Buy smoke detector batteries",
+   "body": ""
+  },
+  {
+   "id": "b073",
+   "thread": "home",
+   "title": "How to Bleed a Radiator - Family Handyman",
+   "body": ""
+  },
+  {
+   "id": "b074",
+   "thread": "home",
+   "title": "Property tax instalment",
+   "body": "Second one is due at the end of the month."
+  },
+  {
+   "id": "b075",
+   "thread": "home",
+   "title": "Book plumber for the tap",
+   "body": ""
+  },
+  {
+   "id": "b076",
+   "thread": "home",
+   "title": "Clean the eavestroughs",
+   "body": ""
+  },
+  {
+   "id": "b077",
+   "thread": "home",
+   "title": "Order a new couch",
+   "body": "Meera likes the green one. Measure the doorway first."
+  },
+  {
+   "id": "b078",
+   "thread": "home",
+   "title": "Replace the wifi router",
+   "body": ""
+  },
+  {
+   "id": "b079",
+   "thread": "home",
+   "title": "Hydro bill",
+   "body": "Higher than usual, check the dryer."
+  },
+  {
+   "id": "b080",
+   "thread": "home",
+   "title": "Switch to winter tires",
+   "body": "Book at Kal Tire before the first snow."
+  },
+  {
+   "id": "b081",
+   "thread": "home",
+   "title": "Dinner at Meera's parents Sunday",
+   "body": ""
+  },
+  {
+   "id": "b082",
+   "thread": "home",
+   "title": "Meera's birthday gift idea: ceramics course",
+   "body": "The one on Dundas, six weeks."
+  },
+  {
+   "id": "b083",
+   "thread": "home",
+   "title": "Fix the squeaky stair",
+   "body": "Third from the bottom. Try screws from below."
+  },
+  {
+   "id": "b084",
+   "thread": "home",
+   "title": "Buy salt for the driveway",
+   "body": ""
+  },
+  {
+   "id": "b085",
+   "thread": "home",
+   "title": "Hang the shelf in the office",
+   "body": "Find the studs first."
+  },
+  {
+   "id": "b086",
+   "thread": "home",
+   "title": "Best Heat Pumps in Canada 2026 - Consumer Review",
+   "body": ""
+  },
+  {
+   "id": "b087",
+   "thread": "home",
+   "title": "Anniversary dinner reservation",
+   "body": "Somewhere quiet. Book two weeks ahead."
+  },
+  {
+   "id": "b088",
+   "thread": "home",
+   "title": "Deep clean the oven",
+   "body": ""
+  },
+  {
+   "id": "b089",
+   "thread": "home",
+   "title": "Replace kitchen light bulbs",
+   "body": "Warm white, the three-pack."
+  },
+  {
+   "id": "b090",
+   "thread": "home",
+   "title": "Bins: holiday week, pickup moves to Wednesday",
+   "body": ""
+  },
+  {
+   "id": "b091",
+   "thread": "home",
+   "title": "Boiler making a knocking noise",
+   "body": "Started Monday. Pressure reads 0.8 bar."
+  },
+  {
+   "id": "b092",
+   "thread": "home",
+   "title": "Buy a dehumidifier for the basement",
+   "body": "Needs a drain hose, not a tank."
+  },
+  {
+   "id": "b093",
+   "thread": "home",
+   "title": "Get Mike's quote for a new boiler",
+   "body": "He said 6 to 8 grand installed."
+  },
+  {
+   "id": "b094",
+   "thread": "home",
+   "title": "Caulk the bathtub",
+   "body": ""
+  },
+  {
+   "id": "b095",
+   "thread": "home",
+   "title": "Take the old paint cans to the depot",
+   "body": "Open Saturdays only."
+  },
+  {
+   "id": "b096",
+   "thread": "whistler",
+   "title": "Book the cabin",
+   "body": ""
+  },
+  {
+   "id": "b097",
+   "thread": "whistler",
+   "title": "Buy Epic passes",
+   "body": "Check the price before the end of the month."
+  },
+  {
+   "id": "b098",
+   "thread": "whistler",
+   "title": "Ski wax",
+   "body": ""
+  },
+  {
+   "id": "b099",
+   "thread": "whistler",
+   "title": "Sam arrives Friday evening",
+   "body": "He picks up the keys from the front desk."
+  },
+  {
+   "id": "b100",
+   "thread": "whistler",
+   "title": "Pack goggles",
+   "body": ""
+  },
+  {
+   "id": "b101",
+   "thread": "whistler",
+   "title": "Check avalanche forecast",
+   "body": "Look the morning of each day on the hill."
+  },
+  {
+   "id": "b102",
+   "thread": "whistler",
+   "title": "Whistler Blackcomb Trail Map | Winter 2026",
+   "body": ""
+  },
+  {
+   "id": "b103",
+   "thread": "whistler",
+   "title": "Dinner reservation Saturday",
+   "body": ""
+  },
+  {
+   "id": "b104",
+   "thread": "whistler",
+   "title": "Ski boots fitting",
+   "body": "Meera's rental boots were too tight last year."
+  },
+  {
+   "id": "b105",
+   "thread": "whistler",
+   "title": "Flights Toronto to Vancouver",
+   "body": "Morning flights are cheaper midweek."
+  },
+  {
+   "id": "b106",
+   "thread": "whistler",
+   "title": "Ask if the cabin has a hot tub",
+   "body": ""
+  },
+  {
+   "id": "b107",
+   "thread": "whistler",
+   "title": "Split the cabin cost three ways",
+   "body": ""
+  },
+  {
+   "id": "b108",
+   "thread": "whistler",
+   "title": "Snacks for the drive",
+   "body": ""
+  },
+  {
+   "id": "b109",
+   "thread": "whistler",
+   "title": "Buy thermal base layers",
+   "body": ""
+  },
+  {
+   "id": "b110",
+   "thread": "whistler",
+   "title": "Ski lesson for Meera",
+   "body": "Half day, intermediate group."
+  },
+  {
+   "id": "b111",
+   "thread": "whistler",
+   "title": "Peak 2 Peak gondola ride",
+   "body": ""
+  },
+  {
+   "id": "b112",
+   "thread": "whistler",
+   "title": "Charge the GoPro",
+   "body": ""
+  },
+  {
+   "id": "b113",
+   "thread": "whistler",
+   "title": "Travel insurance",
+   "body": "Make sure it covers a lift accident."
+  },
+  {
+   "id": "b114",
+   "thread": "whistler",
+   "title": "Sam is bringing the speaker",
+   "body": ""
+  },
+  {
+   "id": "b115",
+   "thread": "whistler",
+   "title": "Check Highway 99 road conditions",
+   "body": ""
+  },
+  {
+   "id": "b116",
+   "thread": "whistler",
+   "title": "Parking at the village",
+   "body": "Day lots fill by nine."
+  },
+  {
+   "id": "b117",
+   "thread": "whistler",
+   "title": "Whistler Village Parking Guide | Tourism Whistler",
+   "body": ""
+  },
+  {
+   "id": "b118",
+   "thread": "misc",
+   "title": "Kiwi",
+   "body": ""
+  },
+  {
+   "id": "b119",
+   "thread": "misc",
+   "title": "Renew passport",
+   "body": "Takes about three weeks by mail."
+  },
+  {
+   "id": "b120",
+   "thread": "misc",
+   "title": "Return the library books",
+   "body": ""
+  },
+  {
+   "id": "b121",
+   "thread": "misc",
+   "title": "Buy a birthday card for Mum",
+   "body": ""
+  },
+  {
+   "id": "b122",
+   "thread": "misc",
+   "title": "The Pragmatic Programmer, 20th Anniversary Edition",
+   "body": ""
+  },
+  {
+   "id": "b123",
+   "thread": "misc",
+   "title": "Call Dad on Sunday",
+   "body": ""
+  },
+  {
+   "id": "b124",
+   "thread": "misc",
+   "title": "Renew driver's licence",
+   "body": ""
+  },
+  {
+   "id": "b125",
+   "thread": "misc",
+   "title": "Pay the parking ticket",
+   "body": "Fine goes up after the 30th."
+  },
+  {
+   "id": "b126",
+   "thread": "misc",
+   "title": "Haircut Friday 5pm",
+   "body": ""
+  },
+  {
+   "id": "b127",
+   "thread": "misc",
+   "title": "Gift for Sam's birthday",
+   "body": "Something for his workshop. A good set of hex keys."
+  },
+  {
+   "id": "b128",
+   "thread": "misc",
+   "title": "Replace phone case",
+   "body": "Clear one with a raised edge."
+  },
+  {
+   "id": "b129",
+   "thread": "misc",
+   "title": "Email accountant about HST",
+   "body": "Ask if the studio gear counts as an expense."
+  },
+  {
+   "id": "b130",
+   "thread": "misc",
+   "title": "File taxes",
+   "body": ""
+  },
+  {
+   "id": "b131",
+   "thread": "misc",
+   "title": "Look into noise-cancelling headphones",
+   "body": ""
+  },
+  {
+   "id": "b132",
+   "thread": "misc",
+   "title": "Charge the camera batteries",
+   "body": ""
+  },
+  {
+   "id": "b133",
+   "thread": "misc",
+   "title": "Dry cleaning pickup",
+   "body": ""
+  },
+  {
+   "id": "b134",
+   "thread": "misc",
+   "title": "Idea: sort Dad's old photos into albums",
+   "body": "Scan the box from the garage first."
+  },
+  {
+   "id": "b135",
+   "thread": "misc",
+   "title": "Book flu shot",
+   "body": "The pharmacy on Bloor does walk-ins."
+  },
+  {
+   "id": "b136",
+   "thread": "misc",
+   "title": "Cancel the old gym membership",
+   "body": ""
+  },
+  {
+   "id": "b137",
+   "thread": "job",
+   "title": "Update resume",
+   "body": ""
+  },
+  {
+   "id": "b138",
+   "thread": "job",
+   "title": "Apply to Northwind Labs, staff engineer",
+   "body": "Referral from Dan. Deadline is the 20th."
+  },
+  {
+   "id": "b139",
+   "thread": "job",
+   "title": "Recruiter call with Priya from Helix",
+   "body": "Wednesday 2pm. Ask about the team size and remote policy."
+  },
+  {
+   "id": "b140",
+   "thread": "job",
+   "title": "Staff Software Engineer, Platform | Northwind Labs Careers",
+   "body": ""
+  },
+  {
+   "id": "b141",
+   "thread": "job",
+   "title": "Practice system design: rate limiter",
+   "body": ""
+  },
+  {
+   "id": "b142",
+   "thread": "job",
+   "title": "Update LinkedIn headline",
+   "body": "Shorter. Lead with what he builds."
+  },
+  {
+   "id": "b143",
+   "thread": "job",
+   "title": "Ask Dan for a reference",
+   "body": ""
+  },
+  {
+   "id": "b144",
+   "thread": "job",
+   "title": "Research salary ranges",
+   "body": "Toronto senior and staff bands, base plus equity."
+  },
+  {
+   "id": "b145",
+   "thread": "job",
+   "title": "System Design Interview: Design a URL Shortener - ByteByteGo",
+   "body": ""
+  },
+  {
+   "id": "b146",
+   "thread": "job",
+   "title": "Add offload case study to the portfolio site",
+   "body": ""
+  },
+  {
+   "id": "b147",
+   "thread": "job",
+   "title": "Follow up with Helix",
+   "body": ""
+  },
+  {
+   "id": "b148",
+   "thread": "job",
+   "title": "LeetCode two pointers",
+   "body": ""
+  },
+  {
+   "id": "b149",
+   "thread": "job",
+   "title": "Cover letter template",
+   "body": "Three paragraphs, nothing generic."
+  },
+  {
+   "id": "b150",
+   "thread": "job",
+   "title": "Thank-you email after the Northwind interview",
+   "body": "Mention the migration story."
+  },
+  {
+   "id": "b151",
+   "thread": "groceries",
+   "title": "Kiwi",
+   "body": ""
+  },
+  {
+   "id": "b152",
+   "thread": "groceries",
+   "title": "Oat milk",
+   "body": ""
+  },
+  {
+   "id": "b153",
+   "thread": "groceries",
+   "title": "Eggs",
+   "body": "A dozen, free run."
+  },
+  {
+   "id": "b154",
+   "thread": "groceries",
+   "title": "Bananas",
+   "body": ""
+  },
+  {
+   "id": "b155",
+   "thread": "groceries",
+   "title": "Sourdough",
+   "body": "The seeded loaf from the bakery."
+  },
+  {
+   "id": "b156",
+   "thread": "groceries",
+   "title": "Chickpeas",
+   "body": ""
+  },
+  {
+   "id": "b157",
+   "thread": "groceries",
+   "title": "Coffee beans",
+   "body": "The dark roast from the shop on Roncesvalles."
+  },
+  {
+   "id": "b158",
+   "thread": "groceries",
+   "title": "Greek yogurt",
+   "body": ""
+  },
+  {
+   "id": "b159",
+   "thread": "groceries",
+   "title": "Spinach",
+   "body": ""
+  },
+  {
+   "id": "b160",
+   "thread": "groceries",
+   "title": "Parmesan",
+   "body": "A real wedge, not the shaker."
+  },
+  {
+   "id": "b161",
+   "thread": "groceries",
+   "title": "Dish soap",
+   "body": ""
+  },
+  {
+   "id": "b162",
+   "thread": "groceries",
+   "title": "Paper towels",
+   "body": ""
+  },
+  {
+   "id": "b163",
+   "thread": "groceries",
+   "title": "Basmati rice",
+   "body": ""
+  },
+  {
+   "id": "b164",
+   "thread": "groceries",
+   "title": "Lemons",
+   "body": ""
+  },
+  {
+   "id": "b165",
+   "thread": "groceries",
+   "title": "Butter",
+   "body": ""
+  },
+  {
+   "id": "b166",
+   "thread": "groceries",
+   "title": "Tofu",
+   "body": ""
+  },
+  {
+   "id": "b167",
+   "thread": "groceries",
+   "title": "Olive oil",
+   "body": ""
+  },
+  {
+   "id": "b168",
+   "thread": "groceries",
+   "title": "Chili crisp",
+   "body": ""
+  },
+  {
+   "id": "b169",
+   "thread": "groceries",
+   "title": "Cilantro",
+   "body": ""
+  },
+  {
+   "id": "b170",
+   "thread": "groceries",
+   "title": "Oatmilk, the barista one",
+   "body": "Meera prefers it in her tea."
+  },
+  {
+   "id": "b171",
+   "thread": "groceries",
+   "title": "Sparkling water",
+   "body": ""
+  },
+  {
+   "id": "b172",
+   "thread": "trips",
+   "title": "Japan in spring",
+   "body": "Cherry blossom season, ten days, Tokyo and Kyoto."
+  },
+  {
+   "id": "b173",
+   "thread": "trips",
+   "title": "Two Weeks in Japan: A First-Timer's Itinerary",
+   "body": ""
+  },
+  {
+   "id": "b174",
+   "thread": "trips",
+   "title": "Iceland ring road in summer",
+   "body": ""
+  },
+  {
+   "id": "b175",
+   "thread": "trips",
+   "title": "Check flight prices to Tokyo",
+   "body": ""
+  },
+  {
+   "id": "b176",
+   "thread": "trips",
+   "title": "Ask Meera about leave in May",
+   "body": "She needs to request two weeks off by January."
+  },
+  {
+   "id": "b177",
+   "thread": "trips",
+   "title": "Banff in October",
+   "body": "Larches turn gold around the end of September."
+  },
+  {
+   "id": "b178",
+   "thread": "trips",
+   "title": "Idea: visit Sam in Vancouver, then surf in Tofino",
+   "body": ""
+  },
+  {
+   "id": "b179",
+   "thread": "trips",
+   "title": "Ring Road Iceland: 10 Day Itinerary",
+   "body": ""
+  },
+  {
+   "id": "b180",
+   "thread": "trips",
+   "title": "Book a cottage in Tofino",
+   "body": "Near Chesterman beach, if there is anything left."
+  },
+  {
+   "id": "b181",
+   "thread": "trips",
+   "title": "Check Aeroplan points balance",
+   "body": ""
+  },
+  {
+   "id": "b182",
+   "thread": "trips",
+   "title": "Is the Japan Rail Pass Worth It?",
+   "body": ""
+  },
+  {
+   "id": "b183",
+   "thread": "trips",
+   "title": "Learn some Japanese phrases",
+   "body": ""
+  },
+  {
+   "id": "b184",
+   "thread": "trips",
+   "title": "Cabin weekend in Muskoka in June",
+   "body": ""
+  },
+  {
+   "id": "b185",
+   "thread": "trips",
+   "title": "Camping at Algonquin in August",
+   "body": ""
+  },
+  {
+   "id": "b186",
+   "thread": "health",
+   "title": "Physio for lower back",
+   "body": "Second session Wednesday. Ask about the hip hinge."
+  },
+  {
+   "id": "b187",
+   "thread": "health",
+   "title": "Stretch routine for wrists",
+   "body": ""
+  },
+  {
+   "id": "b188",
+   "thread": "health",
+   "title": "Run 5k Saturday",
+   "body": "Along the lake, easy pace."
+  },
+  {
+   "id": "b189",
+   "thread": "health",
+   "title": "Annual physical with Dr. Chen",
+   "body": ""
+  },
+  {
+   "id": "b190",
+   "thread": "health",
+   "title": "Get blood test results",
+   "body": "Call the clinic if they are not in by Friday."
+  },
+  {
+   "id": "b191",
+   "thread": "health",
+   "title": "Wrist Stretches for Programmers - Healthline",
+   "body": ""
+  },
+  {
+   "id": "b192",
+   "thread": "health",
+   "title": "Buy magnesium",
+   "body": "Glycinate, for sleep."
+  },
+  {
+   "id": "b193",
+   "thread": "health",
+   "title": "In bed before midnight",
+   "body": ""
+  },
+  {
+   "id": "b194",
+   "thread": "health",
+   "title": "Eye exam",
+   "body": "It has been two years. Screen strain headaches."
+  },
+  {
+   "id": "b195",
+   "thread": "health",
+   "title": "Vitamin D",
+   "body": ""
+  },
+  {
+   "id": "b196",
+   "thread": "health",
+   "title": "Dentist Tuesday 10am",
+   "body": ""
+  },
+  {
+   "id": "b197",
+   "thread": "health",
+   "title": "Gym three times a week",
+   "body": ""
+  },
+  {
+   "id": "b198",
+   "thread": "health",
+   "title": "Meditate 10 minutes",
+   "body": ""
+  },
+  {
+   "id": "b199",
+   "thread": "health",
+   "title": "Standing desk for the office",
+   "body": ""
+  },
+  {
+   "id": "b200",
+   "thread": "reading",
+   "title": "Finish Designing Data-Intensive Applications",
+   "body": "Chapter 7 on transactions is next."
+  },
+  {
+   "id": "b201",
+   "thread": "reading",
+   "title": "Read Piranesi next",
+   "body": "Lent by a friend, return it by December."
+  },
+  {
+   "id": "b202",
+   "thread": "reading",
+   "title": "Mixing Secrets for the Small Studio",
+   "body": ""
+  },
+  {
+   "id": "b203",
+   "thread": "reading",
+   "title": "Library hold: The Overstory",
+   "body": ""
+  },
+  {
+   "id": "b204",
+   "thread": "reading",
+   "title": "How to Read a Book - Farnam Street",
+   "body": ""
+  },
+  {
+   "id": "b205",
+   "thread": "reading",
+   "title": "Podcast: Acquired episode on TSMC",
+   "body": "For the long walk."
+  },
+  {
+   "id": "b206",
+   "thread": "reading",
+   "title": "The Case for Boring Technology",
+   "body": ""
+  },
+  {
+   "id": "b207",
+   "thread": "reading",
+   "title": "Meera recommended Braiding Sweetgrass",
+   "body": ""
+  },
+  {
+   "id": "b208",
+   "thread": "reading",
+   "title": "Check the Kindle sale",
+   "body": ""
+  },
+  {
+   "id": "b209",
+   "thread": "reading",
+   "title": "Newsletter roundup on local-first sync",
+   "body": "Save for the planning weekend."
+  },
+  {
+   "id": "b210",
+   "thread": "reading",
+   "title": "Reading list for the winter",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "bn01",
+   "thread": "home",
+   "text": "Bins go out Tuesday night"
+  },
+  {
+   "id": "bn02",
+   "thread": "home",
+   "text": "Mortgage is paid on the 5th"
+  },
+  {
+   "id": "bn03",
+   "thread": "home",
+   "text": "The boiler is serviced every October by Mike"
+  },
+  {
+   "id": "bn04",
+   "thread": "home",
+   "text": "Furnace filter size is 16x25x1"
+  },
+  {
+   "id": "bn05",
+   "thread": "home",
+   "text": "The water shutoff is behind the washer"
+  },
+  {
+   "id": "bn06",
+   "thread": "whistler",
+   "text": "Cabin code is 4417"
+  },
+  {
+   "id": "bn07",
+   "thread": "whistler",
+   "text": "Sam is driving up from Vancouver"
+  },
+  {
+   "id": "bn08",
+   "thread": "whistler",
+   "text": "Check-in is 4pm on Friday"
+  },
+  {
+   "id": "bn09",
+   "thread": "whistler",
+   "text": "Budget is 600 dollars each"
+  },
+  {
+   "id": "bn10",
+   "thread": "studio",
+   "text": "The studio is the shared space on Queen St"
+  },
+  {
+   "id": "bn11",
+   "thread": "studio",
+   "text": "Rehearsal room is booked Thursdays 7 to 9"
+  },
+  {
+   "id": "bn12",
+   "thread": "studio",
+   "text": "Mix reference level is minus 14 LUFS"
+  },
+  {
+   "id": "bn13",
+   "thread": "studio",
+   "text": "Session files live on the T7 drive"
+  },
+  {
+   "id": "bn14",
+   "thread": "app",
+   "text": "Standup is 9:30, the offload sync"
+  },
+  {
+   "id": "bn15",
+   "thread": "app",
+   "text": "Releases go out on Thursdays"
+  },
+  {
+   "id": "bn16",
+   "thread": "app",
+   "text": "Production runs on Railway"
+  },
+  {
+   "id": "bn17",
+   "thread": "job",
+   "text": "The recruiter at Helix is Priya"
+  },
+  {
+   "id": "bn18",
+   "thread": "job",
+   "text": "Target range is 180 to 210k"
+  },
+  {
+   "id": "bn19",
+   "thread": "groceries",
+   "text": "Meera is vegetarian at home"
+  },
+  {
+   "id": "bn20",
+   "thread": "groceries",
+   "text": "Farmers market on Saturday, Loblaws on Sunday"
+  },
+  {
+   "id": "bn21",
+   "thread": "health",
+   "text": "Dr. Chen is the family doctor"
+  },
+  {
+   "id": "bn22",
+   "thread": "health",
+   "text": "Physio is every second Wednesday"
+  },
+  {
+   "id": "bn23",
+   "thread": "trips",
+   "text": "Both passports expire in 2028"
+  },
+  {
+   "id": "bn24",
+   "thread": "reading",
+   "text": "Library card renews in January"
+  },
+  {
+   "id": "bn25",
+   "thread": "misc",
+   "text": "Mum's birthday is 14 March"
+  }
+ ],
+ "memories": [
+  {
+   "id": "bm01",
+   "text": "Their wife is Meera."
+  },
+  {
+   "id": "bm02",
+   "text": "They live in Toronto."
+  },
+  {
+   "id": "bm03",
+   "text": "Their oldest friend is Sam, who lives in Vancouver."
+  },
+  {
+   "id": "bm04",
+   "text": "They produce music in their spare time."
+  },
+  {
+   "id": "bm05",
+   "text": "They are building an app called offload."
+  },
+  {
+   "id": "bm06",
+   "text": "They are allergic to cats."
+  },
+  {
+   "id": "bm07",
+   "text": "Their old car was a Corolla."
+  },
+  {
+   "id": "bm08",
+   "text": "Meera is a doctor."
+  },
+  {
+   "id": "bm09",
+   "text": "They ski every winter."
+  },
+  {
+   "id": "bm10",
+   "text": "They play guitar."
+  },
+  {
+   "id": "bm11",
+   "text": "They drink oat milk lattes."
+  },
+  {
+   "id": "bm12",
+   "text": "They run a 5k on Saturdays."
+  },
+  {
+   "id": "bm13",
+   "text": "When they say standup they mean the 9:30 offload sync."
+  },
+  {
+   "id": "bm14",
+   "text": "They write TypeScript and Python."
+  },
+  {
+   "id": "bm15",
+   "text": "Their studio is on Queen St."
+  },
+  {
+   "id": "bm16",
+   "text": "Their mother's birthday is 14 March."
+  },
+  {
+   "id": "bm17",
+   "text": "Their family doctor is Dr. Chen."
+  },
+  {
+   "id": "bm18",
+   "text": "They have a bad lower back."
+  },
+  {
+   "id": "bm19",
+   "text": "Their dad lives in Mississauga."
+  },
+  {
+   "id": "bm20",
+   "text": "They are saving for a trip to Japan."
+  }
+ ],
+ "queries": [
+  {
+   "q": "heating broken",
+   "relevant": [
+    "b067",
+    "b073",
+    "b091",
+    "b093",
+    "bn03"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "loan payment for our place",
+   "relevant": [
+    "b066",
+    "bn02"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "tooth check-up",
+   "relevant": [
+    "b196"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "echo in the room",
+   "relevant": [
+    "b050"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "unread number is off",
+   "relevant": [
+    "b004"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "plane tickets west",
+   "relevant": [
+    "b105"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "sore hands from keyboard",
+   "relevant": [
+    "b187",
+    "b191"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "meet a headhunter",
+   "relevant": [
+    "b139",
+    "b147",
+    "bn17"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "tyres for icy roads",
+   "relevant": [
+    "b080"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "non-dairy beverage",
+   "relevant": [
+    "b152",
+    "b170",
+    "bm11"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "make the sub pump under the drums",
+   "relevant": [
+    "b039",
+    "b040"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "overseas holiday ideas",
+   "relevant": [
+    "b172",
+    "b173",
+    "b174",
+    "b175",
+    "b179",
+    "b182",
+    "b183",
+    "bm20"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "papers for abroad",
+   "relevant": [
+    "b119",
+    "bn23"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "annoying electrical buzz",
+   "relevant": [
+    "b054"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "present for my spouse",
+   "relevant": [
+    "b082",
+    "bm01"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "algorithm drills",
+   "relevant": [
+    "b148"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "mortgage",
+   "relevant": [
+    "b066",
+    "bn02"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "boiler",
+   "relevant": [
+    "b067",
+    "b091",
+    "b093",
+    "bn03"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Sam",
+   "relevant": [
+    "b099",
+    "b114",
+    "b127",
+    "b178",
+    "bm03",
+    "bn07"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "kiwi",
+   "relevant": [
+    "b118",
+    "b151"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Japan",
+   "relevant": [
+    "b172",
+    "b173",
+    "b175",
+    "b182",
+    "b183",
+    "bm20"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "sidechain",
+   "relevant": [
+    "b039"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "taxes",
+   "relevant": [
+    "b074",
+    "b129",
+    "b130"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "physio",
+   "relevant": [
+    "b186",
+    "bn22"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when do the bins go out",
+   "relevant": [
+    "b090",
+    "bn01"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what is the cabin code",
+   "relevant": [
+    "bn06"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who is driving up to Whistler",
+   "relevant": [
+    "b099",
+    "bn07"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what time is standup",
+   "relevant": [
+    "b034",
+    "bm13",
+    "bn14"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when is the vocal session with Nadia",
+   "relevant": [
+    "b051"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what to pack for skiing",
+   "relevant": [
+    "b098",
+    "b100",
+    "b109"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "android bugs to fix",
+   "relevant": [
+    "b002",
+    "b024"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "books I want to read",
+   "relevant": [
+    "b122",
+    "b200",
+    "b201",
+    "b202",
+    "b203",
+    "b207",
+    "b210"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "weather in Lisbon tomorrow",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "how tall is the CN Tower",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "translate good morning to French",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "population of Canada",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "best pizza near me",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "bike tune-up for spring",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "swim lessons",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "piano tuning",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "wine pairing ideas",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "dog walker",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "asdkj",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "qwfpg zxcvb",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "lkjhgf mnbv",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "zzzqq wwxx",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  }
+ ]
+}

@@ -24,8 +24,10 @@ import {
   completeContent,
   deleteContent,
   editContent,
+  forgetAction,
   fetchThread,
   moveContent,
+  restoreAction,
   setArchived,
   type ContentPatch,
   type ContentRow,
@@ -255,6 +257,26 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     );
   }
 
+  /** 050. Remove a wrong action from a row here, as the thread does: the
+   *  row stays and changes, so the Undo draws under it. */
+  function removeAction(row: ContentRow, url: string): void {
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patchRow(row.id, { actions: before }),
+        write: () => forgetAction(row.id, url),
+        unwrite: () => restoreAction(row.id, url),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
+      },
+      toast,
+      writes,
+    );
+  }
+
   const handlers: RowHandlers = {
     editing: null,
     draft: "",
@@ -262,6 +284,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     arrived: new Set(),
     onDraft: () => undefined,
     onEdit: (row) => setEditRow(row),
+    onRemoveAction: removeAction,
     onSaveTitle: () => undefined,
     onStopEditing: () => undefined,
     onArchive: (row) => {
@@ -309,6 +332,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         <EditModal
           key={editRow.id}
           row={editRow}
+          onRemoveAction={removeAction}
           threadId={(editRow as AgendaRow).threadId}
           labels={editLabels}
           onClose={() => setEditRow(null)}

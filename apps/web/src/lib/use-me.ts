@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TodayLayout } from "./today";
+import { forgetRecent } from "./search";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -244,8 +245,9 @@ export function useMe(expect: "first-run" | "shell"): MeState {
         if (response.status === 401) {
           // The session ended somewhere else: a staff disable, a deletion
           // mark, a sign out on another device. The cache goes with it, as it
-          // does on a sign out from here.
+          // does on a sign out from here, and so do the recent searches.
           forgetMe();
+          forgetRecent();
           router.replace("/sign-in");
           return;
         }

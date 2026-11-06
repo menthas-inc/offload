@@ -15,6 +15,7 @@
 
 import { threadLookAfter, touches } from "@offload/widgets";
 import { ThreadIcon } from "../ThreadIcon";
+import { ThreadNotice } from "./ThreadNotice";
 import { EditThread } from "./EditThread";
 import { asksBeforeArchive, leaveAsk } from "@offload/widgets";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, withMadeLabels, type LabelPick } from "@offload/widgets";
@@ -26,7 +27,7 @@ import { InPlace, LineAt } from "../shell/InPlace";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { CalendarsTool } from "../shell/CalendarsPopover";
-import { Notes } from "./Notes";
+import { NewNote, Notes, useNoteActions } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useChanged, useThreads } from "../shell/threads-context";
@@ -41,7 +42,6 @@ import {
   type ReorderWrite,
 } from "../../lib/widgets";
 import { LAYOUT_NAMES, layoutFor, suggestionLine, type Layout } from "@offload/widgets";
-import looseStyles from "../loose/loose.module.css";
 import { LayoutSections } from "./LayoutSections";
 import {
   completeContent,
@@ -129,12 +129,14 @@ function writePick(threadId: string, pick: LabelPick): void {
 interface Props {
   id: string;
   onChanged: () => void;
+  /** 049. Opened from Search at one row or one note. */
+  at?: { row: string | null; note: string | null; archived: boolean };
 }
 
 // 030. The map's library and Google's script load the first time a map shows.
 const ThreadMap = dynamic(() => import("../map/ThreadMap"), { ssr: false });
 
-export function Thread({ id, onChanged }: Props) {
+export function Thread({ id, onChanged, at }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   // 025. The filter bar's pick, the label sheet open on a row, and the label's
   // list open for a label (or for a new one, `null`).
@@ -144,16 +146,23 @@ export function Thread({ id, onChanged }: Props) {
   const [listLine, setListLine] = useState<string | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(at?.archived === true);
+  // 049. What Search opened the page at: read back to once, marked, kept
+  // unfolded and scrolled to. A row the read does not hold is not marked.
+  const target = useRef(at?.row ?? null);
+  const [reveal, setReveal] = useState<string | null>(at?.row ?? at?.note ?? null);
   // Lifted out of `Notes` so the pane head's More menu can open the editor. It
   // is also the answer to a cost that section had accepted: a thread with no
   // notes drew nothing, so there was nowhere to type the first one.
   const [addingNote, setAddingNote] = useState(false);
+  // 2026-10-31. To do's quick add, lifted for the same reasons: the More menu
+  // opens it, and a thread with no to dos has no To do section to open it in.
+  const [addingTodo, setAddingTodo] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
   // 037. Edit thread, and whether it was opened from the icon or the name.
-  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | "layout" | null>(null);
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed
   // while the write lands; reset per thread below.
   const [suggestionGone, setSuggestionGone] = useState(false);
@@ -304,7 +313,7 @@ export function Thread({ id, onChanged }: Props) {
   // 048. A note open in its editor inside `Notes`, which holds that state itself.
   const [noteEditing, setNoteEditing] = useState(false);
   const anythingOpen = Boolean(
-    addingNote || noteEditing || editing || editRow || editingThread || labelling || listing || sharing || leaving || viewing || calendarsOpen || map.open,
+    addingNote || addingTodo || noteEditing || editing || editRow || editingThread || labelling || listing || sharing || leaving || viewing || calendarsOpen || map.open,
   );
   // A removal already heard when the page opened is not one: it opened reading.
   const removedSeen = useRef(changed);
@@ -329,9 +338,11 @@ export function Thread({ id, onChanged }: Props) {
   useEffect(() => {
     let live = true;
     void (async () => {
+      const through = target.current;
+      target.current = null;
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
+        fetchContent(id, { archived: showArchived, ...(through ? { through } : filterOf(pick)) }),
       ]);
       if (!live) return;
       // 028. The account's default thread is never drawn as a thread: from
@@ -343,16 +354,31 @@ export function Thread({ id, onChanged }: Props) {
       setThread(bundle);
       setRows(page?.rows ?? []);
       setCursor(page?.nextCursor ?? null);
+      if (through && !page?.rows.some((row) => row.id === through)) setReveal(null);
     })();
     return () => {
       live = false;
     };
   }, [id, showArchived, pick]);
 
+  // 049. Once the target is drawn: on screen, and the 023 mark for a moment.
+  const shown = Boolean(thread);
+  useEffect(() => {
+    if (!shown || !reveal) return;
+    setArrived(new Set([reveal]));
+    const id_ = CSS.escape(reveal);
+    const frame = requestAnimationFrame(() =>
+      document.querySelector(`[data-row-id="${id_}"], [data-note-id="${id_}"]`)?.scrollIntoView({ block: "center" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [shown, reveal]);
+
   // 025. The kept pick, read once per thread, and less any label that has
   // since been deleted once the thread's labels are known.
   useEffect(() => {
-    setPickState(readPick(id));
+    // 049. Opened at a row, a kept filter could hide it: the page opens on
+    // All for this visit and the kept pick stays for the next.
+    setPickState(at?.row ? ALL_LABELS : readPick(id));
     setSuggestionGone(false);
     setHeadsUp(null);
   }, [id]);
@@ -707,6 +733,8 @@ export function Thread({ id, onChanged }: Props) {
    *  them, so a change it draws early is written here. */
   const patchNotes = (update: (notes: Note[]) => Note[]): void =>
     setThread((current) => (current ? { ...current, notes: update(current.notes) } : current));
+  // A layout opens its notes with the writes the Notes section uses.
+  const noteActions = useNoteActions({ threadId: id, notes: thread?.notes ?? [], members: thread?.members ?? [], onNotes: patchNotes, writes });
 
   /** Something typed straight into a section, or into a day on the rail.
    *
@@ -892,7 +920,9 @@ export function Thread({ id, onChanged }: Props) {
   /** 037. Edit thread's Save: the head changes at the press, the write
    *  follows, and a refusal puts the head back. Undo sends back everything
    *  that was there, whose pick it was included. */
-  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): Promise<void> {
+  /** `notice`: the switch came from the thread notice, so its line says where
+   *  to change it later, and wraps to be read whole. */
+  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }, notice = false): Promise<void> {
     if (!thread) return;
     const before = thread;
     setThread({
@@ -904,7 +934,9 @@ export function Thread({ id, onChanged }: Props) {
 
     const result = await editThread(id, change);
     // Under the thread's read, the head being what changed.
-    const place = { id: `thread:${id}`, icon: "pencil", form: "under" } as const;
+    const place = notice
+      ? ({ id: `thread:${id}`, icon: "check", form: "under", wrap: true } as const)
+      : ({ id: `thread:${id}`, icon: "pencil", form: "under" } as const);
     if (!result) {
       setThread(before);
       toast.show("Couldn't save that", undefined, place);
@@ -930,7 +962,9 @@ export function Thread({ id, onChanged }: Props) {
         }
       : result.previous;
     toast.show(
-      result.layout && change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
+      result.layout && change.layout
+        ? `Showing as ${LAYOUT_NAMES[change.layout]}${notice ? ". You can always change this in thread settings." : ""}`
+        : "Thread updated",
       {
         label: "Undo",
         onPress: async () => {
@@ -1010,6 +1044,7 @@ export function Thread({ id, onChanged }: Props) {
     draft,
     asking,
     arrived,
+    reveal,
     onDraft: setDraft,
     // 023. A content row edits in the modal, which holds the title, the
     // details and the when field; the inline field stays for a thread's name.
@@ -1206,6 +1241,19 @@ export function Thread({ id, onChanged }: Props) {
             icon: "pencil",
             onSelect: () => setEditingThread("name"),
           },
+          // Default only: it opens To do's field, which only Default draws.
+          ...(isDefaultLayout
+            ? [
+                {
+                  label: "Add a to do",
+                  icon: "square-check-big",
+                  onSelect: () => {
+                    setShowArchived(false);
+                    setAddingTodo(true);
+                  },
+                },
+              ]
+            : []),
           {
             label: "Add a note",
             icon: "brain",
@@ -1361,42 +1409,38 @@ export function Thread({ id, onChanged }: Props) {
         ) : null}
         <LineAt id={`thread:${id}`} />
 
-        {/* Thread layouts: the heads-up another member sees once after somebody
-            else switched, then the suggestion line offload draws (6.9). */}
+        {/* The thread notice (2026-10-31): a member's switch, once, then
+            offload's layout suggestion (6.9). Newest on top. */}
         {headsUp ? (
-          <p className={styles.headsUp}>
-            {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
-          </p>
+          <ThreadNotice
+            person={{
+              uid: headsUp.by.accountId,
+              initials: thread.members.find((one) => one.accountId === headsUp.by.accountId)?.initials ?? "",
+              name: headsUp.by.displayName,
+            }}
+            message={`${headsUp.by.displayName} switched this to the ${LAYOUT_NAMES[headsUp.layout]} layout`}
+            action="Change"
+            actionLabel="Change this thread's layout"
+            onAction={() => setEditingThread("layout")}
+            // Already seen on the server; this hides it for the view.
+            onDismiss={() => undefined}
+            onGone={() => setHeadsUp(null)}
+          />
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
-          <span className={looseStyles.suggestion}>
-            <button
-              type="button"
-              className={looseStyles.suggestHit}
-              aria-label={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
-              onClick={() => {
-                if (!thread.layoutSuggestion) return;
-                setSuggestionGone(true);
-                void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
-              }}
-            >
-              <span className={looseStyles.suggest}>
-                <Icon name="sparkles" size={13} className={looseStyles.spark} />
-                <span>{suggestionLine(thread.layoutSuggestion)}</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={looseStyles.dismiss}
-              aria-label="Dismiss suggestion"
-              onClick={() => {
-                setSuggestionGone(true);
-                void dismissLayoutSuggestion(id);
-              }}
-            >
-              <Icon name="x" size={14} />
-            </button>
-          </span>
+          <ThreadNotice
+            message={suggestionLine(thread.layoutSuggestion)}
+            action="Switch"
+            actionLabel={`Switch this thread to the ${LAYOUT_NAMES[thread.layoutSuggestion]} layout`}
+            onAction={() => {
+              if (!thread.layoutSuggestion) return;
+              setSuggestionGone(true);
+              void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue }, true);
+            }}
+            dismissLabel="Dismiss suggestion"
+            onDismiss={() => void dismissLayoutSuggestion(id)}
+            onGone={() => setSuggestionGone(true)}
+          />
         ) : null}
 
         {/* Widgets first, then everything. A widget is a view over the same
@@ -1463,11 +1507,17 @@ export function Thread({ id, onChanged }: Props) {
               setEditRow(null);
               move(row, to);
             }}
+            onRemoveAction={removeAction}
           />
         ) : null}
 
+        {/* 2026-10-31. A layout draws no Notes section, so the More menu's
+            Add a note opens its own editor above the sections. */}
+        {!isDefaultLayout && !showArchived && page && addingNote ? (
+          <NewNote actions={noteActions} onClose={() => setAddingNote(false)} />
+        ) : null}
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} />
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} threadId={id} noteActions={noteActions} onEditing={setNoteEditing} />
         ) : (
         <>
         {showArchived ? null : (
@@ -1479,6 +1529,8 @@ export function Thread({ id, onChanged }: Props) {
             onToggle={toggle}
             onFold={fold}
             onReorder={reorder}
+            addingTodo={addingTodo}
+            onAddingTodo={setAddingTodo}
           />
         )}
 
@@ -1494,6 +1546,7 @@ export function Thread({ id, onChanged }: Props) {
             counts={thread.noteCounts}
             members={thread.members}
             arrived={arrived}
+            reveal={reveal}
             adding={addingNote}
             onAdding={setAddingNote}
             onNotes={patchNotes}
@@ -1530,11 +1583,26 @@ export function Thread({ id, onChanged }: Props) {
             other than the one picked, is not an empty thread (sweep
             2026-10-07). */}
         {rows.length === 0 && (showArchived || notes.length === 0) ? (
-          filtering && !showArchived ? null : <p className={styles.empty}>
-            {showArchived
-              ? "Nothing archived here."
-              : "Nothing in this one yet. Dump something on Today and offload will file it."}
-          </p>
+          showArchived ? (
+            <p className={styles.empty}>Nothing archived here.</p>
+          ) : filtering || addingTodo || addingNote ? null : (
+            // 2026-10-31. The two ways in, in the middle of the page: the
+            // kit's EmptyState, with two buttons where it allows one. Gone
+            // while either is open, so it never sits under what it opened.
+            <div className={styles.emptyThread}>
+              <p className={styles.emptyThreadBody}>Nothing in this one yet. Add something, or dump it on Today and offload will file it.</p>
+              <div className={styles.emptyThreadActions}>
+                <button type="button" className={styles.emptyThreadAction} onClick={() => setAddingTodo(true)}>
+                  <Icon name="square-check-big" size={18} />
+                  Add a to do
+                </button>
+                <button type="button" className={styles.emptyThreadAction} onClick={() => setAddingNote(true)}>
+                  <Icon name="brain" size={18} />
+                  Add a note
+                </button>
+              </div>
+            </div>
+          )
         ) : null}
         {/* One row per series, standing for all of its occurrences, with
             how often and how many held where its own date would be. **The

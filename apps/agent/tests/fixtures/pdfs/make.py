@@ -134,6 +134,32 @@ def links() -> bytes:
     return out.getvalue()
 
 
+def contact() -> bytes:
+    """050 harvest fixture: a booking confirmation whose printed text carries
+    a phone number and an email address beside a printed link, and a `tel:`
+    annotation, which stays dropped (annotation targets are http(s) only)."""
+    pdf = pikepdf.open(
+        io.BytesIO(
+            _pages(
+                [
+                    [
+                        "BOOKING CONFIRMATION",
+                        "Hotel Avenida, 3 nights from 14 October",
+                        "Questions: +1 (212) 555-0142 or desk@avenida.example.com",
+                        "Manage at https://avenida.example.com/manage",
+                    ]
+                ]
+            )
+        )
+    )
+    action = Dictionary(S=Name.URI, URI=String("tel:+19005550100"))
+    annot = Dictionary(Type=Name.Annot, Subtype=Name.Link, Rect=Array([72, 72, 200, 90]), A=action)
+    pdf.pages[0].obj.Annots = pdf.make_indirect(Array([pdf.make_indirect(annot)]))
+    out = io.BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
 def contract() -> bytes:
     pages = [
         [f"Rental agreement, clause {n}", "The tenant shall keep the flat in good order."]
@@ -336,6 +362,7 @@ FIXTURES = {
     "boarding.pdf": boarding,
     "ticket.pdf": ticket,
     "links.pdf": links,
+    "contact.pdf": contact,
     "contract.pdf": contract,
     "pages1001.pdf": pages1001,
     "locked.pdf": locked,

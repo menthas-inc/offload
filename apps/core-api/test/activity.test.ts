@@ -113,7 +113,7 @@ describe("024 AC-19 the dot", () => {
     expect(await activityNew(me)).toBe(false);
     await record(me, { kind: "request", sent: true, title: "Sam wants to connect", body: "Answer in My people." });
     expect(await activityNew(me)).toBe(false);
-    await record(me, { kind: "share", sent: true, title: "Sam shared Lisbon trip", body: "Waiting in My threads." });
+    await record(me, { kind: "share", sent: true, title: "Sam shared Lisbon trip", body: "Waiting in Threads." });
     expect(await activityNew(me)).toBe(true);
     const cookie = await signIn(me);
     expect((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json()).toMatchObject({ activityNew: true });

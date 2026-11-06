@@ -18,7 +18,6 @@ import uuid
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from datetime import date, datetime, timedelta
-from urllib.parse import urlsplit
 
 import httpx
 import structlog
@@ -31,11 +30,12 @@ from offload_agent import ledger, reader
 from offload_agent import pdfs as pdfs_mod
 from offload_agent.cancels import Cancels, listen
 from offload_agent.config import Config
-from offload_agent.context import DumpContext, Pdf, Photo
+from offload_agent.context import DumpContext, Found, Pdf, Photo
 from offload_agent.countries import name_of
 from offload_agent.embed import SEARCH_SECONDS, query_embedder
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
+from offload_agent.found import found_in, kind_of, label_ok
 from offload_agent.harness.look import LookFailed, look
 from offload_agent.harness.plan import (
     NOT_IN_A_THREAD,
@@ -598,9 +598,7 @@ async def _look_up(
     # What the sources say instead reaches the reply, so it is used, not empty.
     known = {} if reading.failed else reading.found.known
     outcome = (
-        "failed"
-        if reading.failed
-        else ("empty" if reading.found.unsure and not known else "used")
+        "failed" if reading.failed else ("empty" if reading.found.unsure and not known else "used")
     )
     # The label and the outcome, never the query and never the URL. Enough to
     # tell a refused turn from a quiet one without putting a word of theirs in a
@@ -654,27 +652,52 @@ async def _look_up(
 _ENVELOPE_KEYS = ("worker", "pageLocation", "pageRead", "page_location", "page_read")
 
 
-def resolve_actions(candidates: list[str], actions: list) -> list[dict]:
-    """044. Turn the model's candidate numbers into the harvested URLs.
+def resolve_actions(
+    actions: list,
+    *,
+    found: "list[Found]",
+    pdf: int | None = None,
+    body: str | None = None,
+) -> list[dict]:
+    """044, 050. Turn the model's choices into gathered destinations.
 
-    The model names a link by its number and writes a label; it never writes a
-    URL. This is the one bound between the model and the worker: an out-of-range
-    number, a non-`http(s)` scheme or a duplicate is dropped, and at most two
-    are kept. Shared with the evals so they exercise this bound rather than a
-    copy of it (the 2026-10-17 stub lesson)."""
+    The model names an entry of the turn's set by its number, or on a
+    picture's row quotes one from that row's own `Text:` line, and writes a
+    label; it never writes a destination. This is the bound between the model
+    and the worker: a number out of range, a PDF's entry on any row but that
+    PDF's, a quote that gathering the `Text:` line does not find, a label
+    `label_ok` refuses, a duplicate, a third. Each kept entry carries its kind
+    and where it came from, for the confirm. Shared with the evals so they
+    exercise this bound rather than a copy of it (the 2026-10-17 stub lesson)."""
+    at = body.find("Text:") if body else -1
+    text_line = body[at:] if body and at >= 0 and (at == 0 or body[at - 1] == "\n") else None
     resolved: list[dict] = []
     seen: set[str] = set()
     for action in actions or []:
-        if not isinstance(action, dict):
+        if not isinstance(action, dict) or not label_ok(action.get("label")):
             continue
-        link = action.get("link")
-        if not isinstance(link, int) or not 1 <= link <= len(candidates):
+        link, quoted = action.get("link"), action.get("found")
+        entry: Found | None = None
+        if isinstance(link, int) and not isinstance(link, bool) and quoted is None:
+            if 1 <= link <= len(found):
+                entry = found[link - 1]
+                if entry.origin.startswith("pdf:") and entry.origin != f"pdf:{pdf}":
+                    entry = None
+        elif isinstance(quoted, str) and link is None:
+            dest = found_in(quoted, text_line)
+            entry = Found(dest, "picture", "picture") if dest else None
+        if entry is None or entry.dest in seen or kind_of(entry.dest) is None:
             continue
-        url = candidates[link - 1]
-        if url in seen or urlsplit(url).scheme.lower() not in ("http", "https"):
-            continue
-        seen.add(url)
-        resolved.append({"label": action.get("label"), "url": url})
+        seen.add(entry.dest)
+        one = {
+            "label": action["label"].strip(),
+            "url": entry.dest,
+            "kind": kind_of(entry.dest),
+            "source": entry.source,
+        }
+        if entry.sender:
+            one["sender"] = entry.sender
+        resolved.append(one)
         if len(resolved) >= 2:
             break
     return resolved
@@ -722,7 +745,7 @@ def _tool_caller(
     embedder: "Callable[[str], Awaitable[str | None]] | None" = None,
     lookups: "tuple[AsyncAnthropic, Config, Lookups] | None" = None,
     say: "StepWriter | None" = None,
-    pdfs: "list[Pdf] | None" = None,
+    found: "list[Found] | None" = None,
 ):
     """The loop's only route to a write.
 
@@ -796,21 +819,20 @@ def _tool_caller(
                     if meta.location:
                         envelope["pageLocation"] = meta.location
 
-        # 044. A PDF's actions. The model named candidates by number; resolve
-        # each to the harvested URL here, where the candidate set lives, and put
-        # the resolved {label, url} on the worker's own envelope. The model has
-        # no field for a URL, so the only trust boundary is model-to-worker: an
-        # out-of-range number, a non-http(s) scheme or a duplicate is dropped,
-        # and at most two are kept. The model's own `actions` never reach the
-        # Core API (stripped below with the envelope names).
-        if tool == "add_content" and args.get("type") == "file" and args.get("actions"):
-            index = args.get("pdf")
-            cands = (
-                pdfs[index - 1].candidates
-                if pdfs and isinstance(index, int) and 1 <= index <= len(pdfs)
-                else []
+        # 044, 050. A row's actions. The model named entries of the turn's set
+        # by number, or quoted a picture's from its row's `Text:` line; resolve
+        # each here, where the set lives, and put the resolved entries on the
+        # worker's own envelope. The model has no field for a destination, so
+        # the only trust boundary is model-to-worker (`resolve_actions`). The
+        # model's own `actions` never reach the Core API (stripped below with
+        # the envelope names).
+        if tool == "add_content" and args.get("actions"):
+            resolved = resolve_actions(
+                args["actions"],
+                found=found or [],
+                pdf=args.get("pdf"),
+                body=args.get("body") if args.get("photo") is not None else None,
             )
-            resolved = resolve_actions(cands, args["actions"])
             if resolved:
                 envelope = {**(envelope or {}), "actions": resolved}
 
@@ -948,6 +970,7 @@ ARGUMENT_REFUSALS = frozenset(
         "already_on_calendar",
         "no_time",
         "unknown_event",
+        "different_time",
         "invalid_arguments",
     }
 )
@@ -1522,7 +1545,7 @@ async def _handle(
                 job.id,
                 lookups=(anthropic, cfg, budget),
                 say=_step_writer(http, cfg, job.id),
-                pdfs=fitted.pdfs,
+                found=fitted.found_set(),
             ),
         )
 

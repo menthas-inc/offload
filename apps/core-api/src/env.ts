@@ -42,6 +42,14 @@ const schema = z.object({
    *  with a name and no pin, which is a state the product handles anyway
    *  because a provider can always be down. */
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+  /** 049. The Search page embeds a query once typing pauses, the worker's key
+   *  by reference. Optional: without it the page finds by words only and says
+   *  nothing, the state a slow Voyage leaves it in anyway. */
+  VOYAGE_API_KEY: z.string().min(1).optional(),
+  /** 049. Locally the key alone never reaches Voyage, as MAIL_LIVE: a dev
+   *  server and the suite read the same .env. Meaning on the Search page is an
+   *  opt-in per shell outside production. */
+  MEANING_LIVE: z.enum(["1"]).optional(),
   /** 020. Whether a photo's coordinate may leave to be named, rounded, by
    *  the same provider. Its own switch and not the key: setting the key for
    *  place names must not start a second egress path the privacy policy has

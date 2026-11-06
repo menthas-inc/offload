@@ -1,0 +1,1894 @@
+{
+ "person": "meera",
+ "threads": [
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "clinic",
+   "name": "Clinic shifts"
+  },
+  {
+   "key": "yoga",
+   "name": "Yoga"
+  },
+  {
+   "key": "home",
+   "name": "Home"
+  },
+  {
+   "key": "whistler",
+   "name": "Whistler ski trip"
+  },
+  {
+   "key": "cme",
+   "name": "CME courses"
+  },
+  {
+   "key": "recipes",
+   "name": "Recipes"
+  },
+  {
+   "key": "kolkata",
+   "name": "Family in Kolkata"
+  },
+  {
+   "key": "books",
+   "name": "Books"
+  },
+  {
+   "key": "garden",
+   "name": "Garden"
+  }
+ ],
+ "rows": [
+  {
+   "id": "p001",
+   "thread": "clinic",
+   "title": "Swap Thursday night shift",
+   "body": "Asked Priya, she said maybe. Otherwise try Anil."
+  },
+  {
+   "id": "p002",
+   "thread": "clinic",
+   "title": "Night shift Friday 7pm to 7am",
+   "body": ""
+  },
+  {
+   "id": "p003",
+   "thread": "clinic",
+   "title": "Renew CPSO licence",
+   "body": "Annual renewal is due by the end of December. Fee is paid online."
+  },
+  {
+   "id": "p004",
+   "thread": "clinic",
+   "title": "Clinic schedule November",
+   "body": "Nights on the 3rd, 4th, 10th, 17th and 18th. Day shifts the rest of the weeks."
+  },
+  {
+   "id": "p005",
+   "thread": "clinic",
+   "title": "Orientation for the new resident, Monday 9am",
+   "body": ""
+  },
+  {
+   "id": "p006",
+   "thread": "clinic",
+   "title": "Cover Dr. Mehta's Saturday clinic",
+   "body": ""
+  },
+  {
+   "id": "p007",
+   "thread": "clinic",
+   "title": "Order new stethoscope",
+   "body": ""
+  },
+  {
+   "id": "p008",
+   "thread": "clinic",
+   "title": "Flu shot clinic day",
+   "body": "Walk-in flu shots in room 4 from 8am. Bring extra vaccine fridge logs."
+  },
+  {
+   "id": "p009",
+   "thread": "clinic",
+   "title": "Pay parking pass",
+   "body": ""
+  },
+  {
+   "id": "p010",
+   "thread": "clinic",
+   "title": "Night shift Sunday",
+   "body": ""
+  },
+  {
+   "id": "p011",
+   "thread": "clinic",
+   "title": "Request vacation week in February",
+   "body": "Send to Dalia before Nov 30 or the schedule is locked."
+  },
+  {
+   "id": "p012",
+   "thread": "clinic",
+   "title": "Charting backlog",
+   "body": "Eleven charts still open from last week."
+  },
+  {
+   "id": "p013",
+   "thread": "clinic",
+   "title": "Referral letter for Mrs. Anand",
+   "body": "Cardiology, urgent. Include the last ECG."
+  },
+  {
+   "id": "p014",
+   "thread": "clinic",
+   "title": "Staff meeting Wednesday 12:30",
+   "body": ""
+  },
+  {
+   "id": "p015",
+   "thread": "clinic",
+   "title": "Check lab results for Mr. Petrov",
+   "body": ""
+  },
+  {
+   "id": "p016",
+   "thread": "clinic",
+   "title": "Bring snacks for night shift",
+   "body": "Almonds and clementines. The vending machine is empty by 2am."
+  },
+  {
+   "id": "p017",
+   "thread": "clinic",
+   "title": "Sleep after nights",
+   "body": "Blackout curtains, no caffeine after 3am, phone in the other room."
+  },
+  {
+   "id": "p018",
+   "thread": "clinic",
+   "title": "Swap Tuesday day shift with Priya",
+   "body": ""
+  },
+  {
+   "id": "p019",
+   "thread": "clinic",
+   "title": "Clinic holiday schedule posted",
+   "body": "Dec 24 and 25 are covered. I am on the 31st."
+  },
+  {
+   "id": "p020",
+   "thread": "clinic",
+   "title": "Update billing codes",
+   "body": ""
+  },
+  {
+   "id": "p021",
+   "thread": "clinic",
+   "title": "Hand hygiene audit next week",
+   "body": ""
+  },
+  {
+   "id": "p022",
+   "thread": "clinic",
+   "title": "Pager battery",
+   "body": ""
+  },
+  {
+   "id": "p023",
+   "thread": "clinic",
+   "title": "Locker combination change",
+   "body": ""
+  },
+  {
+   "id": "p024",
+   "thread": "clinic",
+   "title": "Mandatory WHMIS refresher",
+   "body": "Online module, about 40 minutes."
+  },
+  {
+   "id": "p025",
+   "thread": "clinic",
+   "title": "Night shift Thursday 7pm",
+   "body": ""
+  },
+  {
+   "id": "p026",
+   "thread": "clinic",
+   "title": "Ask Dr. Chen about conference leave",
+   "body": ""
+  },
+  {
+   "id": "p027",
+   "thread": "clinic",
+   "title": "Reimburse CMPA fees",
+   "body": "Receipt is in the email from August."
+  },
+  {
+   "id": "p028",
+   "thread": "clinic",
+   "title": "Walk-in volume is way up on Mondays",
+   "body": "Maybe suggest a second doctor on Monday mornings at the staff meeting."
+  },
+  {
+   "id": "p029",
+   "thread": "clinic",
+   "title": "Ontario Medical Association fee schedule updates",
+   "body": ""
+  },
+  {
+   "id": "p030",
+   "thread": "clinic",
+   "title": "CPSO policy on virtual care",
+   "body": ""
+  },
+  {
+   "id": "p031",
+   "thread": "clinic",
+   "title": "Scrubs order",
+   "body": ""
+  },
+  {
+   "id": "p032",
+   "thread": "clinic",
+   "title": "Trade Saturday for Sunday with Anil",
+   "body": ""
+  },
+  {
+   "id": "p033",
+   "thread": "clinic",
+   "title": "Compression socks for long shifts",
+   "body": "Knee high, size M."
+  },
+  {
+   "id": "p034",
+   "thread": "clinic",
+   "title": "Water bottle for the clinic",
+   "body": ""
+  },
+  {
+   "id": "p035",
+   "thread": "clinic",
+   "title": "Prep slides for Friday teaching rounds",
+   "body": "Topic is atrial fibrillation in primary care. Fifteen minutes plus questions."
+  },
+  {
+   "id": "p036",
+   "thread": "clinic",
+   "title": "Send Behrooz my night shift dates",
+   "body": ""
+  },
+  {
+   "id": "p037",
+   "thread": "clinic",
+   "title": "Call back Mrs. Anand's daughter",
+   "body": "She asked about the referral wait time."
+  },
+  {
+   "id": "p038",
+   "thread": "yoga",
+   "title": "Class Tuesday 6:30pm",
+   "body": "Studio on Queen West. Arrive ten minutes early to get a spot by the window."
+  },
+  {
+   "id": "p039",
+   "thread": "yoga",
+   "title": "Renew studio membership",
+   "body": ""
+  },
+  {
+   "id": "p040",
+   "thread": "yoga",
+   "title": "New mat",
+   "body": ""
+  },
+  {
+   "id": "p041",
+   "thread": "yoga",
+   "title": "Yoga With Adriene: 30 Days of Yoga",
+   "body": ""
+  },
+  {
+   "id": "p042",
+   "thread": "yoga",
+   "title": "Yin class Sunday morning",
+   "body": ""
+  },
+  {
+   "id": "p043",
+   "thread": "yoga",
+   "title": "Bring block and strap",
+   "body": "Studio ones are always taken."
+  },
+  {
+   "id": "p044",
+   "thread": "yoga",
+   "title": "Try hot yoga once",
+   "body": ""
+  },
+  {
+   "id": "p045",
+   "thread": "yoga",
+   "title": "Headstand practice",
+   "body": "Against the wall first, thirty seconds, then longer."
+  },
+  {
+   "id": "p046",
+   "thread": "yoga",
+   "title": "Studio closed Thanksgiving Monday",
+   "body": ""
+  },
+  {
+   "id": "p047",
+   "thread": "yoga",
+   "title": "Workshop: Restorative yoga for shift workers",
+   "body": "Saturday 2pm, $45. Sign up at the front desk."
+  },
+  {
+   "id": "p048",
+   "thread": "yoga",
+   "title": "10 yoga poses for lower back pain - Harvard Health",
+   "body": ""
+  },
+  {
+   "id": "p049",
+   "thread": "yoga",
+   "title": "Book private session with Maya",
+   "body": ""
+  },
+  {
+   "id": "p050",
+   "thread": "yoga",
+   "title": "Yoga retreat in Muskoka next spring",
+   "body": "Three nights, shared room. Early bird price ends in January."
+  },
+  {
+   "id": "p051",
+   "thread": "yoga",
+   "title": "Meditate 10 minutes before bed",
+   "body": "Try the app Behrooz uses."
+  },
+  {
+   "id": "p052",
+   "thread": "yoga",
+   "title": "Pay for class pack",
+   "body": "Ten classes for $180, expires in six months."
+  },
+  {
+   "id": "p053",
+   "thread": "yoga",
+   "title": "Hip opener sequence",
+   "body": "Pigeon, lizard, frog. Hold two minutes each side."
+  },
+  {
+   "id": "p054",
+   "thread": "home",
+   "title": "Book winter tire swap",
+   "body": ""
+  },
+  {
+   "id": "p055",
+   "thread": "home",
+   "title": "Change furnace filter",
+   "body": ""
+  },
+  {
+   "id": "p056",
+   "thread": "home",
+   "title": "Call plumber about the kitchen tap",
+   "body": "It drips at night. Behrooz says it is the washer."
+  },
+  {
+   "id": "p057",
+   "thread": "home",
+   "title": "Hydro bill due Nov 15",
+   "body": "Set up pre-authorised payment."
+  },
+  {
+   "id": "p058",
+   "thread": "home",
+   "title": "Buy lightbulbs",
+   "body": ""
+  },
+  {
+   "id": "p059",
+   "thread": "home",
+   "title": "Garbage day is Wednesday",
+   "body": "Recycling every second week, green bin every week."
+  },
+  {
+   "id": "p060",
+   "thread": "home",
+   "title": "Mortgage renewal in March",
+   "body": "Ask the bank about the five year fixed rate before January."
+  },
+  {
+   "id": "p061",
+   "thread": "home",
+   "title": "Property tax instalment",
+   "body": ""
+  },
+  {
+   "id": "p062",
+   "thread": "home",
+   "title": "Paint the bedroom",
+   "body": "Colour sample is Quiet Moss. Get two tester pots."
+  },
+  {
+   "id": "p063",
+   "thread": "home",
+   "title": "Dishwasher is making a grinding noise",
+   "body": ""
+  },
+  {
+   "id": "p064",
+   "thread": "home",
+   "title": "Smoke detector batteries",
+   "body": ""
+  },
+  {
+   "id": "p065",
+   "thread": "home",
+   "title": "Order a new couch",
+   "body": "Behrooz likes the grey one, I like the green one."
+  },
+  {
+   "id": "p066",
+   "thread": "home",
+   "title": "Internet plan renewal",
+   "body": "The promo price ends in December. Call and ask for a better rate."
+  },
+  {
+   "id": "p067",
+   "thread": "home",
+   "title": "Home insurance renewal",
+   "body": ""
+  },
+  {
+   "id": "p068",
+   "thread": "home",
+   "title": "Laundry detergent",
+   "body": ""
+  },
+  {
+   "id": "p069",
+   "thread": "home",
+   "title": "Toilet paper",
+   "body": ""
+  },
+  {
+   "id": "p070",
+   "thread": "home",
+   "title": "Dinner at Behrooz's parents on Sunday",
+   "body": ""
+  },
+  {
+   "id": "p071",
+   "thread": "home",
+   "title": "Clean the gutters before the snow",
+   "body": ""
+  },
+  {
+   "id": "p072",
+   "thread": "home",
+   "title": "Rake leaves",
+   "body": ""
+  },
+  {
+   "id": "p073",
+   "thread": "home",
+   "title": "Winter duvet",
+   "body": "Down, 15 tog, king."
+  },
+  {
+   "id": "p074",
+   "thread": "home",
+   "title": "Fix the closet door",
+   "body": ""
+  },
+  {
+   "id": "p075",
+   "thread": "home",
+   "title": "Billy bookcase from IKEA",
+   "body": ""
+  },
+  {
+   "id": "p076",
+   "thread": "home",
+   "title": "How to bleed a radiator - Family Handyman",
+   "body": ""
+  },
+  {
+   "id": "p077",
+   "thread": "home",
+   "title": "Salt for the driveway",
+   "body": ""
+  },
+  {
+   "id": "p078",
+   "thread": "home",
+   "title": "Anniversary dinner reservation",
+   "body": "November 12, somewhere quiet. Table for two at 7."
+  },
+  {
+   "id": "p079",
+   "thread": "home",
+   "title": "Behrooz's birthday gift",
+   "body": "Maybe the noise cancelling headphones he looked at."
+  },
+  {
+   "id": "p080",
+   "thread": "home",
+   "title": "Cleaner comes Friday",
+   "body": ""
+  },
+  {
+   "id": "p081",
+   "thread": "home",
+   "title": "Pick up dry cleaning",
+   "body": ""
+  },
+  {
+   "id": "p082",
+   "thread": "home",
+   "title": "Humidifier for the bedroom",
+   "body": ""
+  },
+  {
+   "id": "p083",
+   "thread": "home",
+   "title": "Eggs, milk, bread",
+   "body": ""
+  },
+  {
+   "id": "p084",
+   "thread": "home",
+   "title": "Coffee beans",
+   "body": ""
+  },
+  {
+   "id": "p085",
+   "thread": "whistler",
+   "title": "Book the chalet for Feb 13 to 17",
+   "body": "Three bedrooms, ski in ski out if we can afford it."
+  },
+  {
+   "id": "p086",
+   "thread": "whistler",
+   "title": "Lift tickets",
+   "body": "Cheaper online before January. Need three."
+  },
+  {
+   "id": "p087",
+   "thread": "whistler",
+   "title": "Rent skis or bring ours",
+   "body": ""
+  },
+  {
+   "id": "p088",
+   "thread": "whistler",
+   "title": "Sam drives up Thursday from Vancouver",
+   "body": ""
+  },
+  {
+   "id": "p089",
+   "thread": "whistler",
+   "title": "Pack thermals",
+   "body": "Two sets each, Sam always forgets."
+  },
+  {
+   "id": "p090",
+   "thread": "whistler",
+   "title": "Ski helmet for me",
+   "body": ""
+  },
+  {
+   "id": "p091",
+   "thread": "whistler",
+   "title": "Goggles",
+   "body": "Low light lens for the afternoon."
+  },
+  {
+   "id": "p092",
+   "thread": "whistler",
+   "title": "Sunscreen SPF 50",
+   "body": ""
+  },
+  {
+   "id": "p093",
+   "thread": "whistler",
+   "title": "Dinner at Araxi on Friday",
+   "body": "Reservation at 7:30 for three."
+  },
+  {
+   "id": "p094",
+   "thread": "whistler",
+   "title": "Whistler Blackcomb trail map",
+   "body": ""
+  },
+  {
+   "id": "p095",
+   "thread": "whistler",
+   "title": "Whistler snow report and forecast",
+   "body": "Check on the Tuesday before we go."
+  },
+  {
+   "id": "p096",
+   "thread": "whistler",
+   "title": "Flights Toronto to Vancouver",
+   "body": "Air Canada, Feb 12 in the evening. Return on the 17th."
+  },
+  {
+   "id": "p097",
+   "thread": "whistler",
+   "title": "Rental car with snow tires",
+   "body": ""
+  },
+  {
+   "id": "p098",
+   "thread": "whistler",
+   "title": "Book a lesson for Behrooz",
+   "body": "He last skied in 2015 and says he is fine. He is not fine."
+  },
+  {
+   "id": "p099",
+   "thread": "whistler",
+   "title": "Check the chalet has a hot tub",
+   "body": ""
+  },
+  {
+   "id": "p100",
+   "thread": "whistler",
+   "title": "Split the chalet cost three ways",
+   "body": ""
+  },
+  {
+   "id": "p101",
+   "thread": "whistler",
+   "title": "Peak 2 Peak gondola",
+   "body": "Worth doing on a clear day, ride the glass bottom one."
+  },
+  {
+   "id": "p102",
+   "thread": "whistler",
+   "title": "Travel insurance for the trip",
+   "body": ""
+  },
+  {
+   "id": "p103",
+   "thread": "whistler",
+   "title": "Hand warmers",
+   "body": "A box of ten."
+  },
+  {
+   "id": "p104",
+   "thread": "whistler",
+   "title": "Merino ski socks",
+   "body": ""
+  },
+  {
+   "id": "p105",
+   "thread": "whistler",
+   "title": "Apres at the Longhorn",
+   "body": ""
+  },
+  {
+   "id": "p106",
+   "thread": "whistler",
+   "title": "Who is bringing snacks",
+   "body": "Ask Sam, he never packs anything."
+  },
+  {
+   "id": "p107",
+   "thread": "misc",
+   "title": "Renew passport",
+   "body": "Expires in April. Need it for the Kolkata trip anyway."
+  },
+  {
+   "id": "p108",
+   "thread": "misc",
+   "title": "Dentist appointment Nov 20, 8am",
+   "body": "Cleaning and check up."
+  },
+  {
+   "id": "p109",
+   "thread": "misc",
+   "title": "Sunscreen",
+   "body": "Face one, fragrance free."
+  },
+  {
+   "id": "p110",
+   "thread": "misc",
+   "title": "Pick up prescription",
+   "body": "Shoppers on Bloor, ready after 2pm."
+  },
+  {
+   "id": "p111",
+   "thread": "misc",
+   "title": "Call mum",
+   "body": ""
+  },
+  {
+   "id": "p112",
+   "thread": "misc",
+   "title": "Birthday gift for Rina",
+   "body": ""
+  },
+  {
+   "id": "p113",
+   "thread": "misc",
+   "title": "Pick up Rina from Pearson on Friday",
+   "body": "Her flight from London lands at 4:15pm, Terminal 1."
+  },
+  {
+   "id": "p114",
+   "thread": "misc",
+   "title": "Renew driver's licence",
+   "body": ""
+  },
+  {
+   "id": "p115",
+   "thread": "misc",
+   "title": "Mangoes",
+   "body": ""
+  },
+  {
+   "id": "p116",
+   "thread": "misc",
+   "title": "Cancel gym membership",
+   "body": "I have not been since June. Need to cancel in person."
+  },
+  {
+   "id": "p117",
+   "thread": "misc",
+   "title": "Book physio for the shoulder",
+   "body": ""
+  },
+  {
+   "id": "p118",
+   "thread": "misc",
+   "title": "Return the Amazon package",
+   "body": ""
+  },
+  {
+   "id": "p119",
+   "thread": "misc",
+   "title": "Toronto Public Library - Locations and hours",
+   "body": ""
+  },
+  {
+   "id": "p120",
+   "thread": "misc",
+   "title": "Ontario health card renewal",
+   "body": ""
+  },
+  {
+   "id": "p121",
+   "thread": "misc",
+   "title": "Gift card for the neighbour",
+   "body": ""
+  },
+  {
+   "id": "p122",
+   "thread": "misc",
+   "title": "Eye exam",
+   "body": ""
+  },
+  {
+   "id": "p123",
+   "thread": "misc",
+   "title": "Gather receipts for taxes",
+   "body": "Charitable donations and the home office."
+  },
+  {
+   "id": "p124",
+   "thread": "misc",
+   "title": "Pay Visa bill",
+   "body": ""
+  },
+  {
+   "id": "p125",
+   "thread": "misc",
+   "title": "Haircut Saturday",
+   "body": ""
+  },
+  {
+   "id": "p126",
+   "thread": "misc",
+   "title": "Umbrella",
+   "body": ""
+  },
+  {
+   "id": "p127",
+   "thread": "misc",
+   "title": "Thank you card for Dr. Mehta",
+   "body": ""
+  },
+  {
+   "id": "p128",
+   "thread": "misc",
+   "title": "Notarize documents",
+   "body": "Property papers, bring two pieces of ID."
+  },
+  {
+   "id": "p129",
+   "thread": "misc",
+   "title": "Sam's birthday is Dec 4",
+   "body": ""
+  },
+  {
+   "id": "p130",
+   "thread": "misc",
+   "title": "Zoom with Rina on Sunday",
+   "body": "After she settles into the flat."
+  },
+  {
+   "id": "p131",
+   "thread": "misc",
+   "title": "Buy stamps",
+   "body": ""
+  },
+  {
+   "id": "p132",
+   "thread": "cme",
+   "title": "Register for Family Medicine Forum",
+   "body": "Early registration closes October 30. Hotel is separate."
+  },
+  {
+   "id": "p133",
+   "thread": "cme",
+   "title": "Mainpro+ credits tracker",
+   "body": "Need 250 credits over five years. About 140 logged so far."
+  },
+  {
+   "id": "p134",
+   "thread": "cme",
+   "title": "Webinar: managing type 2 diabetes in primary care",
+   "body": "Thursday 7pm, one credit."
+  },
+  {
+   "id": "p135",
+   "thread": "cme",
+   "title": "Choosing Wisely Canada recommendations for family medicine",
+   "body": ""
+  },
+  {
+   "id": "p136",
+   "thread": "cme",
+   "title": "ACLS recertification",
+   "body": "Expires in March. Book the course in January."
+  },
+  {
+   "id": "p137",
+   "thread": "cme",
+   "title": "Read the new hypertension guidelines",
+   "body": ""
+  },
+  {
+   "id": "p138",
+   "thread": "cme",
+   "title": "UpToDate: Evaluation of chest pain in adults",
+   "body": ""
+  },
+  {
+   "id": "p139",
+   "thread": "cme",
+   "title": "Podcast episode on antibiotic stewardship",
+   "body": ""
+  },
+  {
+   "id": "p140",
+   "thread": "cme",
+   "title": "Dermatology skills course in Banff",
+   "body": "April, three days. Check if the clinic covers the fee."
+  },
+  {
+   "id": "p141",
+   "thread": "cme",
+   "title": "Sign up for the point of care ultrasound workshop",
+   "body": ""
+  },
+  {
+   "id": "p142",
+   "thread": "cme",
+   "title": "Submit expense claim for the conference",
+   "body": ""
+  },
+  {
+   "id": "p143",
+   "thread": "cme",
+   "title": "Prep a case for journal club",
+   "body": ""
+  },
+  {
+   "id": "p144",
+   "thread": "cme",
+   "title": "Canadian Family Physician: Deprescribing benzodiazepines in older adults",
+   "body": ""
+  },
+  {
+   "id": "p145",
+   "thread": "cme",
+   "title": "Sleep medicine online course",
+   "body": ""
+  },
+  {
+   "id": "p146",
+   "thread": "cme",
+   "title": "Ask Dr. Chen about the PALS course",
+   "body": ""
+  },
+  {
+   "id": "p147",
+   "thread": "cme",
+   "title": "Trauma informed care workshop",
+   "body": ""
+  },
+  {
+   "id": "p148",
+   "thread": "cme",
+   "title": "ECG flashcards",
+   "body": ""
+  },
+  {
+   "id": "p149",
+   "thread": "recipes",
+   "title": "Butter chicken",
+   "body": "Marinate overnight in yoghurt and Kashmiri chilli. Finish with a little butter."
+  },
+  {
+   "id": "p150",
+   "thread": "recipes",
+   "title": "Mango lassi",
+   "body": ""
+  },
+  {
+   "id": "p151",
+   "thread": "recipes",
+   "title": "Dal tadka",
+   "body": "Toor dal, ghee, cumin, dried red chilli."
+  },
+  {
+   "id": "p152",
+   "thread": "recipes",
+   "title": "Mishti doi at home",
+   "body": "Needs jaggery and a warm spot overnight."
+  },
+  {
+   "id": "p153",
+   "thread": "recipes",
+   "title": "Shorshe ilish",
+   "body": "Mustard hilsa. Frozen hilsa from the Bengali shop on Gerrard."
+  },
+  {
+   "id": "p154",
+   "thread": "recipes",
+   "title": "Easy sheet pan salmon with lemon",
+   "body": ""
+  },
+  {
+   "id": "p155",
+   "thread": "recipes",
+   "title": "Khichuri for rainy days",
+   "body": ""
+  },
+  {
+   "id": "p156",
+   "thread": "recipes",
+   "title": "Meal prep for the night shift week",
+   "body": "Rice, roast chicken and vegetables in four boxes."
+  },
+  {
+   "id": "p157",
+   "thread": "recipes",
+   "title": "Overnight oats",
+   "body": "Oats, milk, chia, frozen blueberries. Four jars."
+  },
+  {
+   "id": "p158",
+   "thread": "recipes",
+   "title": "Sourdough starter",
+   "body": "Feed it every morning. Behrooz keeps forgetting."
+  },
+  {
+   "id": "p159",
+   "thread": "recipes",
+   "title": "Chicken stock",
+   "body": ""
+  },
+  {
+   "id": "p160",
+   "thread": "recipes",
+   "title": "How to cook basmati rice that is never sticky",
+   "body": ""
+  },
+  {
+   "id": "p161",
+   "thread": "recipes",
+   "title": "Chana masala",
+   "body": ""
+  },
+  {
+   "id": "p162",
+   "thread": "recipes",
+   "title": "Mustard oil",
+   "body": "Kachi ghani, from the Bengali shop."
+  },
+  {
+   "id": "p163",
+   "thread": "recipes",
+   "title": "Paneer",
+   "body": ""
+  },
+  {
+   "id": "p164",
+   "thread": "recipes",
+   "title": "Banana bread with walnuts",
+   "body": ""
+  },
+  {
+   "id": "p165",
+   "thread": "recipes",
+   "title": "Aloo posto",
+   "body": "Poppy seeds are hard to find, ask at Gerrard."
+  },
+  {
+   "id": "p166",
+   "thread": "recipes",
+   "title": "Ginger tea with tulsi",
+   "body": ""
+  },
+  {
+   "id": "p167",
+   "thread": "recipes",
+   "title": "Mondays are vegetarian",
+   "body": "Dal, a vegetable, rice. Nothing complicated."
+  },
+  {
+   "id": "p168",
+   "thread": "kolkata",
+   "title": "Call Ma on Sunday",
+   "body": "Ask about the cataract appointment."
+  },
+  {
+   "id": "p169",
+   "thread": "kolkata",
+   "title": "Baba's cataract surgery in January",
+   "body": "Send money for the hospital deposit. Mashi will take him."
+  },
+  {
+   "id": "p170",
+   "thread": "kolkata",
+   "title": "Flights to Kolkata in December",
+   "body": "Toronto to Kolkata via Delhi. Leaving December 19."
+  },
+  {
+   "id": "p171",
+   "thread": "kolkata",
+   "title": "Durga Puja photos from Mashi",
+   "body": ""
+  },
+  {
+   "id": "p172",
+   "thread": "kolkata",
+   "title": "Gifts for the cousins",
+   "body": ""
+  },
+  {
+   "id": "p173",
+   "thread": "kolkata",
+   "title": "Dida's birthday on January 12",
+   "body": "Call in the morning, it is evening there."
+  },
+  {
+   "id": "p174",
+   "thread": "kolkata",
+   "title": "Send money to Ma for the electricity bill",
+   "body": ""
+  },
+  {
+   "id": "p175",
+   "thread": "kolkata",
+   "title": "Check whether Behrooz needs an e-visa for India",
+   "body": "Look at the government site, not an agent."
+  },
+  {
+   "id": "p176",
+   "thread": "kolkata",
+   "title": "Kolkata weather in December",
+   "body": ""
+  },
+  {
+   "id": "p177",
+   "thread": "kolkata",
+   "title": "Bring Darjeeling tea back",
+   "body": "Second flush, from the shop near Ma's."
+  },
+  {
+   "id": "p178",
+   "thread": "kolkata",
+   "title": "Book a driver from the airport",
+   "body": ""
+  },
+  {
+   "id": "p179",
+   "thread": "kolkata",
+   "title": "Mashi's new phone number",
+   "body": ""
+  },
+  {
+   "id": "p180",
+   "thread": "kolkata",
+   "title": "Family lunch on Sunday over video",
+   "body": ""
+  },
+  {
+   "id": "p181",
+   "thread": "kolkata",
+   "title": "Order sandesh for Bhai Phota",
+   "body": ""
+  },
+  {
+   "id": "p182",
+   "thread": "kolkata",
+   "title": "Ask Ma to see the cardiologist",
+   "body": "Her blood pressure was high at the last check."
+  },
+  {
+   "id": "p183",
+   "thread": "kolkata",
+   "title": "Photos of the old house in Salt Lake",
+   "body": ""
+  },
+  {
+   "id": "p184",
+   "thread": "books",
+   "title": "The Covenant of Water",
+   "body": "Ma recommended it. Long, but supposedly worth it."
+  },
+  {
+   "id": "p185",
+   "thread": "books",
+   "title": "Library hold: Demon Copperhead",
+   "body": ""
+  },
+  {
+   "id": "p186",
+   "thread": "books",
+   "title": "Next Elena Ferrante on Kindle",
+   "body": ""
+  },
+  {
+   "id": "p187",
+   "thread": "books",
+   "title": "Book club at Anjali's on Thursday",
+   "body": "Third Thursday of the month. This month is the Ferrante."
+  },
+  {
+   "id": "p188",
+   "thread": "books",
+   "title": "Best books of the year - The Globe and Mail",
+   "body": ""
+  },
+  {
+   "id": "p189",
+   "thread": "books",
+   "title": "Audiobook for the drive to clinic",
+   "body": "Something light, forty minutes each way."
+  },
+  {
+   "id": "p190",
+   "thread": "books",
+   "title": "Return library books by Saturday",
+   "body": ""
+  },
+  {
+   "id": "p191",
+   "thread": "books",
+   "title": "Reread Middlemarch",
+   "body": ""
+  },
+  {
+   "id": "p192",
+   "thread": "books",
+   "title": "Hafez poems for Behrooz's birthday",
+   "body": "A good translation, with the Persian on the facing page."
+  },
+  {
+   "id": "p193",
+   "thread": "books",
+   "title": "When Breath Becomes Air",
+   "body": ""
+  },
+  {
+   "id": "p194",
+   "thread": "books",
+   "title": "Read 20 pages before bed",
+   "body": ""
+  },
+  {
+   "id": "p195",
+   "thread": "books",
+   "title": "Tagore poems",
+   "body": ""
+  },
+  {
+   "id": "p196",
+   "thread": "books",
+   "title": "Book about long distance cycling",
+   "body": "Sam recommended it. Maybe a gift for him."
+  },
+  {
+   "id": "p197",
+   "thread": "books",
+   "title": "Bookshelf is full, donate some",
+   "body": ""
+  },
+  {
+   "id": "p198",
+   "thread": "garden",
+   "title": "Plant tulip bulbs before the frost",
+   "body": "Fifty bulbs by the front steps."
+  },
+  {
+   "id": "p199",
+   "thread": "garden",
+   "title": "Cover the roses for winter",
+   "body": ""
+  },
+  {
+   "id": "p200",
+   "thread": "garden",
+   "title": "Order garlic cloves for fall planting",
+   "body": ""
+  },
+  {
+   "id": "p201",
+   "thread": "garden",
+   "title": "Dig up the dahlia tubers",
+   "body": ""
+  },
+  {
+   "id": "p202",
+   "thread": "garden",
+   "title": "Compost bin is full",
+   "body": "Turn it and start a second one."
+  },
+  {
+   "id": "p203",
+   "thread": "garden",
+   "title": "Disconnect the rain barrel",
+   "body": ""
+  },
+  {
+   "id": "p204",
+   "thread": "garden",
+   "title": "Seed catalogue for the spring tomatoes",
+   "body": ""
+  },
+  {
+   "id": "p205",
+   "thread": "garden",
+   "title": "When to bring houseplants indoors",
+   "body": ""
+  },
+  {
+   "id": "p206",
+   "thread": "garden",
+   "title": "Water the fiddle leaf fig",
+   "body": ""
+  },
+  {
+   "id": "p207",
+   "thread": "garden",
+   "title": "Repot the monstera",
+   "body": "Needs a bigger pot, size 14 inch."
+  },
+  {
+   "id": "p208",
+   "thread": "garden",
+   "title": "Marigold seeds",
+   "body": ""
+  },
+  {
+   "id": "p209",
+   "thread": "garden",
+   "title": "Mulch the beds",
+   "body": "Cedar mulch, six bags."
+  },
+  {
+   "id": "p210",
+   "thread": "garden",
+   "title": "Garden gloves",
+   "body": ""
+  },
+  {
+   "id": "p211",
+   "thread": "garden",
+   "title": "Basil on the windowsill",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "pn01",
+   "thread": "clinic",
+   "text": "Nights run 7pm to 7am, about four a month."
+  },
+  {
+   "id": "pn02",
+   "thread": "clinic",
+   "text": "Dalia is the scheduling coordinator. Requests go to her by the 25th of the month before."
+  },
+  {
+   "id": "pn03",
+   "thread": "clinic",
+   "text": "The clinic is Wellesley Family Health. Room 4 is mine."
+  },
+  {
+   "id": "pn04",
+   "thread": "clinic",
+   "text": "Shift swaps need Dr. Chen's sign-off."
+  },
+  {
+   "id": "pn05",
+   "thread": "yoga",
+   "text": "The studio is on Queen West. The Tuesday 6:30 class is the one that sticks."
+  },
+  {
+   "id": "pn06",
+   "thread": "yoga",
+   "text": "Yin on Sundays is for recovery after nights."
+  },
+  {
+   "id": "pn07",
+   "thread": "home",
+   "text": "Shared with Behrooz. Garbage is Wednesday, recycling every second week."
+  },
+  {
+   "id": "pn08",
+   "thread": "home",
+   "text": "The mortgage is with TD and renews in March."
+  },
+  {
+   "id": "pn09",
+   "thread": "home",
+   "text": "The cleaner comes every second Friday."
+  },
+  {
+   "id": "pn10",
+   "thread": "home",
+   "text": "The furnace is serviced every October."
+  },
+  {
+   "id": "pn11",
+   "thread": "whistler",
+   "text": "The trip is Feb 13 to 17 with Behrooz and Sam."
+  },
+  {
+   "id": "pn12",
+   "thread": "whistler",
+   "text": "The chalet cost is split three ways."
+  },
+  {
+   "id": "pn13",
+   "thread": "whistler",
+   "text": "Sam drives up from Vancouver, Behrooz and Meera fly in."
+  },
+  {
+   "id": "pn14",
+   "thread": "cme",
+   "text": "Needs 250 Mainpro+ credits by 2029."
+  },
+  {
+   "id": "pn15",
+   "thread": "cme",
+   "text": "Family Medicine Forum is in November."
+  },
+  {
+   "id": "pn16",
+   "thread": "cme",
+   "text": "The clinic reimburses up to $2,500 a year for courses."
+  },
+  {
+   "id": "pn17",
+   "thread": "recipes",
+   "text": "Everything is vegetarian on Mondays."
+  },
+  {
+   "id": "pn18",
+   "thread": "recipes",
+   "text": "Behrooz does not like cilantro in anything cooked."
+  },
+  {
+   "id": "pn19",
+   "thread": "recipes",
+   "text": "Meal prep happens on Sundays for the week of nights."
+  },
+  {
+   "id": "pn20",
+   "thread": "kolkata",
+   "text": "Ma and Baba live in Salt Lake. Dida lives with Mashi in Ballygunge."
+  },
+  {
+   "id": "pn21",
+   "thread": "kolkata",
+   "text": "Calls with Ma are on Sundays at 9am Toronto time."
+  },
+  {
+   "id": "pn22",
+   "thread": "books",
+   "text": "Book club meets the third Thursday of the month."
+  },
+  {
+   "id": "pn23",
+   "thread": "books",
+   "text": "The library card is at the Parliament Street branch."
+  },
+  {
+   "id": "pn24",
+   "thread": "garden",
+   "text": "The backyard faces south. Zone 6."
+  },
+  {
+   "id": "pn25",
+   "thread": "misc",
+   "text": "Rina is the younger sister and lives in London."
+  }
+ ],
+ "memories": [
+  {
+   "id": "pm01",
+   "text": "They are a family doctor in Toronto."
+  },
+  {
+   "id": "pm02",
+   "text": "They work night shifts about four times a month."
+  },
+  {
+   "id": "pm03",
+   "text": "Their husband is Behrooz."
+  },
+  {
+   "id": "pm04",
+   "text": "Their sister is Rina, who lives in London."
+  },
+  {
+   "id": "pm05",
+   "text": "Their friend Sam is Behrooz's oldest friend."
+  },
+  {
+   "id": "pm06",
+   "text": "They are vegetarian on Mondays."
+  },
+  {
+   "id": "pm07",
+   "text": "They share a calendar with Behrooz."
+  },
+  {
+   "id": "pm08",
+   "text": "Their parents live in Kolkata."
+  },
+  {
+   "id": "pm09",
+   "text": "They practise yoga on Tuesday evenings."
+  },
+  {
+   "id": "pm10",
+   "text": "They do not eat beef."
+  },
+  {
+   "id": "pm11",
+   "text": "Their mother tongue is Bengali."
+  },
+  {
+   "id": "pm12",
+   "text": "Their car is a grey Subaru Crosstrek."
+  },
+  {
+   "id": "pm13",
+   "text": "Their mortgage is with TD."
+  },
+  {
+   "id": "pm14",
+   "text": "They call their mother on Sunday mornings."
+  },
+  {
+   "id": "pm15",
+   "text": "Their medical licence is held with the CPSO."
+  },
+  {
+   "id": "pm16",
+   "text": "They are in a book club that meets the third Thursday."
+  },
+  {
+   "id": "pm17",
+   "text": "They drink tea in the afternoon."
+  },
+  {
+   "id": "pm18",
+   "text": "They are planning a trip to Kolkata in December."
+  },
+  {
+   "id": "pm19",
+   "text": "Their birthday is March 9."
+  },
+  {
+   "id": "pm20",
+   "text": "Their clinic is Wellesley Family Health."
+  }
+ ],
+ "queries": [
+  {
+   "q": "licence",
+   "relevant": [
+    "p003",
+    "p114",
+    "pm15"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "mangoes",
+   "relevant": [
+    "p115",
+    "p150"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "sunscreen",
+   "relevant": [
+    "p092",
+    "p109"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Rina",
+   "relevant": [
+    "p112",
+    "p113",
+    "p130",
+    "pn25",
+    "pm04"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "chalet",
+   "relevant": [
+    "p085",
+    "p099",
+    "p100",
+    "pn12"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "mortgage",
+   "relevant": [
+    "p060",
+    "pn08",
+    "pm13"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "stethoscope",
+   "relevant": [
+    "p007"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "yoga",
+   "relevant": [
+    "p038",
+    "p039",
+    "p040",
+    "p041",
+    "p042",
+    "p043",
+    "p044",
+    "p045",
+    "p046",
+    "p047",
+    "p048",
+    "p049",
+    "p050",
+    "p051",
+    "p052",
+    "p053",
+    "pn05",
+    "pn06",
+    "pm09"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when is my next night shift",
+   "relevant": [
+    "p001",
+    "p002",
+    "p004",
+    "p010",
+    "p025",
+    "p036",
+    "pn01",
+    "pm02"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much do lift tickets cost",
+   "relevant": [
+    "p086"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what to pack for Whistler",
+   "relevant": [
+    "p087",
+    "p089",
+    "p090",
+    "p091",
+    "p092",
+    "p103",
+    "p104"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who do I send time off requests to",
+   "relevant": [
+    "p011",
+    "p026",
+    "pn02"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how many CME credits do I need",
+   "relevant": [
+    "p133",
+    "pn14"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what is for dinner on Mondays",
+   "relevant": [
+    "p167",
+    "pn17",
+    "pm06"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "flights to Kolkata",
+   "relevant": [
+    "p170",
+    "pm18"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "keep my right to practise current",
+   "relevant": [
+    "p003",
+    "pm15"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "what to wear under my snow gear",
+   "relevant": [
+    "p089",
+    "p104"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "get the car ready for ice and slush",
+   "relevant": [
+    "p054"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "protect the flower shrubs from the cold",
+   "relevant": [
+    "p199"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "wild yeast loaf culture",
+   "relevant": [
+    "p158"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Bengali sweet yoghurt",
+   "relevant": [
+    "p152"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "where are my folks based",
+   "relevant": [
+    "pn20",
+    "pm08"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "optometrist visit",
+   "relevant": [
+    "p122"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "see someone about my molars",
+   "relevant": [
+    "p108"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "collect my sibling at arrivals",
+   "relevant": [
+    "p113"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "stop paying for exercise facility",
+   "relevant": [
+    "p116"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "something my mum told me to read",
+   "relevant": [
+    "p184"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "poetry by the Bengali Nobel winner",
+   "relevant": [
+    "p195"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "travel document about to lapse",
+   "relevant": [
+    "p107"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "blocking daylight so I can rest",
+   "relevant": [
+    "p017"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "gathering for discussing novels",
+   "relevant": [
+    "p187",
+    "pn22",
+    "pm16"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "operation on dad's clouded lens",
+   "relevant": [
+    "p169",
+    "p168"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weather in Lisbon tomorrow",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how tall is the CN Tower",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "best pizza near Union Station",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how do I get red wine out of a carpet",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how many ounces in a cup",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "pottery class",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "Spanish lessons",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "pet vaccination schedule",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "daycare waitlist",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "marathon training plan",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "asdfghjkl",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "zzzz qqq",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "bnm wrt kjh",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "plugh frobozz",
+   "relevant": [],
+   "kind": "nonsense"
+  }
+ ]
+}

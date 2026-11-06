@@ -253,7 +253,7 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
     const rows = await sql<{ n: number }>`
       select count(*)::int as n from content
       where thread_id = ${myThread}::uuid
-        and search_text @@ websearch_to_tsquery('simple', 'row')
+        and search_text @@ websearch_to_tsquery('offload_search', 'row')
     `.execute(db);
     expect(rows.rows[0]!.n).toBe(60);
   });

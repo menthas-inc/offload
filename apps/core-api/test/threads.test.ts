@@ -1303,7 +1303,7 @@ describe("023 the when field on the edit", () => {
   async function held(id: string) {
     return db
       .selectFrom("content")
-      .select(["title", "body", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs"])
+      .select(["title", "body", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs", "source_ref"])
       .where("id", "=", id)
       .executeTakeFirstOrThrow();
   }
@@ -1444,6 +1444,22 @@ describe("023 the when field on the edit", () => {
     await editContent(me, id, { dueAt: "2026-10-17", occursAt: null, allDay: true });
     row = await held(id);
     expect([row.occurs_at, row.occurs_end_at, row.due_at?.toISOString()]).toEqual([null, null, "2026-10-17T12:00:00.000Z"]);
+  });
+
+  it("a new date lets go of an event the row only found: offload did not write it", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, {
+      type: "event",
+      occurs_at: new Date("2026-09-25T18:00:00Z"),
+      source_ref: "google:abc",
+      attrs: JSON.stringify({ calendar: "google", calendar_found: true }),
+    });
+    await editContent(me, id, { occursAt: "2026-09-26T18:00:00Z" });
+    const row = await held(id);
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-26T18:00:00.000Z");
+    expect(row.source_ref).toBeNull();
+    expect(row.attrs).not.toHaveProperty("calendar_found");
   });
 
   it("refuses a date, All day and a rule on a row that is on a calendar", async () => {

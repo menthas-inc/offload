@@ -352,7 +352,7 @@ export * from "./timeline.js";
 // Dragging a row to a new place, as the priorities that hold it there. Its own
 // file because it is arithmetic over one field and every surface drags.
 export * from "./reorder.js";
-export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption, takeFiles } from "./photos.js";
+export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption, takeFiles, withCaption } from "./photos.js";
 // 021. A voice note: its ceiling and its bars.
 export { MAX_VOICE_MS, WAVEFORM_BARS, resample } from "./recording.js";
 // A thread's rows: a link's domain, a span of the day, a row drawn at the press.
@@ -562,3 +562,32 @@ export type { ThreadSort } from "./threads-grid.js";
 // 048. Live updates: what the connection says, and when a screen reads again.
 export { EVERYTHING, reloadFloor, touches } from "./live.js";
 export type { ChangeKind, Changes } from "./live.js";
+// 049. Search: its numbers, its words, what is drawn semibold, recent searches.
+export {
+  ANNOUNCE_MS,
+  ARCHIVED_PARAM,
+  fold,
+  KIND_WORDS,
+  looseMatches,
+  matchSpans,
+  MEANING_FROM,
+  MEANING_IDLE_MS,
+  nameMatches,
+  NO_ANSWER,
+  NOTE_GLYPH,
+  NOTE_PARAM,
+  QUERY_CHARS,
+  recentAfter,
+  RECENT_MAX,
+  ROW_GLYPHS,
+  ROW_PARAM,
+  rowLabel,
+  SEARCH_COPY,
+  SEARCH_LIMITS,
+  searchCount,
+  searchLetters,
+  searchSession,
+  SETTLE_MS,
+} from "./search.js";
+export type { SearchAnswer, SearchRow, SearchState } from "./search.js";
+export { actionKind, isActionUrl, labelOk, shownDestination, type ActionKind } from "./actions.js";

@@ -147,6 +147,28 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 049. Search opens a window, so it is a button drawn as a nav row, with the
+   key that opens it from anywhere. */
+button.navItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.navKey {
+  margin-left: auto;
+  font-style: normal;
+  font-weight: var(--weight-medium);
+  font-size: calc(11px * var(--type-scale));
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-hairline);
+  border-radius: 5px;
+  padding: 3px 5px;
+}
+
 .sideLabel {
   display: flex;
   align-items: center;
@@ -947,14 +969,6 @@
   color: var(--text-tertiary);
 }
 
-/* Thread layouts: the one-time heads-up that another member switched the
-   layout (decision 13). A quiet line, not offload's moss. */
-.headsUp {
-  margin-top: var(--space-4);
-  font-size: var(--size-caption);
-  color: var(--text-secondary);
-}
-
 /* Faces on the thread head. */
 .faces {
   display: flex;
@@ -994,6 +1008,47 @@
   font-size: calc(14.5px * var(--type-scale));
   line-height: 1.55;
   color: var(--text-tertiary);
+}
+
+/* 2026-10-31. An empty thread's two ways in: the kit's EmptyState, centred,
+   its body in the quiet serif, with two secondary Buttons at md. */
+.emptyThread {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-11) var(--space-9);
+  text-align: center;
+}
+.emptyThreadBody {
+  margin: 0;
+  max-width: 32ch;
+  font: var(--text-quiet-role);
+  color: var(--text-secondary);
+}
+.emptyThreadActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.emptyThreadAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: var(--weight-medium) var(--size-body-sm) / 1 var(--font-core);
+  cursor: pointer;
+  transition: background var(--transition-ui);
+}
+.emptyThreadAction:hover {
+  background: var(--surface-fill);
 }
 
 .provenance {

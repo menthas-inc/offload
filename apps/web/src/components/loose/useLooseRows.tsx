@@ -27,8 +27,10 @@ import {
   deleteContent,
   deleteNote,
   editContent,
+  forgetAction,
   editNote,
   moveContent,
+  restoreAction,
   muteNote,
   restoreNote,
   setArchived,
@@ -77,6 +79,8 @@ export function useLooseRows<S extends LooseSummary>(
   list: S,
   setList: (update: (current: S) => S) => void,
   reload: () => Promise<void>,
+  /** 049. The row Search opened the page at, marked for a moment. */
+  arrived: Set<string> = new Set(),
 ): LooseRows {
   const toast = useToast();
   const router = useRouter();
@@ -382,13 +386,34 @@ export function useLooseRows<S extends LooseSummary>(
 
   // ------------------------------------------------------------- the rest
 
+  /** 050. Remove a wrong action from a row here, as the thread does: the
+   *  row stays and changes, so the Undo draws under it. */
+  function removeAction(row: ContentRow, url: string): void {
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patchRow(row.id, { actions: before }),
+        write: () => forgetAction(row.id, url),
+        unwrite: () => restoreAction(row.id, url),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
+      },
+      toast,
+      writes,
+    );
+  }
+
   const handlers: RowHandlers = {
     editing: null,
     draft: "",
     asking,
-    arrived: new Set(),
+    arrived,
     onDraft: () => undefined,
     onEdit: (row) => setEditRow(row),
+    onRemoveAction: removeAction,
     onSaveTitle: () => undefined,
     onStopEditing: () => undefined,
     onArchive: archive,
@@ -418,6 +443,7 @@ export function useLooseRows<S extends LooseSummary>(
         <EditModal
           key={editRow.id}
           row={editRow}
+          onRemoveAction={removeAction}
           onClose={() => setEditRow(null)}
           onSave={(row, change) => {
             setEditRow(null);

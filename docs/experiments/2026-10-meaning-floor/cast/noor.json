@@ -1,0 +1,1905 @@
+{
+ "person": "noor",
+ "threads": [
+  {
+   "key": "commute",
+   "name": "Commute"
+  },
+  {
+   "key": "home",
+   "name": "Home"
+  },
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "work",
+   "name": "Policy work"
+  },
+  {
+   "key": "french",
+   "name": "French class"
+  },
+  {
+   "key": "running",
+   "name": "Running"
+  },
+  {
+   "key": "beirut",
+   "name": "Family in Beirut"
+  },
+  {
+   "key": "reading",
+   "name": "Reading list"
+  },
+  {
+   "key": "budget",
+   "name": "Budget"
+  }
+ ],
+ "rows": [
+  {
+   "id": "n001",
+   "thread": "commute",
+   "title": "VIA Rail 7:40 to Ottawa",
+   "body": ""
+  },
+  {
+   "id": "n002",
+   "thread": "commute",
+   "title": "Renew Opus monthly pass",
+   "body": "Do it online before the 28th so it is loaded for the first."
+  },
+  {
+   "id": "n003",
+   "thread": "commute",
+   "title": "Buy VIA Rail 10-trip pack",
+   "body": "Cheaper than single fares. Check if the multi-ride is still on sale."
+  },
+  {
+   "id": "n004",
+   "thread": "commute",
+   "title": "Train stuck outside Dorval",
+   "body": "40 minutes late again. Keep the email for the refund."
+  },
+  {
+   "id": "n005",
+   "thread": "commute",
+   "title": "Claim VIA delay refund",
+   "body": "Form is on their website, needs the ticket number."
+  },
+  {
+   "id": "n006",
+   "thread": "commute",
+   "title": "Download podcasts for the ride",
+   "body": "Two episodes, in case the signal drops near Vaudreuil."
+  },
+  {
+   "id": "n007",
+   "thread": "commute",
+   "title": "Charge the noise cancelling headphones",
+   "body": ""
+  },
+  {
+   "id": "n008",
+   "thread": "commute",
+   "title": "Walk from Ottawa station to the office",
+   "body": "About 25 minutes, 15 if I skip the coffee."
+  },
+  {
+   "id": "n009",
+   "thread": "commute",
+   "title": "Confederation Line schedule - OC Transpo",
+   "body": ""
+  },
+  {
+   "id": "n010",
+   "thread": "commute",
+   "title": "Top up the Opus card at Berri-UQAM",
+   "body": "The machine at the Metro entrance, not the one upstairs."
+  },
+  {
+   "id": "n011",
+   "thread": "commute",
+   "title": "Amigo Express carpool as a backup",
+   "body": "For days when the rail line has a problem."
+  },
+  {
+   "id": "n012",
+   "thread": "commute",
+   "title": "Early train 6:15 for Monday meeting",
+   "body": ""
+  },
+  {
+   "id": "n013",
+   "thread": "commute",
+   "title": "Leave the laptop charger at the office desk",
+   "body": "Saves carrying it every day."
+  },
+  {
+   "id": "n014",
+   "thread": "commute",
+   "title": "Take the 17:05 home",
+   "body": "The last quiet one before rush."
+  },
+  {
+   "id": "n015",
+   "thread": "commute",
+   "title": "Sit on the left side for the river view",
+   "body": ""
+  },
+  {
+   "id": "n016",
+   "thread": "commute",
+   "title": "Check my seat in the VIA Preference app",
+   "body": "Table seat if free."
+  },
+  {
+   "id": "n017",
+   "thread": "commute",
+   "title": "Book Thursday's train",
+   "body": "the usual"
+  },
+  {
+   "id": "n018",
+   "thread": "commute",
+   "title": "STM strike Nov 7 and 8",
+   "body": "Metro and buses stopped. Leave earlier."
+  },
+  {
+   "id": "n019",
+   "thread": "commute",
+   "title": "Last Bixi ride of the season",
+   "body": "They close the stations end of November."
+  },
+  {
+   "id": "n020",
+   "thread": "commute",
+   "title": "Umbrella in the locker at Gare Centrale",
+   "body": ""
+  },
+  {
+   "id": "n021",
+   "thread": "commute",
+   "title": "Opus pass renewal is on the 28th",
+   "body": ""
+  },
+  {
+   "id": "n022",
+   "thread": "commute",
+   "title": "Lost scarf on the 7:40",
+   "body": "Called VIA lost and found, reference 88213."
+  },
+  {
+   "id": "n023",
+   "thread": "commute",
+   "title": "Spare shoes for the walk from the station",
+   "body": "Keep a pair under the desk."
+  },
+  {
+   "id": "n024",
+   "thread": "commute",
+   "title": "Quiet Car etiquette - VIA Rail",
+   "body": ""
+  },
+  {
+   "id": "n025",
+   "thread": "commute",
+   "title": "Idea: use the four hours a day to learn something",
+   "body": ""
+  },
+  {
+   "id": "n026",
+   "thread": "commute",
+   "title": "Coffee near Gare Centrale: Café Myriade",
+   "body": ""
+  },
+  {
+   "id": "n027",
+   "thread": "commute",
+   "title": "Orange line delays this morning",
+   "body": "Took the 8:20 instead."
+  },
+  {
+   "id": "n028",
+   "thread": "commute",
+   "title": "Return fare Montreal to Ottawa, how much does it add up to",
+   "body": ""
+  },
+  {
+   "id": "n029",
+   "thread": "commute",
+   "title": "Winter schedule starts Dec 1",
+   "body": "Check if the 7:40 still runs."
+  },
+  {
+   "id": "n030",
+   "thread": "commute",
+   "title": "Bring a book for the ride",
+   "body": ""
+  },
+  {
+   "id": "n031",
+   "thread": "home",
+   "title": "Buy light bulbs for the hallway",
+   "body": "Check the size on the old one first."
+  },
+  {
+   "id": "n032",
+   "thread": "home",
+   "title": "Call landlord about the heating",
+   "body": "The radiator in the bedroom is cold again. Second time this month."
+  },
+  {
+   "id": "n033",
+   "thread": "home",
+   "title": "Lease renewal July 1",
+   "body": "Landlord has to send the renewal notice by the end of March."
+  },
+  {
+   "id": "n034",
+   "thread": "home",
+   "title": "Descale the kettle",
+   "body": ""
+  },
+  {
+   "id": "n035",
+   "thread": "home",
+   "title": "Order a new shower curtain",
+   "body": ""
+  },
+  {
+   "id": "n036",
+   "thread": "home",
+   "title": "Plumber quote for the kitchen tap",
+   "body": "Ask for a written estimate."
+  },
+  {
+   "id": "n037",
+   "thread": "home",
+   "title": "Ikea: Billy bookcase",
+   "body": "White, 80 cm."
+  },
+  {
+   "id": "n038",
+   "thread": "home",
+   "title": "Laundry on Sunday",
+   "body": ""
+  },
+  {
+   "id": "n039",
+   "thread": "home",
+   "title": "Fix the hallway drawer",
+   "body": ""
+  },
+  {
+   "id": "n040",
+   "thread": "home",
+   "title": "Smoke detector battery",
+   "body": "9V, the one in the hallway is chirping."
+  },
+  {
+   "id": "n041",
+   "thread": "home",
+   "title": "Hydro-Québec bill due the 15th",
+   "body": "Equal payment plan, same amount every month."
+  },
+  {
+   "id": "n042",
+   "thread": "home",
+   "title": "Videotron internet bill",
+   "body": ""
+  },
+  {
+   "id": "n043",
+   "thread": "home",
+   "title": "Buy dish soap and sponges",
+   "body": ""
+  },
+  {
+   "id": "n044",
+   "thread": "home",
+   "title": "Clean the grout in the bathroom",
+   "body": ""
+  },
+  {
+   "id": "n045",
+   "thread": "home",
+   "title": "Groceries: lentils, rice, olive oil, za'atar",
+   "body": ""
+  },
+  {
+   "id": "n046",
+   "thread": "home",
+   "title": "Water the fig tree on Saturdays",
+   "body": ""
+  },
+  {
+   "id": "n047",
+   "thread": "home",
+   "title": "Mujaddara (lentils and rice with caramelised onions) - recipe",
+   "body": ""
+  },
+  {
+   "id": "n048",
+   "thread": "home",
+   "title": "Lentil soup for Sunday",
+   "body": "Same recipe as last time, add lemon."
+  },
+  {
+   "id": "n049",
+   "thread": "home",
+   "title": "Move the winter coats into storage",
+   "body": "After the first warm week."
+  },
+  {
+   "id": "n050",
+   "thread": "home",
+   "title": "Tenant insurance renewal",
+   "body": "Comes up end of June. Compare with last year's price."
+  },
+  {
+   "id": "n051",
+   "thread": "home",
+   "title": "Bins out Wednesday night",
+   "body": "Recycling is Thursday morning."
+  },
+  {
+   "id": "n052",
+   "thread": "home",
+   "title": "Vacuum belt",
+   "body": ""
+  },
+  {
+   "id": "n053",
+   "thread": "home",
+   "title": "Hang the mirror in the hall",
+   "body": "Needs wall anchors, the wall is plaster."
+  },
+  {
+   "id": "n054",
+   "thread": "home",
+   "title": "Air filter for the humidifier",
+   "body": ""
+  },
+  {
+   "id": "n055",
+   "thread": "home",
+   "title": "Doorbell is broken",
+   "body": "Tell the landlord when I send the next message."
+  },
+  {
+   "id": "n056",
+   "thread": "home",
+   "title": "Measure the doorway before buying a sofa",
+   "body": ""
+  },
+  {
+   "id": "n057",
+   "thread": "home",
+   "title": "Best floor lamps under $150",
+   "body": "Link from a design blog."
+  },
+  {
+   "id": "n058",
+   "thread": "home",
+   "title": "Bathroom sink is dripping",
+   "body": ""
+  },
+  {
+   "id": "n059",
+   "thread": "home",
+   "title": "Light bulbs, warm white",
+   "body": "Two packs."
+  },
+  {
+   "id": "n060",
+   "thread": "home",
+   "title": "Buy hand soap",
+   "body": ""
+  },
+  {
+   "id": "n061",
+   "thread": "home",
+   "title": "Fix the closet door",
+   "body": ""
+  },
+  {
+   "id": "n062",
+   "thread": "home",
+   "title": "Ask the landlord about the bike room",
+   "body": ""
+  },
+  {
+   "id": "n063",
+   "thread": "misc",
+   "title": "Dentist appointment Nov 12 at 8:30",
+   "body": "Cleaning and a check."
+  },
+  {
+   "id": "n064",
+   "thread": "misc",
+   "title": "Renew passport",
+   "body": "Expires next May. Need a new photo."
+  },
+  {
+   "id": "n065",
+   "thread": "misc",
+   "title": "Gift for Rim's birthday",
+   "body": ""
+  },
+  {
+   "id": "n066",
+   "thread": "misc",
+   "title": "Pick up dry cleaning",
+   "body": "Before 6, the ticket is in the coat."
+  },
+  {
+   "id": "n067",
+   "thread": "misc",
+   "title": "Flu shot",
+   "body": ""
+  },
+  {
+   "id": "n068",
+   "thread": "misc",
+   "title": "Haircut Saturday 11am",
+   "body": "Salon on Mont-Royal."
+  },
+  {
+   "id": "n069",
+   "thread": "misc",
+   "title": "Return the library books",
+   "body": "Three books, due Friday."
+  },
+  {
+   "id": "n070",
+   "thread": "misc",
+   "title": "Cancel the gym membership",
+   "body": "Needs a written notice, 30 days."
+  },
+  {
+   "id": "n071",
+   "thread": "misc",
+   "title": "Karim's party Saturday",
+   "body": "Bring dessert. 8pm."
+  },
+  {
+   "id": "n072",
+   "thread": "misc",
+   "title": "Mail the parcel at the post office",
+   "body": ""
+  },
+  {
+   "id": "n073",
+   "thread": "misc",
+   "title": "Idea: weekend in Tadoussac this fall",
+   "body": "Whale watching, check the bus from Montreal."
+  },
+  {
+   "id": "n074",
+   "thread": "misc",
+   "title": "Best hikes near Montreal: Mont Saint-Hilaire",
+   "body": ""
+  },
+  {
+   "id": "n075",
+   "thread": "misc",
+   "title": "Pick up new glasses frames",
+   "body": "Optician closes at 5."
+  },
+  {
+   "id": "n076",
+   "thread": "misc",
+   "title": "Buy a birthday card",
+   "body": ""
+  },
+  {
+   "id": "n077",
+   "thread": "misc",
+   "title": "Broken umbrella, replace",
+   "body": ""
+  },
+  {
+   "id": "n078",
+   "thread": "misc",
+   "title": "Phone screen protector",
+   "body": ""
+  },
+  {
+   "id": "n079",
+   "thread": "misc",
+   "title": "Tala's wedding, RSVP by Nov 20",
+   "body": ""
+  },
+  {
+   "id": "n080",
+   "thread": "misc",
+   "title": "Return the Amazon package",
+   "body": ""
+  },
+  {
+   "id": "n081",
+   "thread": "misc",
+   "title": "Cheese for Friday dinner",
+   "body": ""
+  },
+  {
+   "id": "n082",
+   "thread": "misc",
+   "title": "Ask Dina about the plumber she used",
+   "body": ""
+  },
+  {
+   "id": "n083",
+   "thread": "misc",
+   "title": "Print the tickets for the concert",
+   "body": ""
+  },
+  {
+   "id": "n084",
+   "thread": "misc",
+   "title": "Wait for the electrician Tuesday",
+   "body": ""
+  },
+  {
+   "id": "n085",
+   "thread": "misc",
+   "title": "Pharmacy refill",
+   "body": ""
+  },
+  {
+   "id": "n086",
+   "thread": "misc",
+   "title": "Fix the zipper on the green bag",
+   "body": ""
+  },
+  {
+   "id": "n087",
+   "thread": "misc",
+   "title": "Buy batteries",
+   "body": ""
+  },
+  {
+   "id": "n088",
+   "thread": "misc",
+   "title": "Order stamps",
+   "body": ""
+  },
+  {
+   "id": "n089",
+   "thread": "misc",
+   "title": "Book a table for Rim's dinner",
+   "body": "Friday 7pm, somewhere in Mile End."
+  },
+  {
+   "id": "n090",
+   "thread": "work",
+   "title": "Brief on housing affordability measures",
+   "body": "Due to the director Friday. 4 pages max."
+  },
+  {
+   "id": "n091",
+   "thread": "work",
+   "title": "Read the housing annex of the budget",
+   "body": "Tables 2 and 3 matter most."
+  },
+  {
+   "id": "n092",
+   "thread": "work",
+   "title": "Tuesday 10am: interdepartmental working group",
+   "body": ""
+  },
+  {
+   "id": "n093",
+   "thread": "work",
+   "title": "Send the comparison table of provincial rent controls",
+   "body": ""
+  },
+  {
+   "id": "n094",
+   "thread": "work",
+   "title": "Consumer Price Index, monthly review - Statistics Canada",
+   "body": ""
+  },
+  {
+   "id": "n095",
+   "thread": "work",
+   "title": "Housing starts - CMHC",
+   "body": ""
+  },
+  {
+   "id": "n096",
+   "thread": "work",
+   "title": "Follow up with Daniel on the data request",
+   "body": "He said end of week, it is Thursday."
+  },
+  {
+   "id": "n097",
+   "thread": "work",
+   "title": "Update the briefing note template",
+   "body": ""
+  },
+  {
+   "id": "n098",
+   "thread": "work",
+   "title": "Memo for the ADM on the carbon pricing review",
+   "body": "Two pages plus an annex."
+  },
+  {
+   "id": "n099",
+   "thread": "work",
+   "title": "Telework days: Tuesday and Wednesday",
+   "body": "Office the other three."
+  },
+  {
+   "id": "n100",
+   "thread": "work",
+   "title": "GBA Plus course",
+   "body": "Mandatory, 3 hours, deadline end of month."
+  },
+  {
+   "id": "n101",
+   "thread": "work",
+   "title": "Expense claim for the Toronto conference",
+   "body": "Receipts for the hotel and the train."
+  },
+  {
+   "id": "n102",
+   "thread": "work",
+   "title": "Review conversation with Marie Dec 3",
+   "body": "Bring the list of what I delivered this year."
+  },
+  {
+   "id": "n103",
+   "thread": "work",
+   "title": "Idea: one-page visual at the top of each brief",
+   "body": ""
+  },
+  {
+   "id": "n104",
+   "thread": "work",
+   "title": "Q&A for the minister's committee appearance",
+   "body": ""
+  },
+  {
+   "id": "n105",
+   "thread": "work",
+   "title": "ATIP request status",
+   "body": ""
+  },
+  {
+   "id": "n106",
+   "thread": "work",
+   "title": "Committee calendar for next week",
+   "body": "Which days the minister is up."
+  },
+  {
+   "id": "n107",
+   "thread": "work",
+   "title": "Policy Horizons Canada: trends report",
+   "body": ""
+  },
+  {
+   "id": "n108",
+   "thread": "work",
+   "title": "Speaking notes for the roundtable",
+   "body": ""
+  },
+  {
+   "id": "n109",
+   "thread": "work",
+   "title": "Book room 4B",
+   "body": ""
+  },
+  {
+   "id": "n110",
+   "thread": "work",
+   "title": "Excel model: rent burden by income quintile",
+   "body": "Use the 2021 census tables."
+  },
+  {
+   "id": "n111",
+   "thread": "work",
+   "title": "Check footnotes cite the right source",
+   "body": ""
+  },
+  {
+   "id": "n112",
+   "thread": "work",
+   "title": "Submit timesheet",
+   "body": ""
+  },
+  {
+   "id": "n113",
+   "thread": "work",
+   "title": "Review the French translation of the briefing note",
+   "body": "Translation bureau turns it around in two days."
+  },
+  {
+   "id": "n114",
+   "thread": "work",
+   "title": "Marc's farewell lunch Friday",
+   "body": ""
+  },
+  {
+   "id": "n115",
+   "thread": "work",
+   "title": "Pension plan statement",
+   "body": ""
+  },
+  {
+   "id": "n116",
+   "thread": "work",
+   "title": "Interview with the housing coalition",
+   "body": "Thursday 2pm, by phone."
+  },
+  {
+   "id": "n117",
+   "thread": "work",
+   "title": "Slides for the Thursday deck",
+   "body": ""
+  },
+  {
+   "id": "n118",
+   "thread": "work",
+   "title": "Draft memo on the childcare agreements",
+   "body": "Start from last year's memo."
+  },
+  {
+   "id": "n119",
+   "thread": "work",
+   "title": "Call with the provincial counterparts Monday",
+   "body": ""
+  },
+  {
+   "id": "n120",
+   "thread": "work",
+   "title": "Coffee with Dina from Finance",
+   "body": ""
+  },
+  {
+   "id": "n121",
+   "thread": "french",
+   "title": "Cours de français mardi 18h",
+   "body": "Salle 204."
+  },
+  {
+   "id": "n122",
+   "thread": "french",
+   "title": "Devoirs: exercices de passé composé",
+   "body": ""
+  },
+  {
+   "id": "n123",
+   "thread": "french",
+   "title": "Apprendre le subjonctif après il faut que",
+   "body": ""
+  },
+  {
+   "id": "n124",
+   "thread": "french",
+   "title": "Le Conjugueur - conjugaison de verbes",
+   "body": ""
+  },
+  {
+   "id": "n125",
+   "thread": "french",
+   "title": "Vocabulaire: la mairie, le dépanneur, la ruelle",
+   "body": "From the street signs on the walk."
+  },
+  {
+   "id": "n126",
+   "thread": "french",
+   "title": "Regarder Les Beaux Malaises avec sous-titres",
+   "body": ""
+  },
+  {
+   "id": "n127",
+   "thread": "french",
+   "title": "Exam oral le 15 décembre",
+   "body": ""
+  },
+  {
+   "id": "n128",
+   "thread": "french",
+   "title": "Duolingo streak, 40 jours",
+   "body": ""
+  },
+  {
+   "id": "n129",
+   "thread": "french",
+   "title": "Prononciation: ou et u",
+   "body": "Practise with the minimal pairs list."
+  },
+  {
+   "id": "n130",
+   "thread": "french",
+   "title": "Café avec Marie-Ève jeudi",
+   "body": "Conversation practice, only in French."
+  },
+  {
+   "id": "n131",
+   "thread": "french",
+   "title": "Acheter un Bescherelle",
+   "body": "The conjugation one, in paper."
+  },
+  {
+   "id": "n132",
+   "thread": "french",
+   "title": "Écrire un courriel à la propriétaire",
+   "body": "Ask about the radiator."
+  },
+  {
+   "id": "n133",
+   "thread": "french",
+   "title": "Grand dictionnaire terminologique - OQLF",
+   "body": ""
+  },
+  {
+   "id": "n134",
+   "thread": "french",
+   "title": "Écouter Radio-Canada Première dans le train",
+   "body": ""
+  },
+  {
+   "id": "n135",
+   "thread": "french",
+   "title": "Payer la session de cours",
+   "body": "$240."
+  },
+  {
+   "id": "n136",
+   "thread": "french",
+   "title": "Réviser les verbes irréguliers",
+   "body": "Être, avoir, aller, faire, prendre."
+  },
+  {
+   "id": "n137",
+   "thread": "french",
+   "title": "Faux amis: actuellement, eventuellement",
+   "body": ""
+  },
+  {
+   "id": "n138",
+   "thread": "french",
+   "title": "Expressions québécoises: c'est le fun, tiguidou",
+   "body": ""
+  },
+  {
+   "id": "n139",
+   "thread": "french",
+   "title": "Un film en version originale québécoise",
+   "body": ""
+  },
+  {
+   "id": "n140",
+   "thread": "french",
+   "title": "Ask Madame Gagnon about the level test",
+   "body": ""
+  },
+  {
+   "id": "n141",
+   "thread": "french",
+   "title": "Call the language school about the refund",
+   "body": ""
+  },
+  {
+   "id": "n142",
+   "thread": "french",
+   "title": "Poser des questions sur le DELF",
+   "body": ""
+  },
+  {
+   "id": "n143",
+   "thread": "running",
+   "title": "Register for the half marathon",
+   "body": "Montreal, May. Registration opens in January."
+  },
+  {
+   "id": "n144",
+   "thread": "running",
+   "title": "Long run Sunday, 14 km",
+   "body": "Easy pace, along the river."
+  },
+  {
+   "id": "n145",
+   "thread": "running",
+   "title": "New running shoes",
+   "body": "Brooks Ghost, size 8.5. Try them at the shop on Mont-Royal."
+  },
+  {
+   "id": "n146",
+   "thread": "running",
+   "title": "Beginner half marathon training plan, 12 weeks",
+   "body": ""
+  },
+  {
+   "id": "n147",
+   "thread": "running",
+   "title": "Mont-Royal loop",
+   "body": ""
+  },
+  {
+   "id": "n148",
+   "thread": "running",
+   "title": "Physio appointment for the knee",
+   "body": "Wednesday after work."
+  },
+  {
+   "id": "n149",
+   "thread": "running",
+   "title": "Energy gels",
+   "body": ""
+  },
+  {
+   "id": "n150",
+   "thread": "running",
+   "title": "Run club Thursday 6:30 at Parc La Fontaine",
+   "body": ""
+  },
+  {
+   "id": "n151",
+   "thread": "running",
+   "title": "Reflective vest for winter",
+   "body": ""
+  },
+  {
+   "id": "n152",
+   "thread": "running",
+   "title": "Tempo 5 km at 5:45 pace",
+   "body": ""
+  },
+  {
+   "id": "n153",
+   "thread": "running",
+   "title": "Charge the Garmin",
+   "body": ""
+  },
+  {
+   "id": "n154",
+   "thread": "running",
+   "title": "Foam roller",
+   "body": ""
+  },
+  {
+   "id": "n155",
+   "thread": "running",
+   "title": "Idea: run the Lachine Canal on weekends",
+   "body": ""
+  },
+  {
+   "id": "n156",
+   "thread": "running",
+   "title": "Stretch after every run",
+   "body": ""
+  },
+  {
+   "id": "n157",
+   "thread": "running",
+   "title": "Sore calf, rest two days",
+   "body": ""
+  },
+  {
+   "id": "n158",
+   "thread": "running",
+   "title": "Pick up the race bib",
+   "body": ""
+  },
+  {
+   "id": "n159",
+   "thread": "running",
+   "title": "How to run in the cold: layering guide",
+   "body": ""
+  },
+  {
+   "id": "n160",
+   "thread": "running",
+   "title": "Winter running tights",
+   "body": ""
+  },
+  {
+   "id": "n161",
+   "thread": "running",
+   "title": "Log the weekly mileage",
+   "body": ""
+  },
+  {
+   "id": "n162",
+   "thread": "running",
+   "title": "Check the race course map",
+   "body": ""
+  },
+  {
+   "id": "n163",
+   "thread": "beirut",
+   "title": "Call Teta on Sunday",
+   "body": ""
+  },
+  {
+   "id": "n164",
+   "thread": "beirut",
+   "title": "Mama's birthday March 2",
+   "body": "Call in the morning, she likes the early ring."
+  },
+  {
+   "id": "n165",
+   "thread": "beirut",
+   "title": "Ship the winter jacket to Rami",
+   "body": "The grey one, he asked for it."
+  },
+  {
+   "id": "n166",
+   "thread": "beirut",
+   "title": "Flight to Beirut for Christmas",
+   "body": "Look at dates around Dec 20, via Paris."
+  },
+  {
+   "id": "n167",
+   "thread": "beirut",
+   "title": "Rami's wedding next summer",
+   "body": ""
+  },
+  {
+   "id": "n168",
+   "thread": "beirut",
+   "title": "Gifts for the cousins",
+   "body": "Chocolate and maple syrup. Pack in the suitcase."
+  },
+  {
+   "id": "n169",
+   "thread": "beirut",
+   "title": "Ask Mama about her blood pressure pills",
+   "body": ""
+  },
+  {
+   "id": "n170",
+   "thread": "beirut",
+   "title": "Generator bill for Mama's flat",
+   "body": "Pay before the 5th."
+  },
+  {
+   "id": "n171",
+   "thread": "beirut",
+   "title": "Travel advisory for Lebanon - Government of Canada",
+   "body": ""
+  },
+  {
+   "id": "n172",
+   "thread": "beirut",
+   "title": "Voice note for the family group",
+   "body": "Teta wants to hear about the snow."
+  },
+  {
+   "id": "n173",
+   "thread": "beirut",
+   "title": "Teta's kibbeh bil sanieh",
+   "body": "Ask for the exact amount of burghul."
+  },
+  {
+   "id": "n174",
+   "thread": "beirut",
+   "title": "Cousin Layal got engaged",
+   "body": "Send a message tonight."
+  },
+  {
+   "id": "n175",
+   "thread": "beirut",
+   "title": "Scan the old photo album",
+   "body": "Ask Mama to bring it to the flat."
+  },
+  {
+   "id": "n176",
+   "thread": "beirut",
+   "title": "Idea: read one page of Arabic every day",
+   "body": ""
+  },
+  {
+   "id": "n177",
+   "thread": "beirut",
+   "title": "Mail the parcel to Beirut",
+   "body": "Gifts for Mama and Baba. Takes three weeks."
+  },
+  {
+   "id": "n178",
+   "thread": "beirut",
+   "title": "Call Baba Tuesday evening",
+   "body": "After dinner, his time."
+  },
+  {
+   "id": "n179",
+   "thread": "beirut",
+   "title": "Za'atar and sumac from Marché Jean-Talon",
+   "body": ""
+  },
+  {
+   "id": "n180",
+   "thread": "beirut",
+   "title": "Send Mama money for the month",
+   "body": ""
+  },
+  {
+   "id": "n181",
+   "thread": "beirut",
+   "title": "Olive oil from Baba's cousin",
+   "body": "Comes in the suitcase in January."
+  },
+  {
+   "id": "n182",
+   "thread": "reading",
+   "title": "Read The Overstory",
+   "body": "Slow read, a chapter on the train."
+  },
+  {
+   "id": "n183",
+   "thread": "reading",
+   "title": "Library hold: Home Fire",
+   "body": "Pick up at the Mile End branch."
+  },
+  {
+   "id": "n184",
+   "thread": "reading",
+   "title": "The best Arabic novels in translation",
+   "body": ""
+  },
+  {
+   "id": "n185",
+   "thread": "reading",
+   "title": "Book club pick: The Yacoubian Building",
+   "body": ""
+  },
+  {
+   "id": "n186",
+   "thread": "reading",
+   "title": "Policy Options podcast",
+   "body": ""
+  },
+  {
+   "id": "n187",
+   "thread": "reading",
+   "title": "Audiobook for the ride: Educated",
+   "body": ""
+  },
+  {
+   "id": "n188",
+   "thread": "reading",
+   "title": "Rawi Hage - Cockroach",
+   "body": ""
+  },
+  {
+   "id": "n189",
+   "thread": "reading",
+   "title": "Return Station Eleven by Nov 9",
+   "body": ""
+  },
+  {
+   "id": "n190",
+   "thread": "reading",
+   "title": "How housing policy shaped Vancouver - long read",
+   "body": ""
+  },
+  {
+   "id": "n191",
+   "thread": "reading",
+   "title": "Kobo sale",
+   "body": ""
+  },
+  {
+   "id": "n192",
+   "thread": "reading",
+   "title": "Ask Dina what she is reading",
+   "body": ""
+  },
+  {
+   "id": "n193",
+   "thread": "reading",
+   "title": "Mahmoud Darwish poems",
+   "body": "Arabic with the English facing."
+  },
+  {
+   "id": "n194",
+   "thread": "reading",
+   "title": "Idea: one French novel a month, start with L'étranger",
+   "body": ""
+  },
+  {
+   "id": "n195",
+   "thread": "reading",
+   "title": "Capital in the Twenty-First Century, chapters 3 to 5",
+   "body": ""
+  },
+  {
+   "id": "n196",
+   "thread": "reading",
+   "title": "Book club Nov 16 at Rim's",
+   "body": ""
+  },
+  {
+   "id": "n197",
+   "thread": "reading",
+   "title": "Ask the library about the Arabic section",
+   "body": ""
+  },
+  {
+   "id": "n198",
+   "thread": "budget",
+   "title": "Pay the credit card on the 20th",
+   "body": ""
+  },
+  {
+   "id": "n199",
+   "thread": "budget",
+   "title": "Check TFSA room on CRA My Account",
+   "body": ""
+  },
+  {
+   "id": "n200",
+   "thread": "budget",
+   "title": "Update the monthly budget sheet",
+   "body": ""
+  },
+  {
+   "id": "n201",
+   "thread": "budget",
+   "title": "Cancel Crave",
+   "body": ""
+  },
+  {
+   "id": "n202",
+   "thread": "budget",
+   "title": "T4 and pass receipts for the return",
+   "body": ""
+  },
+  {
+   "id": "n203",
+   "thread": "budget",
+   "title": "Save $300 a month for the Beirut flight",
+   "body": ""
+  },
+  {
+   "id": "n204",
+   "thread": "budget",
+   "title": "Hydro bill, check the average",
+   "body": ""
+  },
+  {
+   "id": "n205",
+   "thread": "budget",
+   "title": "How to build an emergency fund",
+   "body": ""
+  },
+  {
+   "id": "n206",
+   "thread": "budget",
+   "title": "Compare phone plans: Fizz and Koodo",
+   "body": "Need 20 GB."
+  },
+  {
+   "id": "n207",
+   "thread": "budget",
+   "title": "E-transfer the rent on the 1st",
+   "body": "Auto-deposit is on."
+  },
+  {
+   "id": "n208",
+   "thread": "budget",
+   "title": "Groceries budget, $120 a week",
+   "body": ""
+  },
+  {
+   "id": "n209",
+   "thread": "budget",
+   "title": "Reimbursement from work for the conference",
+   "body": ""
+  },
+  {
+   "id": "n210",
+   "thread": "budget",
+   "title": "Switch to a no-fee account",
+   "body": ""
+  },
+  {
+   "id": "n211",
+   "thread": "budget",
+   "title": "Charity donation receipt",
+   "body": "Needed for the return."
+  },
+  {
+   "id": "n212",
+   "thread": "budget",
+   "title": "Review the streaming subscriptions",
+   "body": ""
+  },
+  {
+   "id": "n213",
+   "thread": "budget",
+   "title": "Gift budget for December",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "nn01",
+   "thread": "commute",
+   "text": "The usual is the 7:40 VIA train from Montreal Central Station. Home on the 17:05 from Ottawa."
+  },
+  {
+   "id": "nn02",
+   "thread": "commute",
+   "text": "Monthly Opus pass renews on the 28th."
+  },
+  {
+   "id": "nn03",
+   "thread": "commute",
+   "text": "The quiet car is car 2. No calls there."
+  },
+  {
+   "id": "nn04",
+   "thread": "commute",
+   "text": "The office is on Wellington Street, a 25 minute walk from the station."
+  },
+  {
+   "id": "nn05",
+   "thread": "home",
+   "text": "The landlord is Mr. Tremblay. He answers texts, not calls."
+  },
+  {
+   "id": "nn06",
+   "thread": "home",
+   "text": "The lease runs to June 30. Rent is due on the 1st by e-transfer."
+  },
+  {
+   "id": "nn07",
+   "thread": "home",
+   "text": "Garbage is Monday, recycling is Thursday. Bins go out the night before."
+  },
+  {
+   "id": "nn08",
+   "thread": "home",
+   "text": "The bedroom thermostat is the one that sticks."
+  },
+  {
+   "id": "nn09",
+   "thread": "misc",
+   "text": "The dentist is Dr. Lavoie, on Rue Saint-Denis."
+  },
+  {
+   "id": "nn10",
+   "thread": "misc",
+   "text": "Gift ideas: Rim likes ceramics, Karim likes good coffee beans."
+  },
+  {
+   "id": "nn11",
+   "thread": "work",
+   "text": "Briefing notes go to the director first, then the ADM. Four pages max."
+  },
+  {
+   "id": "nn12",
+   "thread": "work",
+   "text": "Office days are Monday, Thursday and Friday. Telework is Tuesday and Wednesday."
+  },
+  {
+   "id": "nn13",
+   "thread": "work",
+   "text": "The housing file is shared with Daniel and Marc's team."
+  },
+  {
+   "id": "nn14",
+   "thread": "french",
+   "text": "Class is Tuesday at 18:00 at the community centre on Rue Rachel, level B1."
+  },
+  {
+   "id": "nn15",
+   "thread": "french",
+   "text": "The teacher is Madame Gagnon. The oral exam is in December."
+  },
+  {
+   "id": "nn16",
+   "thread": "running",
+   "text": "The half marathon is in May. Long runs are on Sundays."
+  },
+  {
+   "id": "nn17",
+   "thread": "running",
+   "text": "The knee is the weak point. Physio every second Wednesday."
+  },
+  {
+   "id": "nn18",
+   "thread": "running",
+   "text": "Shoe size is 8.5 and Brooks Ghost feel best."
+  },
+  {
+   "id": "nn19",
+   "thread": "beirut",
+   "text": "Mama and Baba live in Achrafieh. Rami is in Dbayeh."
+  },
+  {
+   "id": "nn20",
+   "thread": "beirut",
+   "text": "Family calls are Sunday afternoon, 2 pm Montreal time, on WhatsApp."
+  },
+  {
+   "id": "nn21",
+   "thread": "beirut",
+   "text": "Beirut is seven hours ahead of Montreal."
+  },
+  {
+   "id": "nn22",
+   "thread": "reading",
+   "text": "Book club meets the third Sunday of the month at Rim's place."
+  },
+  {
+   "id": "nn23",
+   "thread": "reading",
+   "text": "The library card is with Bibliothèques de Montréal. Holds are free."
+  },
+  {
+   "id": "nn24",
+   "thread": "budget",
+   "text": "Rent is $1,350 a month. The grocery budget is $120 a week."
+  },
+  {
+   "id": "nn25",
+   "thread": "budget",
+   "text": "The credit card is paid in full on the 20th."
+  }
+ ],
+ "memories": [
+  {
+   "id": "nm01",
+   "text": "They live in Montreal."
+  },
+  {
+   "id": "nm02",
+   "text": "They work as a policy analyst in Ottawa."
+  },
+  {
+   "id": "nm03",
+   "text": "They commute by train between Montreal and Ottawa."
+  },
+  {
+   "id": "nm04",
+   "text": "Their parents live in Beirut."
+  },
+  {
+   "id": "nm05",
+   "text": "Their brother is Rami."
+  },
+  {
+   "id": "nm06",
+   "text": "They are learning French and are at level B1."
+  },
+  {
+   "id": "nm07",
+   "text": "They speak Arabic and English."
+  },
+  {
+   "id": "nm08",
+   "text": "They are training for a half marathon in May."
+  },
+  {
+   "id": "nm09",
+   "text": "They drink their coffee black."
+  },
+  {
+   "id": "nm10",
+   "text": "Their best friend is Rim."
+  },
+  {
+   "id": "nm11",
+   "text": "Their grandmother, Teta, lives in Zahlé."
+  },
+  {
+   "id": "nm12",
+   "text": "They rent a flat on the Plateau."
+  },
+  {
+   "id": "nm13",
+   "text": "Their colleague Daniel works on the housing data."
+  },
+  {
+   "id": "nm14",
+   "text": "They are in a book club that meets monthly."
+  },
+  {
+   "id": "nm15",
+   "text": "Their birthday is 9 April."
+  },
+  {
+   "id": "nm16",
+   "text": "Their landlord is Mr. Tremblay."
+  },
+  {
+   "id": "nm17",
+   "text": "\"The usual\" is the 7:40 VIA train from Montreal to Ottawa."
+  },
+  {
+   "id": "nm18",
+   "text": "Their dentist is Dr. Lavoie."
+  },
+  {
+   "id": "nm19",
+   "text": "They send money to their mother each month."
+  },
+  {
+   "id": "nm20",
+   "text": "Their brother Rami is engaged to Nadine."
+  }
+ ],
+ "queries": [
+  {
+   "q": "the place is freezing, who do I complain to",
+   "relevant": [
+    "n032",
+    "n132",
+    "nn05",
+    "nn08",
+    "nm16"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "hygienist visit",
+   "relevant": [
+    "n063",
+    "nn09",
+    "nm18"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "presents for relatives abroad",
+   "relevant": [
+    "n168",
+    "n177"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "clothes for jogging",
+   "relevant": [
+    "n151",
+    "n160",
+    "n159",
+    "n145",
+    "nn18"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "monthly Visa payment",
+   "relevant": [
+    "n198",
+    "nn25"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "meatless meal ideas",
+   "relevant": [
+    "n047",
+    "n048"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "income tax filing",
+   "relevant": [
+    "n202",
+    "n211"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "granny",
+   "relevant": [
+    "n163",
+    "n172",
+    "n173",
+    "nm11"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "disruption to subway service",
+   "relevant": [
+    "n018",
+    "n027"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "annual evaluation with my manager",
+   "relevant": [
+    "n102"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "financial support for my parents",
+   "relevant": [
+    "n180",
+    "n170",
+    "nm19"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "spoken test at the end of the year",
+   "relevant": [
+    "n127",
+    "nn15"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "rendez-vous pour mon genou",
+   "relevant": [
+    "n148",
+    "nn17"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "billet d'avion pour Noël",
+   "relevant": [
+    "n166",
+    "n203"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "assurance locataire",
+   "relevant": [
+    "n050"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "past tense exercises",
+   "relevant": [
+    "n122"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "abonnement mensuel de transport",
+   "relevant": [
+    "n002",
+    "n010",
+    "n021",
+    "nn02"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "passport",
+   "relevant": [
+    "n064"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "marathon",
+   "relevant": [
+    "n143",
+    "n146",
+    "n158",
+    "n162",
+    "nn16",
+    "nm08"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "landlord",
+   "relevant": [
+    "n032",
+    "n033",
+    "n055",
+    "n062",
+    "n132",
+    "nn05",
+    "nm16"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "recipe",
+   "relevant": [
+    "n047",
+    "n048",
+    "n173"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Hydro",
+   "relevant": [
+    "n041",
+    "n204"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Rim",
+   "relevant": [
+    "n065",
+    "n089",
+    "n196",
+    "nn10",
+    "nn22",
+    "nm10"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "physio",
+   "relevant": [
+    "n148",
+    "nn17"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "podcast",
+   "relevant": [
+    "n006",
+    "n186"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when is my french class",
+   "relevant": [
+    "n121",
+    "nn14"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what's the usual train to Ottawa",
+   "relevant": [
+    "n001",
+    "n017",
+    "nn01",
+    "nm17"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is rent",
+   "relevant": [
+    "nn24",
+    "nn06",
+    "n207"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when is the half marathon",
+   "relevant": [
+    "n143",
+    "nn16",
+    "nm08"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when is book club",
+   "relevant": [
+    "n196",
+    "nn22",
+    "nm14"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when do the bins go out",
+   "relevant": [
+    "n051",
+    "nn07"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who do I call on Sunday",
+   "relevant": [
+    "n163",
+    "nn20"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "weather in Quebec City tomorrow",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "how many ounces in a cup",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "how tall is the Eiffel Tower",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "when is the next full moon",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "what time does the sun set today",
+   "relevant": [],
+   "kind": "negative_web"
+  },
+  {
+   "q": "mortgage pre-approval",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "dog vet appointment",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "swimming lessons",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "car insurance renewal",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "piano lessons",
+   "relevant": [],
+   "kind": "negative_adjacent"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "asdfgh jkl",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "zzzz qqq",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "mmnnbb vvcc",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  },
+  {
+   "q": "qwertyuiop",
+   "relevant": [],
+   "kind": "negative_nonsense"
+  }
+ ]
+}

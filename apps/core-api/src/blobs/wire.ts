@@ -6,7 +6,30 @@
 
 import { z } from "zod";
 
-const image = { blobId: z.string(), kind: z.literal("image"), width: z.number(), height: z.number(), ready: z.boolean() };
+/** 044, 050. Up to two actions the blob's filed row carries, offered under it
+ *  in the conversation. Absent on a row's own blob (the row carries its own
+ *  `actions`); set only on a message's picture or PDF. */
+const actions = z
+  .array(
+    z.object({
+      label: z.string(),
+      url: z.string(),
+      kind: z.enum(["open", "call", "email"]),
+      source: z.enum(["pdf", "picture", "voice", "typed", "mail"]),
+      sender: z.string().nullable(),
+    }),
+  )
+  .max(2)
+  .nullish();
+
+const image = {
+  blobId: z.string(),
+  kind: z.literal("image"),
+  width: z.number(),
+  height: z.number(),
+  ready: z.boolean(),
+  actions,
+};
 const pdf = {
   blobId: z.string(),
   kind: z.literal("pdf"),
@@ -16,13 +39,7 @@ const pdf = {
   /** The worker could not make it safe: it will never open, which is not the
    *  same as not yet. */
   unreadable: z.boolean(),
-  /** 044. Up to two links the PDF carried, offered beside it in the filing
-   *  reply. Absent on a row's own blob (the row carries its own `actions`); set
-   *  only on a message's PDF, where the reply draws the chips. */
-  actions: z
-    .array(z.object({ label: z.string(), url: z.string() }))
-    .max(2)
-    .nullish(),
+  actions,
 };
 
 export const fileOnRow = z.discriminatedUnion("kind", [z.object(image), z.object(pdf)]);

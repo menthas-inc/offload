@@ -13,11 +13,11 @@
 import { dateSet, remindersOf, remindersOfRow, setReminders } from "../notifications/labels.js";
 import { z } from "zod";
 import { fileOnRow, fileToWire, type FileOnRow } from "../blobs/wire.js";
-import { sql, type Transaction } from "kysely";
+import { sql, type SelectQueryBuilder, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
-import { DEFAULT_THREAD_ICON, orderThreads, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
+import { actionKind, labelOk, type ActionKind, DEFAULT_THREAD_ICON, orderThreads, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
@@ -75,6 +75,7 @@ import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
 import { shownThreadName } from "../threads/default.js";
 import { markFor, shownThreadHue, shownThreadIcon } from "../threads/icons.js";
+import { tickIn } from "../threads/tick.js";
 import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -86,6 +87,24 @@ async function isDefaultThreadOf(accountId: string, threadId: string): Promise<b
 /** One screenful. 001's heavy case is 500 rows in one thread and the page draws
  *  a dozen, so fetching them all to show twelve is the thing this prevents. */
 const PAGE = 30;
+/** 049. The furthest back a read through a row goes: three pages, into a
+ *  page that draws everything it holds. */
+export const THROUGH = 90;
+
+/** The rows from the newest back to `through`, counted, when it is this
+ *  thread's, not deleted and in the pile asked for; null otherwise. Ids are
+ *  UUIDv7 and the page is ordered by id alone, so this is a range. */
+export async function rowsThrough(threadId: string, through: string, archived: boolean): Promise<number | null> {
+  const pile = (q: SelectQueryBuilder<Database, "content", object>) =>
+    q.where("thread_id", "=", threadId).where("deleted_at", "is", null).where("archived_at", archived ? "is not" : "is", null);
+  const target = await pile(db.selectFrom("content")).select("id").where("id", "=", through).executeTakeFirst();
+  if (!target) return null;
+  const { count } = await pile(db.selectFrom("content"))
+    .select((eb) => eb.fn.countAll<number>().as("count"))
+    .where("id", ">=", through)
+    .executeTakeFirstOrThrow();
+  return count <= THROUGH ? count : null;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -362,7 +381,15 @@ export const contentRow = z.object({
   /** 044. Up to two links a PDF carried, offered beside it. Derived from
    *  `attrs`, which is never sent whole; null for a row with none. */
   actions: z
-    .array(z.object({ label: z.string(), url: z.string() }))
+    .array(
+      z.object({
+        label: z.string(),
+        url: z.string(),
+        kind: z.enum(["open", "call", "email"]),
+        source: z.enum(["pdf", "picture", "voice", "typed", "mail"]),
+        sender: z.string().nullable(),
+      }),
+    )
     .max(2)
     .nullable(),
   place: z
@@ -539,25 +566,69 @@ function allDayOf(attrs: unknown): boolean {
   return (attrs as Record<string, unknown>)["all_day"] === true;
 }
 
+/** The row found an event offload never wrote. Its time is not Google's to
+ *  keep from them: a new date lets the event go instead of being refused. */
+function foundItsEvent(attrs: unknown): boolean {
+  return typeof attrs === "object" && attrs !== null && (attrs as Record<string, unknown>)["calendar_found"] === true;
+}
+
 function seriesRefOf(attrs: unknown): string | null {
   if (typeof attrs !== "object" || attrs === null) return null;
   const ref = (attrs as Record<string, unknown>)["series_ref"];
   return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
-/** 044. The links a PDF carried, up to two, from `attrs.actions`. Derived
- *  rather than sending `attrs` whole, as `seriesRef` and `allDay` are; null
- *  when the row has none, so an older client sees nothing new. */
-export function actionsOf(attrs: unknown): { label: string; url: string }[] | null {
+/** 050. One action as it is stored and served: what the tap does, where it
+ *  goes, which kind it is and where it was found. */
+export type Action = {
+  label: string;
+  url: string;
+  kind: ActionKind;
+  source: ActionSource;
+  sender?: string;
+};
+export type ActionSource = "pdf" | "picture" | "voice" | "typed" | "mail";
+const SOURCES: readonly ActionSource[] = ["pdf", "picture", "voice", "typed", "mail"];
+
+/** 044, 050. One entry checked against the rules every surface shares
+ *  (`@offload/widgets` actions): a destination of the allowed shapes, a label
+ *  that carries none, a kind that matches the url and a known source, with a
+ *  mail's sender as a bare host. A 044 entry has no kind or source and reads
+ *  as an open action from a PDF, which is what it was. Null for anything that
+ *  fails, so a stale or hand-made entry is dropped, never drawn. */
+export function checkAction(raw: unknown): Action | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const item = raw as Record<string, unknown>;
+  const url = item["url"];
+  const label = typeof item["label"] === "string" ? item["label"].trim() : null;
+  const kind = actionKind(typeof url === "string" ? url : null);
+  if (kind === null || label === null || !labelOk(label)) return null;
+  if (item["kind"] !== undefined && item["kind"] !== kind) return null;
+  const source = item["source"] ?? "pdf";
+  if (!SOURCES.includes(source as ActionSource)) return null;
+  const sender = item["sender"];
+  if (sender !== undefined && sender !== null) {
+    if (source !== "mail" || typeof sender !== "string" || !/^[a-z0-9.-]{1,255}$/.test(sender)) return null;
+  }
+  const out: Action = { label, url: url as string, kind, source: source as ActionSource };
+  if (typeof sender === "string") out.sender = sender;
+  return out;
+}
+
+/** 044, 050. A row's actions, up to two, from `attrs.actions`, each checked
+ *  again on the way out. Derived rather than sending `attrs` whole, as
+ *  `seriesRef` and `allDay` are; null when the row has none, so an older
+ *  client sees nothing new. */
+export type WireAction = Omit<Action, "sender"> & { sender: string | null };
+
+export function actionsOf(attrs: unknown): WireAction[] | null {
   if (typeof attrs !== "object" || attrs === null) return null;
   const raw = (attrs as Record<string, unknown>)["actions"];
   if (!Array.isArray(raw)) return null;
-  const out: { label: string; url: string }[] = [];
+  const out: WireAction[] = [];
   for (const item of raw) {
-    if (typeof item !== "object" || item === null) continue;
-    const label = (item as Record<string, unknown>)["label"];
-    const url = (item as Record<string, unknown>)["url"];
-    if (typeof label === "string" && typeof url === "string") out.push({ label, url });
+    const checked = checkAction(item);
+    if (checked) out.push({ ...checked, sender: checked.sender ?? null });
     if (out.length >= 2) break;
   }
   return out.length ? out : null;
@@ -597,7 +668,7 @@ export function toRow(row: RawRow, viewerId: string) {
     occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
     occursEndAt: row.occurs_end_at ? row.occurs_end_at.toISOString() : null,
     rrule: row.rrule,
-    onCalendar: row.source_ref !== null,
+    onCalendar: row.source_ref !== null && !foundItsEvent(row.attrs),
     isReminder: row.is_reminder,
     // 042. Filled in by `withPhotos`, with the labels.
     reminders: null as "on" | "off" | null,
@@ -796,7 +867,8 @@ export async function editContent(
       !same(occursEndAt, before.occurs_end_at) ||
       allDay !== wasAllDay ||
       rule !== before.rrule;
-    if (dated && before.source_ref) throw new Refused("on_calendar");
+    const found = foundItsEvent(before.attrs);
+    if (dated && before.source_ref && !found) throw new Refused("on_calendar");
 
     if (dated) {
       Object.assign(set, {
@@ -804,7 +876,10 @@ export async function editContent(
         occurs_at: occursAt,
         occurs_end_at: occursEndAt,
         rrule: rule,
-        attrs: sql`attrs || ${JSON.stringify({ all_day: allDay })}::jsonb`,
+        attrs: found
+          ? sql`(attrs - 'calendar' - 'calendar_found') || ${JSON.stringify({ all_day: allDay })}::jsonb`
+          : sql`attrs || ${JSON.stringify({ all_day: allDay })}::jsonb`,
+        ...(found ? { source_ref: null } : {}),
       });
     }
 
@@ -1063,21 +1138,20 @@ export async function deleteContent(
  *  never add a url the PDF did not carry. `actions_removed` never serves to
  *  anyone (`actionsOf` reads `attrs.actions`). Read-once (041) means no later
  *  turn re-adds a forgotten action, so removal is durable with no marker. */
-type ActionList = { label: string; url: string }[];
+type ActionList = Action[];
 
 function splitActions(attrs: unknown): { actions: ActionList; removed: ActionList } {
   const a = (attrs && typeof attrs === "object" ? attrs : {}) as Record<string, unknown>;
+  // 050. The whole entry as stored, kind, source and sender included: the
+  // array is rewritten on every remove, so a narrower copy would strip the
+  // survivor, and an entry today's rules would refuse (a 044 label, say) is
+  // kept as it was rather than destroyed by a neighbour's removal. Serving
+  // filters it (`actionsOf`); restore still only brings back what was there.
   const list = (v: unknown): ActionList =>
     Array.isArray(v)
-      ? v
-          .filter(
-            (x): x is { label: string; url: string } =>
-              typeof x === "object" &&
-              x !== null &&
-              typeof (x as Record<string, unknown>).label === "string" &&
-              typeof (x as Record<string, unknown>).url === "string"
-          )
-          .map((x) => ({ label: x.label, url: x.url }))
+      ? (v.filter(
+          (x) => typeof x === "object" && x !== null && typeof (x as Record<string, unknown>)["url"] === "string",
+        ) as ActionList)
       : [];
   return { actions: list(a["actions"]), removed: list(a["actions_removed"]) };
 }
@@ -1135,6 +1209,7 @@ export async function completeContent(
   accountId: string,
   contentId: string,
   done: boolean,
+  now = new Date(),
 ): Promise<{ done: boolean }> {
   const ref = await requireReadable(accountId, contentId);
   const before = await db
@@ -1144,11 +1219,7 @@ export async function completeContent(
     .executeTakeFirstOrThrow();
 
   await db.transaction().execute(async (trx) => {
-    await trx
-      .updateTable("content")
-      .set({ done_at: done ? sql`now()` : null, updated_at: sql`now()` })
-      .where("id", "=", ref.id)
-      .execute();
+    await tickIn(trx, accountId, ref.id, done, now);
     await touchThread(ref.threadId, trx);
     await holdFloor(trx, { contentId: ref.id });
   });
@@ -2190,6 +2261,8 @@ export async function threadRoutes(app: App): Promise<void> {
           // The label's list: every row, the filter ignored, each marked with
           // whether it carries this label.
           ticksFor: z.string().uuid().optional(),
+          // 049. Read back to this row, so Search can open the page at it.
+          through: z.string().uuid().optional(),
         }),
         response: { 200: contentPage, 401: unauthenticated, 404: notFound },
       },
@@ -2203,6 +2276,11 @@ export async function threadRoutes(app: App): Promise<void> {
         await requireMember(accountId, id);
 
         const wantArchived = request.query.archived === "true";
+        // 049. How many rows reach back to `through`, when it is in this
+        // thread's pile and close enough; otherwise it is ignored and this is
+        // the first page, which is the fallback Search relies on.
+        const reach = request.query.through ? await rowsThrough(id, request.query.through, wantArchived) : null;
+        const size = reach ?? PAGE;
 
         let query = db
           .selectFrom("content")
@@ -2246,10 +2324,12 @@ export async function threadRoutes(app: App): Promise<void> {
           .where("content.deleted_at", "is", null)
           .where("content.archived_at", wantArchived ? "is not" : "is", null)
           .orderBy("content.id", "desc")
-          .limit(PAGE + 1);
+          .limit(size + 1);
 
-        const picked = request.query.ticksFor ? [] : (request.query.labels ?? []);
-        const none = !request.query.ticksFor && request.query.unlabelled === "true";
+        // Read through a row, a filter cannot hide it: the page clears its
+        // pick when it opens at one.
+        const picked = request.query.ticksFor || reach ? [] : (request.query.labels ?? []);
+        const none = !request.query.ticksFor && !reach && request.query.unlabelled === "true";
         if (picked.length > 0 || none) {
           const carrying = picked.length > 0 ? sql<boolean>`exists (${carriesAny(sql.ref("content.id"), picked)})` : null;
           const bare = none ? sql<boolean>`not exists (${carriesAny(sql.ref("content.id"), null)})` : null;
@@ -2261,7 +2341,7 @@ export async function threadRoutes(app: App): Promise<void> {
         // unless the label carries them, so they can still come off it. A
         // series is never over. Days as Today reads them: an all-day row by
         // its UTC date, a timed one in the account's clock.
-        const ticksFor = request.query.ticksFor;
+        const ticksFor = reach ? undefined : request.query.ticksFor;
         if (ticksFor) {
           const zone = (await zoneOf(accountId)) ?? "UTC";
           const today = sql`(now() at time zone ${zone})::date`;
@@ -2291,13 +2371,13 @@ export async function threadRoutes(app: App): Promise<void> {
         }
 
         const rows = await query.execute();
-        const page = rows.slice(0, PAGE);
+        const page = rows.slice(0, size);
         const last = page.at(-1);
 
         const finished = await withPhotos(page.map((row) => toRow(row, accountId)), accountId);
         return reply.send({
           rows: ticksFor ? finished.map((row) => ({ ...row, ticked: row.labels.includes(ticksFor) })) : finished,
-          nextCursor: rows.length > PAGE && last ? last.id : null,
+          nextCursor: rows.length > size && last ? last.id : null,
         });
       })
   );

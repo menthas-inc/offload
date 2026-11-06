@@ -5,12 +5,15 @@
 // Rows reuse ContentRowView, so a row offers the same controls whatever the
 // layout arranges it into.
 
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { LayoutPage, LayoutSection } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { rowIcon } from "./rowIcon";
-import type { ContentRow, Note } from "../../lib/threads";
+import { OpenNote, type NoteActions } from "./Notes";
+import { LineAt } from "../shell/InPlace";
+import { MoveOver } from "../shell/MoveSheet";
+import { isProvisional, type ContentRow, type Note } from "../../lib/threads";
 import styles from "./LayoutSections.module.css";
 import tstyles from "../../app/(shell)/shell.module.css";
 
@@ -26,6 +29,12 @@ interface Props {
   /** Tick a row off or back; the layout decides whether it leaves and whether
    *  an Undo line is drawn (decision 22). */
   onToggle: (row: ContentRow) => void;
+  threadId: string;
+  /** A note drawn here opens in place, as in the Notes section, through the
+   *  same writes. */
+  noteActions: NoteActions;
+  /** 048. Whether a note is open or being moved, as the Notes section says. */
+  onEditing?: (open: boolean) => void;
 }
 
 const isRow = (item: ContentRow | Note): item is ContentRow => "type" in item;
@@ -157,7 +166,7 @@ function FoldSection({ heading, rows, handlers, onToggle, countFirst }: { headin
   );
 }
 
-function DaySection({ section, handlers, onToggle }: { section: Extract<Section, { kind: "day" }>; handlers: RowHandlers; onToggle: Props["onToggle"] }) {
+function DaySection({ section, handlers, onToggle, noteLine }: { section: Extract<Section, { kind: "day" }>; handlers: RowHandlers; onToggle: Props["onToggle"]; noteLine: (note: Note) => React.ReactNode }) {
   const d = new Date(section.day + "T00:00:00");
   return (
     <section className={styles.day}>
@@ -167,16 +176,56 @@ function DaySection({ section, handlers, onToggle }: { section: Extract<Section,
       </div>
       <div className={styles.entries}>
         {section.rows.map((item) =>
-          isRow(item) ? <Row key={item.id} row={item} handlers={handlers} onToggle={onToggle} /> : <p key={item.id} className={styles.noteLine}>{item.text}</p>,
+          isRow(item) ? <Row key={item.id} row={item} handlers={handlers} onToggle={onToggle} /> : noteLine(item),
         )}
       </div>
     </section>
   );
 }
 
-export function LayoutSections({ page, handlers, labels, onAdd, onToggle }: Props) {
+export function LayoutSections({ page, handlers, labels, onAdd, onToggle, threadId, noteActions, onEditing }: Props) {
   const [others, setOthers] = useState(false);
   const otherCount = page.others.rows.length + page.others.notes.length;
+  // One note open at a time, and the one whose Move sheet is up.
+  const [open, setOpen] = useState<{ id: string; draft: string } | null>(null);
+  const [moving, setMoving] = useState<Note | null>(null);
+  const busy = open !== null || moving !== null;
+  useEffect(() => onEditing?.(busy), [busy, onEditing]);
+
+  // The note's text is the way in, and the open note replaces it. An edit's
+  // Undo line goes under it; one that leaves the day goes under the composer.
+  const noteLine = (note: Note) =>
+    open?.id === note.id ? (
+      <div key={note.id} className={tstyles.noteRow} data-tone={note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral"} data-open={true}>
+        <OpenNote
+          note={note}
+          actions={noteActions}
+          draft={open.draft}
+          onDraft={(draft) => setOpen({ id: note.id, draft })}
+          onClose={() => setOpen(null)}
+          onMoving={() => setMoving(note)}
+        />
+      </div>
+    ) : (
+      <Fragment key={note.id}>
+        <button type="button" className={styles.noteLine} disabled={isProvisional(note.id)} onClick={() => setOpen({ id: note.id, draft: note.text })}>
+          {note.text}
+        </button>
+        <LineAt id={note.id} />
+      </Fragment>
+    );
+
+  const moveSheet = moving ? (
+    <MoveOver
+      exceptThreadId={threadId}
+      onClose={() => setMoving(null)}
+      onPick={(thread) => {
+        setMoving(null);
+        setOpen(null);
+        noteActions.move(moving, thread);
+      }}
+    />
+  ) : null;
 
   if (others) {
     return (
@@ -185,9 +234,8 @@ export function LayoutSections({ page, handlers, labels, onAdd, onToggle }: Prop
         {page.others.rows.map((row) => (
           <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} />
         ))}
-        {page.others.notes.map((note) => (
-          <p key={note.id} className={styles.noteLine}>{note.text}</p>
-        ))}
+        {page.others.notes.map(noteLine)}
+        {moveSheet}
         <button type="button" className={styles.othersRow} onClick={() => setOthers(false)}>
           <Icon name="chevron-left" size={15} /> Back to the list
         </button>
@@ -200,7 +248,7 @@ export function LayoutSections({ page, handlers, labels, onAdd, onToggle }: Prop
       {page.sections.map((section, i) => {
         if (section.kind === "list") return <ListSection key={section.key} section={section} handlers={handlers} labels={labels} onAdd={onAdd} onToggle={onToggle} />;
         if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} onToggle={onToggle} countFirst={section.key === "week"} />;
-        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} onToggle={onToggle} />;
+        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} onToggle={onToggle} noteLine={noteLine} />;
         if (section.kind === "files")
           return (
             <section className={styles.block} key={`files-${i}`}>
@@ -213,6 +261,8 @@ export function LayoutSections({ page, handlers, labels, onAdd, onToggle }: Prop
           );
         return null;
       })}
+
+      {moveSheet}
 
       {otherCount > 0 ? (
         <button type="button" className={styles.othersRow} onClick={() => setOthers(true)}>

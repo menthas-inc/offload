@@ -11,7 +11,8 @@ import type { LayoutPage, LayoutSection } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { ContentRowView } from "../shell/ContentRow";
 import { useColors } from "../../lib/colors";
-import type { ContentRow, Note } from "../../lib/threads";
+import { useNoteSheet } from "../shell/Notes";
+import { isProvisional, type ContentRow, type Note } from "../../lib/threads";
 
 type Page = LayoutPage<ContentRow, Note>;
 type Sec = LayoutSection<ContentRow, Note>;
@@ -152,7 +153,18 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
   );
 }
 
-function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day" }>; handlers: LayoutHandlers }) {
+/** A note, pressed into the same sheet the Notes section opens. */
+function NoteLine({ note, openNote, inset }: { note: Note; openNote: (note: Note) => void; inset?: boolean }) {
+  return (
+    <Pressable onPress={() => openNote(note)} disabled={isProvisional(note.id)} accessibilityRole="button">
+      <Text className={`${inset ? "px-gutter-screen " : ""}font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
+        {note.text}
+      </Text>
+    </Pressable>
+  );
+}
+
+function DaySection({ section, handlers, openNote }: { section: Extract<Sec, { kind: "day" }>; handlers: LayoutHandlers; openNote: (note: Note) => void }) {
   const d = new Date(section.day + "T00:00:00");
   return (
     <View className={`flex-row border-b px-gutter-screen ${isAndroid ? "border-a-outline" : "border-border-hairline"}`} style={{ gap: 12, paddingVertical: 16 }}>
@@ -171,9 +183,7 @@ function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day"
             // still opens, so they go through the local Row like the web's.
             <Row key={item.id} row={item} handlers={handlers} flat />
           ) : (
-            <Text key={item.id} className={`font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
-              {item.text}
-            </Text>
+            <NoteLine key={item.id} note={item} openNote={openNote} />
           ),
         )}
       </View>
@@ -181,8 +191,14 @@ function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day"
   );
 }
 
-export function LayoutSections({ page, labels, handlers }: { page: Page; labels: { id: string; name: string; colour: number }[]; handlers: LayoutHandlers }) {
+export function LayoutSections({
+  page,
+  labels,
+  handlers,
+  ...noteSheet
+}: { page: Page; labels: { id: string; name: string; colour: number }[]; handlers: LayoutHandlers } & Parameters<typeof useNoteSheet>[0]) {
   const COLOR = useColors();
+  const { open: openNote } = useNoteSheet(noteSheet);
   const [others, setOthers] = useState(false);
   const otherCount = page.others.rows.length + page.others.notes.length;
 
@@ -198,9 +214,7 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
           <Row key={row.id} row={row} handlers={handlers} />
         ))}
         {page.others.notes.map((note) => (
-          <Text key={note.id} className={`px-gutter-screen font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
-            {note.text}
-          </Text>
+          <NoteLine key={note.id} note={note} openNote={openNote} inset />
         ))}
         <Pressable
           onPress={() => setOthers(false)}
@@ -224,7 +238,7 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
           return <ListSection key={section.key} section={section} colour={colour} handlers={handlers} />;
         }
         if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} countFirst={section.key === "week"} />;
-        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} />;
+        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} openNote={openNote} />;
         if (section.kind === "files")
           return (
             <View key={`files-${i}`} className="flex-row flex-wrap px-gutter-screen" style={{ gap: 12, marginTop: 16 }}>

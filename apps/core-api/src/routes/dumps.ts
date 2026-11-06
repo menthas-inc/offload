@@ -443,34 +443,51 @@ export async function photosForAll(
     .where("blobs.deleted_at", "is", null)
     .orderBy("blobs.created_at", "asc")
     .execute();
-  // 044. The links a filed PDF carried, by blob, so the filing reply can draw
-  // the same chips the row does. One bounded read for every blob on the page
-  // (each message has at most two PDFs), not a join on the hot path.
-  const actions = await actionsForBlobs(rows.filter((r) => r.kind === "pdf").map((r) => r.id));
+  // 044, 050. The actions a filed picture's or PDF's row carries, by blob, so
+  // the conversation draws the same pills the row does. One bounded read for
+  // every blob on the page, not a join on the hot path.
+  const actions = await actionsForBlobs(
+    rows.map((r) => r.id),
+    messageIds,
+    accountId,
+  );
   for (const row of rows) {
     const list = out.get(row.message_id!) ?? [];
     const wire = { ...fileToWire(row), name: row.name };
     const carried = actions.get(row.id);
-    list.push(wire.kind === "pdf" && carried ? { ...wire, actions: carried } : wire);
+    list.push(carried ? { ...wire, actions: carried } : wire);
     out.set(row.message_id!, list);
   }
   return out;
 }
 
-/** 044. Which links each PDF blob's filed `file` row carries, from its
- *  `attrs.actions`. Scoped by the join to the account's own rows; a bounded
- *  set (at most two PDFs a message, two links each). */
-async function actionsForBlobs(blobIds: string[]): Promise<Map<string, { label: string; url: string }[]>> {
-  const map = new Map<string, { label: string; url: string }[]>();
+/** 044, 050. The actions each blob's filed row carries, from its
+ *  `attrs.actions`. Scoped to rows derived from the page's own messages, which
+ *  are the account's, and per blob the earliest such row that has any, so the
+ *  pick is the same on every read (a picture can be carried by its own row and
+ *  a task beside it). */
+async function actionsForBlobs(
+  blobIds: string[],
+  messageIds: string[],
+  accountId: string,
+): Promise<Map<string, NonNullable<ReturnType<typeof actionsOf>>>> {
+  const map = new Map<string, NonNullable<ReturnType<typeof actionsOf>>>();
   if (blobIds.length === 0) return map;
   const rows = await db
     .selectFrom("content_blobs")
     .innerJoin("content", "content.id", "content_blobs.content_id")
     .select(["content_blobs.blob_id as blobId", "content.attrs as attrs"])
     .where("content_blobs.blob_id", "in", blobIds)
-    .where("content.type", "=", "file")
+    .where("content.derived_from_message_id", "in", messageIds)
+    // The account's own live rows, as the queries beside this one scope them
+    // (OFF-3): a deleted row's actions are not offered under its picture.
+    .where("content.account_id", "=", accountId)
+    .where("content.deleted_at", "is", null)
+    .orderBy("content.created_at", "asc")
+    .orderBy("content.id", "asc")
     .execute();
   for (const row of rows) {
+    if (map.has(row.blobId)) continue;
     const carried = actionsOf(row.attrs);
     if (carried) map.set(row.blobId, carried);
   }
@@ -2260,6 +2277,18 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
   // What the turn changed or removed first: an event it added and then moved
   // is moved back before the add is taken off.
   await undoToolWrites(accountId, turnId, since);
+
+  // A row that found its event did not write it: the event was theirs before
+  // this turn and stays. The row only forgets it, which lets the row go.
+  await db
+    .updateTable("content")
+    .set({ source_ref: null, attrs: sql`attrs - 'calendar' - 'calendar_found'` })
+    .where("account_id", "=", accountId)
+    .where("derived_from_message_id", "in", (eb) => eb.selectFrom("messages").select("id").where("turn_id", "=", turnId))
+    .where(sql<boolean>`attrs ? 'calendar_found'`)
+    .where("deleted_at", "is", null)
+    .$if(since !== undefined, (qb) => qb.where("updated_at", "<=", sql<Date>`${since}::timestamptz`))
+    .execute();
 
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.

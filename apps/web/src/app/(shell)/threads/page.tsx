@@ -11,7 +11,7 @@ export default function ThreadsRoute() {
 
   return (
     <Panes
-      crumbs={[{ label: "My threads", href: "/threads", icon: "message-circle" }]}
+      crumbs={[{ label: "Threads", href: "/threads", icon: "message-circle" }]}
       panes={[<MyThreads key="threads" groups={groups} loose={loose} invitations={invitations} order={order} loading={!ready} onChanged={reload} />]}
     />
   );

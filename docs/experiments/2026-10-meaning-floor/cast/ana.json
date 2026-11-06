@@ -1,0 +1,1847 @@
+{
+ "person": "ana",
+ "threads": [
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "flat",
+   "name": "Lisbon flat"
+  },
+  {
+   "key": "clients",
+   "name": "Clients"
+  },
+  {
+   "key": "pt",
+   "name": "Portuguese lessons"
+  },
+  {
+   "key": "insp",
+   "name": "Design inspiration"
+  },
+  {
+   "key": "papers",
+   "name": "Residency paperwork"
+  },
+  {
+   "key": "groc",
+   "name": "Groceries"
+  },
+  {
+   "key": "trips",
+   "name": "Trips around Portugal"
+  }
+ ],
+ "rows": [
+  {
+   "id": "a001",
+   "thread": "flat",
+   "title": "Pay rent to Senhor Costa",
+   "body": ""
+  },
+  {
+   "id": "a002",
+   "thread": "flat",
+   "title": "Rent is 950 euros, transfer by the 1st",
+   "body": "Senhor Costa wants a bank transfer with the flat number 3E as the reference."
+  },
+  {
+   "id": "a003",
+   "thread": "flat",
+   "title": "Rent paid for October",
+   "body": ""
+  },
+  {
+   "id": "a004",
+   "thread": "flat",
+   "title": "Senhor Costa phone number 912 000 111",
+   "body": ""
+  },
+  {
+   "id": "a005",
+   "thread": "flat",
+   "title": "Leaky tap in the kitchen",
+   "body": "Told Senhor Costa on WhatsApp, he says his cousin can come Thursday."
+  },
+  {
+   "id": "a006",
+   "thread": "flat",
+   "title": "Buy a dehumidifier",
+   "body": ""
+  },
+  {
+   "id": "a007",
+   "thread": "flat",
+   "title": "Mould in the bedroom corner",
+   "body": "Back again after the rain. Ask Senhor Costa about painting with anti-mould paint."
+  },
+  {
+   "id": "a008",
+   "thread": "flat",
+   "title": "Dehumidifier on sale at Worten",
+   "body": "https://www.worten.example/dehumidificador-20l"
+  },
+  {
+   "id": "a009",
+   "thread": "flat",
+   "title": "Pay EDP electricity bill",
+   "body": ""
+  },
+  {
+   "id": "a010",
+   "thread": "flat",
+   "title": "EDP bill due on the 15th",
+   "body": "About 60 euros in winter, more with the heater on."
+  },
+  {
+   "id": "a011",
+   "thread": "flat",
+   "title": "NOS internet technician Tuesday 9 to 13",
+   "body": "Needs someone home. Fibre box goes behind the sofa."
+  },
+  {
+   "id": "a012",
+   "thread": "flat",
+   "title": "Cancel old NOS contract from the Toronto sublet era",
+   "body": ""
+  },
+  {
+   "id": "a013",
+   "thread": "flat",
+   "title": "Water bill via the condominium",
+   "body": ""
+  },
+  {
+   "id": "a014",
+   "thread": "flat",
+   "title": "Buy curtains for the living room",
+   "body": ""
+  },
+  {
+   "id": "a015",
+   "thread": "flat",
+   "title": "Measure the windows for blinds",
+   "body": "Living room window is 140 by 180, bedroom one is smaller."
+  },
+  {
+   "id": "a016",
+   "thread": "flat",
+   "title": "Ikea trip for shelves",
+   "body": ""
+  },
+  {
+   "id": "a017",
+   "thread": "flat",
+   "title": "Desk by the east window",
+   "body": "Morning light is better for drawing. Might need a longer extension cord."
+  },
+  {
+   "id": "a018",
+   "thread": "flat",
+   "title": "Lease renewal in March",
+   "body": "Senhor Costa says he will not raise the rent if I sign two more years."
+  },
+  {
+   "id": "a019",
+   "thread": "flat",
+   "title": "Recycling days",
+   "body": "Yellow bin Tuesdays, blue bin Fridays, glass bottles at the corner."
+  },
+  {
+   "id": "a020",
+   "thread": "flat",
+   "title": "Condominium meeting 18 Nov 7pm",
+   "body": "Ground floor lobby. Vote on the roof repair."
+  },
+  {
+   "id": "a021",
+   "thread": "flat",
+   "title": "Fix the doorbell",
+   "body": ""
+  },
+  {
+   "id": "a022",
+   "thread": "flat",
+   "title": "Give a spare key to Dona Fernanda next door",
+   "body": ""
+  },
+  {
+   "id": "a023",
+   "thread": "flat",
+   "title": "Gas bottle refill",
+   "body": ""
+  },
+  {
+   "id": "a024",
+   "thread": "flat",
+   "title": "Tile cleaner for the bathroom",
+   "body": ""
+  },
+  {
+   "id": "a025",
+   "thread": "flat",
+   "title": "Hang the framed prints",
+   "body": ""
+  },
+  {
+   "id": "a026",
+   "thread": "flat",
+   "title": "Heater for winter",
+   "body": "No central heating and the tiles are freezing. Oil radiator maybe."
+  },
+  {
+   "id": "a027",
+   "thread": "flat",
+   "title": "Buy extension cord",
+   "body": ""
+  },
+  {
+   "id": "a028",
+   "thread": "flat",
+   "title": "Contents insurance quote",
+   "body": ""
+  },
+  {
+   "id": "a029",
+   "thread": "flat",
+   "title": "Photos of the flat for the deposit",
+   "body": "Take them before the new sofa arrives, every wall and the floor scratches."
+  },
+  {
+   "id": "a030",
+   "thread": "flat",
+   "title": "Rent due tomorrow",
+   "body": ""
+  },
+  {
+   "id": "a031",
+   "thread": "clients",
+   "title": "Invoice Casa Azul",
+   "body": "40 hours of brand work, payment terms net 30."
+  },
+  {
+   "id": "a032",
+   "thread": "clients",
+   "title": "Send invoice to Studio Maré",
+   "body": ""
+  },
+  {
+   "id": "a033",
+   "thread": "clients",
+   "title": "Chase unpaid invoice from Café Beira",
+   "body": "Ninety days overdue. Send a polite second reminder."
+  },
+  {
+   "id": "a034",
+   "thread": "clients",
+   "title": "Logo for Quinta do Vale",
+   "body": "Winery in the Douro. They want something hand drawn, not corporate."
+  },
+  {
+   "id": "a035",
+   "thread": "clients",
+   "title": "Quinta do Vale logo, round 2 feedback",
+   "body": ""
+  },
+  {
+   "id": "a036",
+   "thread": "clients",
+   "title": "Call with Marta from Casa Azul, Wed 11am",
+   "body": ""
+  },
+  {
+   "id": "a037",
+   "thread": "clients",
+   "title": "Brand guidelines PDF for Studio Maré",
+   "body": ""
+  },
+  {
+   "id": "a038",
+   "thread": "clients",
+   "title": "Proposal template",
+   "body": "One page, scope and price up front, three tiers."
+  },
+  {
+   "id": "a039",
+   "thread": "clients",
+   "title": "Raise day rate to 350",
+   "body": ""
+  },
+  {
+   "id": "a040",
+   "thread": "clients",
+   "title": "Figma file for Café Beira menu",
+   "body": ""
+  },
+  {
+   "id": "a041",
+   "thread": "clients",
+   "title": "Menu redesign for Café Beira",
+   "body": "Two languages, big prices, nothing fussy."
+  },
+  {
+   "id": "a042",
+   "thread": "clients",
+   "title": "Contract for Fábrica Norte",
+   "body": "Send it before the kickoff call. Deposit 50% before starting."
+  },
+  {
+   "id": "a043",
+   "thread": "clients",
+   "title": "Kickoff call Fábrica Norte Monday 10:00",
+   "body": ""
+  },
+  {
+   "id": "a044",
+   "thread": "clients",
+   "title": "Client onboarding questionnaire",
+   "body": ""
+  },
+  {
+   "id": "a045",
+   "thread": "clients",
+   "title": "Update portfolio site",
+   "body": "Add the winery case study and drop the 2019 work."
+  },
+  {
+   "id": "a046",
+   "thread": "clients",
+   "title": "Write the Quinta do Vale case study",
+   "body": ""
+  },
+  {
+   "id": "a047",
+   "thread": "clients",
+   "title": "Cover illustration for Livraria Sol",
+   "body": "Children's book about a lighthouse keeper. Sketches first."
+  },
+  {
+   "id": "a048",
+   "thread": "clients",
+   "title": "Livraria Sol cover deadline 20 Nov",
+   "body": ""
+  },
+  {
+   "id": "a049",
+   "thread": "clients",
+   "title": "Reply to João about packaging sizes",
+   "body": ""
+  },
+  {
+   "id": "a050",
+   "thread": "clients",
+   "title": "Packaging mockups for Doce Lisboa bakery",
+   "body": "Box, bag and sticker. Pastel pink and cream."
+  },
+  {
+   "id": "a051",
+   "thread": "clients",
+   "title": "Font licence for Studio Maré",
+   "body": ""
+  },
+  {
+   "id": "a052",
+   "thread": "clients",
+   "title": "Toggl Track",
+   "body": "https://toggl.example/track Time tracking that does not nag."
+  },
+  {
+   "id": "a053",
+   "thread": "clients",
+   "title": "Ask Tomás for photos of the vineyard",
+   "body": ""
+  },
+  {
+   "id": "a054",
+   "thread": "clients",
+   "title": "Retainer idea for Casa Azul",
+   "body": "Twenty hours a month at a lower rate, they pay on the first of the month."
+  },
+  {
+   "id": "a055",
+   "thread": "clients",
+   "title": "Ask Casa Azul for a testimonial",
+   "body": ""
+  },
+  {
+   "id": "a056",
+   "thread": "clients",
+   "title": "Wise or Stripe for client payments",
+   "body": ""
+  },
+  {
+   "id": "a057",
+   "thread": "clients",
+   "title": "Doce Lisboa wants the logo in green",
+   "body": "Told her I would try three greens."
+  },
+  {
+   "id": "a058",
+   "thread": "clients",
+   "title": "Invoice reminder email template",
+   "body": ""
+  },
+  {
+   "id": "a059",
+   "thread": "pt",
+   "title": "Portuguese class Tue and Thu 18:30",
+   "body": "At Língua Viva, level A2, teacher is Professora Helena."
+  },
+  {
+   "id": "a060",
+   "thread": "pt",
+   "title": "Homework: pretérito perfeito",
+   "body": ""
+  },
+  {
+   "id": "a061",
+   "thread": "pt",
+   "title": "Learn the days of the week",
+   "body": ""
+  },
+  {
+   "id": "a062",
+   "thread": "pt",
+   "title": "Palavras novas: saudade, desenrascanço",
+   "body": "Saudade has no English word. Desenrascanço is getting by with what you have."
+  },
+  {
+   "id": "a063",
+   "thread": "pt",
+   "title": "Duolingo streak",
+   "body": ""
+  },
+  {
+   "id": "a064",
+   "thread": "pt",
+   "title": "Ser vs estar",
+   "body": "Ser for what something is, estar for how it is right now."
+  },
+  {
+   "id": "a065",
+   "thread": "pt",
+   "title": "Conjugar o verbo ir",
+   "body": ""
+  },
+  {
+   "id": "a066",
+   "thread": "pt",
+   "title": "Practice ordering at the café",
+   "body": "Uma bica e um pastel de nata, por favor."
+  },
+  {
+   "id": "a067",
+   "thread": "pt",
+   "title": "Podcast: Portuguese with Leo",
+   "body": "https://portuguesewithleo.example Slow European Portuguese for beginners."
+  },
+  {
+   "id": "a068",
+   "thread": "pt",
+   "title": "A2 exam on 12 December",
+   "body": ""
+  },
+  {
+   "id": "a069",
+   "thread": "pt",
+   "title": "Buy the workbook Aprender Português 2",
+   "body": ""
+  },
+  {
+   "id": "a070",
+   "thread": "pt",
+   "title": "Comprar um dicionário",
+   "body": ""
+  },
+  {
+   "id": "a071",
+   "thread": "pt",
+   "title": "Chat with Dona Fernanda in Portuguese",
+   "body": ""
+  },
+  {
+   "id": "a072",
+   "thread": "pt",
+   "title": "European vs Brazilian pronunciation",
+   "body": "The unstressed vowels almost disappear in Lisbon. Hard to hear."
+  },
+  {
+   "id": "a073",
+   "thread": "pt",
+   "title": "Anki deck for vocabulary",
+   "body": ""
+  },
+  {
+   "id": "a074",
+   "thread": "pt",
+   "title": "Tutor Rita, 25 euros an hour",
+   "body": "Saturday mornings on video."
+  },
+  {
+   "id": "a075",
+   "thread": "pt",
+   "title": "Cancel Thursday class, client call",
+   "body": ""
+  },
+  {
+   "id": "a076",
+   "thread": "pt",
+   "title": "Tenho de pagar a mensalidade da escola",
+   "body": ""
+  },
+  {
+   "id": "a077",
+   "thread": "pt",
+   "title": "Reading list: Os Maias",
+   "body": "Eça de Queirós. Start with the short stories instead."
+  },
+  {
+   "id": "a078",
+   "thread": "pt",
+   "title": "Watch Netflix with Portuguese subtitles",
+   "body": ""
+  },
+  {
+   "id": "a079",
+   "thread": "pt",
+   "title": "Verbo: precisar de",
+   "body": ""
+  },
+  {
+   "id": "a080",
+   "thread": "pt",
+   "title": "Numbers up to 100",
+   "body": ""
+  },
+  {
+   "id": "a081",
+   "thread": "pt",
+   "title": "Practice Portuguese verb tables",
+   "body": "https://practiceportuguese.example/verbs"
+  },
+  {
+   "id": "a082",
+   "thread": "pt",
+   "title": "Perguntar à Helena sobre o exame",
+   "body": ""
+  },
+  {
+   "id": "a083",
+   "thread": "pt",
+   "title": "Phrases for the market",
+   "body": "Quanto custa? Pode ser mais barato? Um quilo, por favor."
+  },
+  {
+   "id": "a084",
+   "thread": "insp",
+   "title": "Bauhaus posters board",
+   "body": "https://pinterest.example/ana/bauhaus-posters"
+  },
+  {
+   "id": "a085",
+   "thread": "insp",
+   "title": "Azulejo patterns for the winery logo",
+   "body": "Blue and white, but try ochre and green too."
+  },
+  {
+   "id": "a086",
+   "thread": "insp",
+   "title": "Typeface: Recoleta",
+   "body": ""
+  },
+  {
+   "id": "a087",
+   "thread": "insp",
+   "title": "Awwwards site of the day",
+   "body": "https://awwwards.example/sites/studio-lume Great scroll animation."
+  },
+  {
+   "id": "a088",
+   "thread": "insp",
+   "title": "Colour palette from the Alfama tiles",
+   "body": ""
+  },
+  {
+   "id": "a089",
+   "thread": "insp",
+   "title": "MAAT exhibition Sat 14 Nov",
+   "body": "Textile and light installation. Take the sketchbook."
+  },
+  {
+   "id": "a090",
+   "thread": "insp",
+   "title": "Book: Thinking with Type",
+   "body": ""
+  },
+  {
+   "id": "a091",
+   "thread": "insp",
+   "title": "Muji packaging",
+   "body": "Plain kraft, one colour, tiny type."
+  },
+  {
+   "id": "a092",
+   "thread": "insp",
+   "title": "Variable fonts, a practical guide",
+   "body": "https://css-tricks.example/variable-fonts"
+  },
+  {
+   "id": "a093",
+   "thread": "insp",
+   "title": "Visit the Museu Nacional do Azulejo",
+   "body": ""
+  },
+  {
+   "id": "a094",
+   "thread": "insp",
+   "title": "Saul Bass title sequences",
+   "body": ""
+  },
+  {
+   "id": "a095",
+   "thread": "insp",
+   "title": "Buy a new sketchbook",
+   "body": ""
+  },
+  {
+   "id": "a096",
+   "thread": "insp",
+   "title": "Risograph workshop",
+   "body": "Two evenings in Marvila. Prints in two spot colours."
+  },
+  {
+   "id": "a097",
+   "thread": "insp",
+   "title": "Lisbon street signs",
+   "body": "Photos of old hand painted shop signs for a type project."
+  },
+  {
+   "id": "a098",
+   "thread": "insp",
+   "title": "Grid systems in editorial design",
+   "body": ""
+  },
+  {
+   "id": "a099",
+   "thread": "insp",
+   "title": "Dribbble shot with the grain gradient",
+   "body": ""
+  },
+  {
+   "id": "a100",
+   "thread": "insp",
+   "title": "Illustration style: flat with grain",
+   "body": "Texture overlay in Procreate, limited to four colours."
+  },
+  {
+   "id": "a101",
+   "thread": "insp",
+   "title": "Poster idea for Lisbon Design Week",
+   "body": "A tram made of letters."
+  },
+  {
+   "id": "a102",
+   "thread": "insp",
+   "title": "Design Matters podcast",
+   "body": "https://designmatters.example"
+  },
+  {
+   "id": "a103",
+   "thread": "insp",
+   "title": "Pantone colour of the year",
+   "body": ""
+  },
+  {
+   "id": "a104",
+   "thread": "insp",
+   "title": "Street art around Cais do Sodré",
+   "body": ""
+  },
+  {
+   "id": "a105",
+   "thread": "insp",
+   "title": "Font pairing: Fraunces and Inter",
+   "body": ""
+  },
+  {
+   "id": "a106",
+   "thread": "insp",
+   "title": "Eye on Design newsletter",
+   "body": "https://eyeondesign.example"
+  },
+  {
+   "id": "a107",
+   "thread": "insp",
+   "title": "Hand lettering course",
+   "body": ""
+  },
+  {
+   "id": "a108",
+   "thread": "papers",
+   "title": "Renew residence permit at AIMA",
+   "body": "Appointment needed. The portal is slow, try early morning."
+  },
+  {
+   "id": "a109",
+   "thread": "papers",
+   "title": "AIMA appointment 9 December 10:20",
+   "body": ""
+  },
+  {
+   "id": "a110",
+   "thread": "papers",
+   "title": "NIF number",
+   "body": "Needed for everything: rent contract, internet, the bank."
+  },
+  {
+   "id": "a111",
+   "thread": "papers",
+   "title": "Social security number (NISS)",
+   "body": ""
+  },
+  {
+   "id": "a112",
+   "thread": "papers",
+   "title": "Open freelance activity at Finanças",
+   "body": "Recibos verdes. Choose the simplified regime."
+  },
+  {
+   "id": "a113",
+   "thread": "papers",
+   "title": "Submit quarterly IVA return by 15 November",
+   "body": ""
+  },
+  {
+   "id": "a114",
+   "thread": "papers",
+   "title": "Recibo verde for the Casa Azul invoice",
+   "body": ""
+  },
+  {
+   "id": "a115",
+   "thread": "papers",
+   "title": "Canadian passport expires 2027",
+   "body": "Renew from Lisbon at the embassy, takes about six weeks."
+  },
+  {
+   "id": "a116",
+   "thread": "papers",
+   "title": "Apostille the birth certificate",
+   "body": "Ask the Ontario office what it costs."
+  },
+  {
+   "id": "a117",
+   "thread": "papers",
+   "title": "Translate the birth certificate to Portuguese",
+   "body": ""
+  },
+  {
+   "id": "a118",
+   "thread": "papers",
+   "title": "Proof of address: utility bill",
+   "body": ""
+  },
+  {
+   "id": "a119",
+   "thread": "papers",
+   "title": "Health centre registration",
+   "body": "Centro de Saúde de Alvalade, bring the NIF and the rent contract. Get the utente number."
+  },
+  {
+   "id": "a120",
+   "thread": "papers",
+   "title": "Bank statements for AIMA, last 6 months",
+   "body": ""
+  },
+  {
+   "id": "a121",
+   "thread": "papers",
+   "title": "Criminal record certificate from Ontario",
+   "body": "Fingerprints at a police station, then post it."
+  },
+  {
+   "id": "a122",
+   "thread": "papers",
+   "title": "File final Canadian tax return",
+   "body": "CRA, tell them I am no longer resident."
+  },
+  {
+   "id": "a123",
+   "thread": "papers",
+   "title": "IFICI tax regime explained",
+   "body": "https://taxguide.example/ifici The successor to NHR."
+  },
+  {
+   "id": "a124",
+   "thread": "papers",
+   "title": "Wise transfer from the Canadian account",
+   "body": ""
+  },
+  {
+   "id": "a125",
+   "thread": "papers",
+   "title": "Millennium bcp IBAN",
+   "body": ""
+  },
+  {
+   "id": "a126",
+   "thread": "papers",
+   "title": "Fotocópias do passaporte",
+   "body": ""
+  },
+  {
+   "id": "a127",
+   "thread": "papers",
+   "title": "Passport photos, four copies",
+   "body": ""
+  },
+  {
+   "id": "a128",
+   "thread": "papers",
+   "title": "Exchange the Ontario driving licence at IMT",
+   "body": "Bring a medical certificate and the NIF."
+  },
+  {
+   "id": "a129",
+   "thread": "papers",
+   "title": "Finanças password reset",
+   "body": ""
+  },
+  {
+   "id": "a130",
+   "thread": "papers",
+   "title": "Accountant: Dra. Luísa Pinto",
+   "body": "Was recommended by Marta. 60 euros a month."
+  },
+  {
+   "id": "a131",
+   "thread": "papers",
+   "title": "Visa fee receipt",
+   "body": ""
+  },
+  {
+   "id": "a132",
+   "thread": "groc",
+   "title": "Oat milk",
+   "body": ""
+  },
+  {
+   "id": "a133",
+   "thread": "groc",
+   "title": "Eggs",
+   "body": ""
+  },
+  {
+   "id": "a134",
+   "thread": "groc",
+   "title": "Coffee beans",
+   "body": ""
+  },
+  {
+   "id": "a135",
+   "thread": "groc",
+   "title": "Pão de forma",
+   "body": ""
+  },
+  {
+   "id": "a136",
+   "thread": "groc",
+   "title": "Bananas",
+   "body": ""
+  },
+  {
+   "id": "a137",
+   "thread": "groc",
+   "title": "Olive oil",
+   "body": ""
+  },
+  {
+   "id": "a138",
+   "thread": "groc",
+   "title": "Bacalhau",
+   "body": "Soak it for two days before cooking."
+  },
+  {
+   "id": "a139",
+   "thread": "groc",
+   "title": "Tomatoes",
+   "body": ""
+  },
+  {
+   "id": "a140",
+   "thread": "groc",
+   "title": "Pingo Doce list",
+   "body": "Rice, lentils, canned chickpeas, tomato paste."
+  },
+  {
+   "id": "a141",
+   "thread": "groc",
+   "title": "Lidl: toilet paper",
+   "body": ""
+  },
+  {
+   "id": "a142",
+   "thread": "groc",
+   "title": "Feira de Alvalade vegetables Saturday",
+   "body": ""
+  },
+  {
+   "id": "a143",
+   "thread": "groc",
+   "title": "Detergente da loiça",
+   "body": ""
+  },
+  {
+   "id": "a144",
+   "thread": "groc",
+   "title": "Queijo da serra",
+   "body": ""
+  },
+  {
+   "id": "a145",
+   "thread": "groc",
+   "title": "Oat milk, the barista one",
+   "body": ""
+  },
+  {
+   "id": "a146",
+   "thread": "groc",
+   "title": "Yoghurt",
+   "body": ""
+  },
+  {
+   "id": "a147",
+   "thread": "groc",
+   "title": "Rice and beans",
+   "body": ""
+  },
+  {
+   "id": "a148",
+   "thread": "groc",
+   "title": "Pastel de nata at home",
+   "body": "Try the recipe with the pasta folhada from the shop."
+  },
+  {
+   "id": "a149",
+   "thread": "groc",
+   "title": "Tins of sardines as gifts for mum",
+   "body": ""
+  },
+  {
+   "id": "a150",
+   "thread": "groc",
+   "title": "Maple syrup",
+   "body": "Can't get the proper kind here. Ask mum to pack some."
+  },
+  {
+   "id": "a151",
+   "thread": "groc",
+   "title": "Peanut butter",
+   "body": ""
+  },
+  {
+   "id": "a152",
+   "thread": "groc",
+   "title": "Ground coffee for the moka pot",
+   "body": ""
+  },
+  {
+   "id": "a153",
+   "thread": "groc",
+   "title": "Lemons",
+   "body": ""
+  },
+  {
+   "id": "a154",
+   "thread": "groc",
+   "title": "Spinach",
+   "body": ""
+  },
+  {
+   "id": "a155",
+   "thread": "groc",
+   "title": "Meal plan for the week",
+   "body": "Mostly vegetarian, soup on Sunday for the freezer."
+  },
+  {
+   "id": "a156",
+   "thread": "groc",
+   "title": "Dishwasher tablets",
+   "body": ""
+  },
+  {
+   "id": "a157",
+   "thread": "groc",
+   "title": "Eggs and coffee",
+   "body": ""
+  },
+  {
+   "id": "a158",
+   "thread": "trips",
+   "title": "Porto weekend in November",
+   "body": "Train from Santa Apolónia, about three hours. See Inês."
+  },
+  {
+   "id": "a159",
+   "thread": "trips",
+   "title": "Book train tickets to Porto",
+   "body": ""
+  },
+  {
+   "id": "a160",
+   "thread": "trips",
+   "title": "Hostel in Porto near the Ribeira",
+   "body": ""
+  },
+  {
+   "id": "a161",
+   "thread": "trips",
+   "title": "Sintra day trip",
+   "body": "Go early and skip Pena Palace on weekends."
+  },
+  {
+   "id": "a162",
+   "thread": "trips",
+   "title": "Pena Palace tickets",
+   "body": ""
+  },
+  {
+   "id": "a163",
+   "thread": "trips",
+   "title": "Algarve in May",
+   "body": "Before the summer crowds."
+  },
+  {
+   "id": "a164",
+   "thread": "trips",
+   "title": "Lagos beaches: Praia do Camilo",
+   "body": ""
+  },
+  {
+   "id": "a165",
+   "thread": "trips",
+   "title": "Douro valley visit",
+   "body": "Combine with the Quinta do Vale meeting and stay a night."
+  },
+  {
+   "id": "a166",
+   "thread": "trips",
+   "title": "Azores trip idea",
+   "body": "São Miguel, whale watching and the hot springs at Furnas."
+  },
+  {
+   "id": "a167",
+   "thread": "trips",
+   "title": "Madeira levada walk",
+   "body": ""
+  },
+  {
+   "id": "a168",
+   "thread": "trips",
+   "title": "Évora and the bone chapel",
+   "body": "https://visitevora.example/capela-dos-ossos"
+  },
+  {
+   "id": "a169",
+   "thread": "trips",
+   "title": "Rent a car for the Alentejo",
+   "body": ""
+  },
+  {
+   "id": "a170",
+   "thread": "trips",
+   "title": "Alentejo wine tour",
+   "body": ""
+  },
+  {
+   "id": "a171",
+   "thread": "trips",
+   "title": "Peneda-Gerês hiking",
+   "body": ""
+  },
+  {
+   "id": "a172",
+   "thread": "trips",
+   "title": "Carnival in Torres Vedras",
+   "body": ""
+  },
+  {
+   "id": "a173",
+   "thread": "trips",
+   "title": "Coimbra university library",
+   "body": "https://uc.example/biblioteca-joanina Baroque library, book ahead."
+  },
+  {
+   "id": "a174",
+   "thread": "trips",
+   "title": "Nazaré big waves in winter",
+   "body": ""
+  },
+  {
+   "id": "a175",
+   "thread": "trips",
+   "title": "Train times Lisbon to Faro",
+   "body": "About three hours, cheaper if booked early."
+  },
+  {
+   "id": "a176",
+   "thread": "trips",
+   "title": "Surf lesson in Ericeira",
+   "body": ""
+  },
+  {
+   "id": "a177",
+   "thread": "trips",
+   "title": "Packing list for the beach",
+   "body": "Sunscreen, hat, book, towel."
+  },
+  {
+   "id": "a178",
+   "thread": "trips",
+   "title": "Ask Marta about Comporta",
+   "body": ""
+  },
+  {
+   "id": "a179",
+   "thread": "trips",
+   "title": "Santos Populares in June",
+   "body": "Sardines and street parties on the 12th and 13th."
+  },
+  {
+   "id": "a180",
+   "thread": "trips",
+   "title": "Tavira for a quiet weekend",
+   "body": ""
+  },
+  {
+   "id": "a181",
+   "thread": "trips",
+   "title": "Check the Sintra to Cascais bus",
+   "body": ""
+  },
+  {
+   "id": "a182",
+   "thread": "misc",
+   "title": "Mum's birthday 2 June",
+   "body": "Call her and send flowers. Toronto is five hours behind."
+  },
+  {
+   "id": "a183",
+   "thread": "misc",
+   "title": "Buy mum a birthday present",
+   "body": "Maybe the blue ceramic from Vista Alegre."
+  },
+  {
+   "id": "a184",
+   "thread": "misc",
+   "title": "Call mum on Sunday",
+   "body": ""
+  },
+  {
+   "id": "a185",
+   "thread": "misc",
+   "title": "Dentist Thursday 3pm",
+   "body": ""
+  },
+  {
+   "id": "a186",
+   "thread": "misc",
+   "title": "Gym membership",
+   "body": ""
+  },
+  {
+   "id": "a187",
+   "thread": "misc",
+   "title": "Book flight to Toronto for Christmas",
+   "body": "Look at TAP and Air Canada, leave 20 December."
+  },
+  {
+   "id": "a188",
+   "thread": "misc",
+   "title": "Gift for Sofia's wedding",
+   "body": ""
+  },
+  {
+   "id": "a189",
+   "thread": "misc",
+   "title": "Return the library books",
+   "body": ""
+  },
+  {
+   "id": "a190",
+   "thread": "misc",
+   "title": "Phone screen cracked",
+   "body": "Maybe fix it at the shop in Rossio."
+  },
+  {
+   "id": "a191",
+   "thread": "misc",
+   "title": "Inês birthday 14 March",
+   "body": ""
+  },
+  {
+   "id": "a192",
+   "thread": "misc",
+   "title": "Slow living podcast",
+   "body": "https://slowliving.example/episode-12"
+  },
+  {
+   "id": "a193",
+   "thread": "misc",
+   "title": "Doctor check up",
+   "body": ""
+  },
+  {
+   "id": "a194",
+   "thread": "misc",
+   "title": "Buy a second hand bike",
+   "body": "Around 200 euros. The hills in Graça are brutal."
+  },
+  {
+   "id": "a195",
+   "thread": "misc",
+   "title": "Yoga trial class Saturday",
+   "body": ""
+  },
+  {
+   "id": "a196",
+   "thread": "misc",
+   "title": "Haircut",
+   "body": ""
+  },
+  {
+   "id": "a197",
+   "thread": "misc",
+   "title": "Sunscreen",
+   "body": ""
+  },
+  {
+   "id": "a198",
+   "thread": "misc",
+   "title": "Call the Toronto bank",
+   "body": ""
+  },
+  {
+   "id": "a199",
+   "thread": "misc",
+   "title": "Update LinkedIn",
+   "body": ""
+  },
+  {
+   "id": "a200",
+   "thread": "misc",
+   "title": "Back up the laptop",
+   "body": ""
+  },
+  {
+   "id": "a201",
+   "thread": "misc",
+   "title": "Mum's address for the card",
+   "body": ""
+  },
+  {
+   "id": "a202",
+   "thread": "misc",
+   "title": "Thank you card for Dona Fernanda",
+   "body": "She watered the plants while I was in Porto."
+  },
+  {
+   "id": "a203",
+   "thread": "misc",
+   "title": "Mum's birthday card",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "an01",
+   "thread": "flat",
+   "text": "Rent is due on the 1st of each month, paid to the landlord Senhor Costa by bank transfer."
+  },
+  {
+   "id": "an02",
+   "thread": "flat",
+   "text": "The flat is 3E, third floor, no lift, in Graça."
+  },
+  {
+   "id": "an03",
+   "thread": "flat",
+   "text": "Deposit was two months of rent, 1900 euros."
+  },
+  {
+   "id": "an04",
+   "thread": "flat",
+   "text": "Utilities: EDP for electricity, NOS for internet, water through the condominium."
+  },
+  {
+   "id": "an05",
+   "thread": "clients",
+   "text": "Day rate is 300 euros. Take a 50% deposit before work starts."
+  },
+  {
+   "id": "an06",
+   "thread": "clients",
+   "text": "Current clients: Casa Azul, Studio Maré, Café Beira, Quinta do Vale, Doce Lisboa, Fábrica Norte, Livraria Sol."
+  },
+  {
+   "id": "an07",
+   "thread": "clients",
+   "text": "Invoices are net 30. Chase anything past 45 days."
+  },
+  {
+   "id": "an08",
+   "thread": "pt",
+   "text": "Classes are Tuesday and Thursday evenings at Língua Viva, level A2."
+  },
+  {
+   "id": "an09",
+   "thread": "pt",
+   "text": "Tutor Rita on Saturday mornings for conversation."
+  },
+  {
+   "id": "an10",
+   "thread": "pt",
+   "text": "Goal is B1 by next summer."
+  },
+  {
+   "id": "an11",
+   "thread": "insp",
+   "text": "Likes warm, tactile, slightly imperfect work: grain, hand lettering, tiles."
+  },
+  {
+   "id": "an12",
+   "thread": "insp",
+   "text": "Save links to posters, type specimens and exhibitions here."
+  },
+  {
+   "id": "an13",
+   "thread": "papers",
+   "text": "The AIMA residence permit expires on 15 March 2027, so start renewing in December."
+  },
+  {
+   "id": "an14",
+   "thread": "papers",
+   "text": "The NIF is needed for nearly everything. Keep a scan in the cloud."
+  },
+  {
+   "id": "an15",
+   "thread": "papers",
+   "text": "Accountant is Dra. Luísa Pinto. Quarterly IVA is due on 15 February, May, August and November."
+  },
+  {
+   "id": "an16",
+   "thread": "papers",
+   "text": "Canadian passport expires in 2027."
+  },
+  {
+   "id": "an17",
+   "thread": "groc",
+   "text": "Usual shops are Pingo Doce on Avenida de Roma and Lidl for basics."
+  },
+  {
+   "id": "an18",
+   "thread": "groc",
+   "text": "Saturday morning at the Feira de Alvalade for vegetables."
+  },
+  {
+   "id": "an19",
+   "thread": "groc",
+   "text": "Mostly vegetarian on weekdays. Oat milk, not cow's milk."
+  },
+  {
+   "id": "an20",
+   "thread": "trips",
+   "text": "Prefers trains to driving, no car."
+  },
+  {
+   "id": "an21",
+   "thread": "trips",
+   "text": "Budget is around 300 euros for a weekend away."
+  },
+  {
+   "id": "an22",
+   "thread": "trips",
+   "text": "Wants to see Porto, the Azores and the Alentejo this year."
+  },
+  {
+   "id": "an23",
+   "thread": "misc",
+   "text": "Mum lives in Toronto, five hours behind Lisbon."
+  },
+  {
+   "id": "an24",
+   "thread": "misc",
+   "text": "Anything with no thread yet lands here."
+  },
+  {
+   "id": "an25",
+   "thread": "misc",
+   "text": "Friend Inês lives in Porto, birthday 14 March."
+  }
+ ],
+ "memories": [
+  {
+   "id": "am01",
+   "text": "They live in Lisbon."
+  },
+  {
+   "id": "am02",
+   "text": "They moved from Toronto to Lisbon."
+  },
+  {
+   "id": "am03",
+   "text": "They are a freelance designer."
+  },
+  {
+   "id": "am04",
+   "text": "Their mum's birthday is 2 June."
+  },
+  {
+   "id": "am05",
+   "text": "They pay rent on the 1st to their landlord Senhor Costa."
+  },
+  {
+   "id": "am06",
+   "text": "Their landlord is Senhor Costa."
+  },
+  {
+   "id": "am07",
+   "text": "They are learning Portuguese, at level A2."
+  },
+  {
+   "id": "am08",
+   "text": "They eat mostly vegetarian on weekdays."
+  },
+  {
+   "id": "am09",
+   "text": "They hold a Canadian passport."
+  },
+  {
+   "id": "am10",
+   "text": "They do not own a car."
+  },
+  {
+   "id": "am11",
+   "text": "They drink oat milk."
+  },
+  {
+   "id": "am12",
+   "text": "They prefer to travel by train."
+  },
+  {
+   "id": "am13",
+   "text": "Their friend Inês lives in Porto."
+  },
+  {
+   "id": "am14",
+   "text": "Their clients include Casa Azul and Studio Maré."
+  },
+  {
+   "id": "am15",
+   "text": "They invoice through recibos verdes."
+  },
+  {
+   "id": "am16",
+   "text": "They design in Figma."
+  },
+  {
+   "id": "am17",
+   "text": "They live in the Graça neighbourhood."
+  },
+  {
+   "id": "am18",
+   "text": "Their time zone is Europe/Lisbon."
+  },
+  {
+   "id": "am19",
+   "text": "They are allergic to shellfish."
+  },
+  {
+   "id": "am20",
+   "text": "Their mum lives in Toronto."
+  }
+ ],
+ "queries": [
+  {
+   "q": "rent",
+   "relevant": [
+    "a001",
+    "a002",
+    "a003",
+    "a018",
+    "a030",
+    "an01",
+    "an03",
+    "am05"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "invoice",
+   "relevant": [
+    "a031",
+    "a032",
+    "a033",
+    "a058",
+    "a114",
+    "an07",
+    "am15"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "passport",
+   "relevant": [
+    "a115",
+    "a126",
+    "a127",
+    "an16",
+    "am09"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "coffee",
+   "relevant": [
+    "a134",
+    "a152",
+    "a157"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Sintra",
+   "relevant": [
+    "a161",
+    "a162",
+    "a181"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "AIMA",
+   "relevant": [
+    "a108",
+    "a109",
+    "a120",
+    "an13"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "mum",
+   "relevant": [
+    "a182",
+    "a183",
+    "a184",
+    "a149",
+    "a150",
+    "a201",
+    "a203",
+    "an23",
+    "am04",
+    "am20"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Porto",
+   "relevant": [
+    "a158",
+    "a159",
+    "a160",
+    "an22",
+    "an25",
+    "am13"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when is mum's birthday",
+   "relevant": [
+    "a182",
+    "a183",
+    "a203",
+    "am04"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is the rent",
+   "relevant": [
+    "a002",
+    "a018"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when is my residence permit appointment",
+   "relevant": [
+    "a109",
+    "a108",
+    "an13"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what time is the Portuguese class",
+   "relevant": [
+    "a059",
+    "an08",
+    "a075"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "invoices that are overdue",
+   "relevant": [
+    "a033",
+    "an07",
+    "a058"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "do I have a train to Porto booked",
+   "relevant": [
+    "a159",
+    "a158"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "which clients do I have",
+   "relevant": [
+    "an06",
+    "am14"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how long to soak bacalhau",
+   "relevant": [
+    "a138"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "where do I take the recycling",
+   "relevant": [
+    "a019"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "customers who haven't paid me yet",
+   "relevant": [
+    "a033",
+    "a058",
+    "an07"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "how do I call the landlord",
+   "relevant": [
+    "a004",
+    "am06",
+    "am05",
+    "an01"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "humidade nas paredes do quarto",
+   "relevant": [
+    "a006",
+    "a007",
+    "a008"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "keep the house warm in the cold months",
+   "relevant": [
+    "a026"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "someone to talk with every week",
+   "relevant": [
+    "a074",
+    "an09"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "plane tickets back to Canada for the festive season",
+   "relevant": [
+    "a187"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "alergia a marisco",
+   "relevant": [
+    "am19"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "which city is my mother in",
+   "relevant": [
+    "am20",
+    "an23",
+    "a182"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "learn to draw fancy letters",
+   "relevant": [
+    "a107"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "wine business branding",
+   "relevant": [
+    "a034",
+    "a035",
+    "a046",
+    "a085",
+    "a053"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "sales tax deadline",
+   "relevant": [
+    "a113",
+    "an15"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "getting registered with a GP",
+   "relevant": [
+    "a119"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "school fee to pay",
+   "relevant": [
+    "a076"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "pastry I can bake",
+   "relevant": [
+    "a148"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "where to stay in the northern city",
+   "relevant": [
+    "a160"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weather in Tokyo tomorrow",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how tall is the Eiffel Tower",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how many ounces in a cup",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "what time is it in Sydney",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "speed of light in km per second",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "Barcelona weekend",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "coworking space membership",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "pet adoption",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "sourdough starter",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "student loan payments",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "asdfgh jkl",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "zzzzqq",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "qwpoeiru",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "bnm,. vcx",
+   "relevant": [],
+   "kind": "nonsense"
+  }
+ ]
+}

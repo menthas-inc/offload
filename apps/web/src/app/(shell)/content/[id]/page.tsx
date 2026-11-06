@@ -57,7 +57,7 @@ export default function ContentRoute({ params }: { params: Promise<{ id: string 
   return (
     <Panes
       crumbs={[
-        { label: "My threads", href: "/threads", icon: "message-circle" },
+        { label: "Threads", href: "/threads", icon: "message-circle" },
         loose
           ? { label: "Not in a thread", href: "/threads/loose" }
           : {

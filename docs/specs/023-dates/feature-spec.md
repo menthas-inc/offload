@@ -198,7 +198,7 @@ Every criterion above has a test named in `impl-spec.md`, the suites are green o
 - **Notifications, digests, push tokens, Activity and the Today agenda**, which are 024.
 - **A When sheet on notes.** Notes keep model-written dates; the migration still rewrites their rule so the rail keeps drawing them.
 - **A pill that opens the sheet**, from the reply or from filing; the turn footer's contract has no row ref, and it waits for a pass of its own.
-- **Editing one occurrence of a rule**, ticking one occurrence, or editing a Google series from the sheet. 019's scope rule stands for what is said.
+- **Editing one occurrence of a rule**, or editing a Google series from the sheet. 019's scope rule stands for what is said.
 - **Asking to be reminded.** `is_reminder` is set by the model alone; Remind me only clears it.
 - **Duration on a task**, relatives above the grid, a fortnight rail, a Due sheet: the design's rejected shapes stay rejected.
 - **Inferring the zone** from a calendar or an IP, and recording where a device has been.
@@ -213,7 +213,7 @@ Every criterion above has a test named in `impl-spec.md`, the suites are green o
 - **No travel signal.** `last_seen_time_zone` is not built; the strip is computed on the device from its own zone, and the header stays on the three routes the privacy page names.
 - **A rule anchors on the type's column.** The database rule `repeats needs occurs_at` becomes `rrule needs the When column`, so a monthly rent task is a repeating task rather than an event.
 - **The grammar is closed and the server is canonical.** A parser, a test suite and a screen for editing it were the cost 0036 refused; the design accepted the cost, and closing the grammar to what the screen can draw is what keeps the parser small. The stored string is always the server's own serialisation.
-- **A repeating row has no per-occurrence state.** Never late, never overdue, Done for good, drawn once in a list.
+- **A repeating row has no per-occurrence state.** Never late, never overdue, drawn once in a list. A tick moves a repeating task to its next date (amended 2026-11-06, below).
 - **Monthly's fifth weekday reads as last.** A rule that says fifth Friday skips months that have four; last is what a person picking the 29th means.
 - **The chip trails the title and names the start only.** Spans and cadences keep their existing lines; the web widget row's own date line goes.
 - **A calendar-backed row has no When and takes no rule.** The tool layer already refuses the date; the rule follows.
@@ -255,3 +255,11 @@ Every criterion above has a test named in `impl-spec.md`, the suites are green o
 ## Amended 2026-10-07
 
 **Repeats says Never on a row with no date.** The web's select had no presets to read off a missing day and drew empty, and the phones' row drew nothing beside Repeats; both read as broken. The select now holds Never, disabled until a day is picked, and the phones' row says Never as `repeatsLabel` already did for every other caller.
+
+## Amended 2026-11-06, the owner
+
+**A tick on a repeating task is this time done, not the series.** "Done for good" meant a monthly bill ticked once never came round again: it left Today, the calendar and every reminder with nothing said. A tick now moves the row to the first date after both its own date and today, so one ticked early takes this month's and not next month's, and the row stays open. Still one row with no per-occurrence state: the anchor is what moves. A rule with a count loses what was passed, a monthly rule on the 29th to 31st is pinned to that day the first time a short month would move it, and the last date of a rule that ends is done for good. Undo puts the date and the rule back, unless a date was set since. Events are not ticked this way: a calendar's own series is Google's. `apps/core-api/src/threads/tick.ts`.
+
+**A day with no clock time is a day.** "By tomorrow", "next Wednesday" and "on the 5th of each month" file a bare day, which already means up to the end of that day wherever the person is: the prompt's own example moment was being copied onto rows, and a monthly bill went in at 5am.
+
+**The turn reads where the person is.** "The zone that renders is the zone that reads" stands for rendering. A dump's today and clock are now the zone its device sent, then the account's clock, then UTC, for a dump and an answer alike, so "tomorrow" on a trip is the trip's tomorrow. This reverses AC-5's order. The account's clock still renders everything, and Use and Keep are unchanged.
