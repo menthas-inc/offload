@@ -14,6 +14,7 @@ dependencies = [
   "pillow-heif>=0.20",
   "pikepdf>=9",
   "pypdfium2>=4.30",
+  "tzdata>=2026.6",
 ]
 
 [dependency-groups]

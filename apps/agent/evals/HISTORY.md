@@ -218,6 +218,26 @@ and is not committed.
 | 2026-11-02 15:24 | 23 | 1 | 20/23 (87%) | $0.03 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
 | 2026-11-02 15:25 | 27 | 1 | 7/8 (88%) | $0.01 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
 | 2026-11-02 15:26 | 50 | 3 | 15/15 (100%) | $0.04 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 final prompt, three-run majority |
+| 2026-11-06 14:07 | 04 | 1 | 18/20 (90%) | $0.03 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 limited: by a day, passed plans, memory over note |
+| 2026-11-06 14:07 | 21 | 1 | 17/18 (94%) | $0.09 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 limited: by a day, passed plans, memory over note |
+| 2026-11-06 14:07 | 28 | 1 | 15/15 (100%) | $0.11 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 limited: by a day, passed plans, memory over note |
+| 2026-11-06 14:07 | 29 | 1 | 19/19 (100%) | $0.02 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 limited: by a day, passed plans, memory over note |
+| 2026-11-06 14:07 | no-memory-shown-the-note-stands | 5 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 rerun of a failure |
+| 2026-11-06 14:08 | before-friday | 5 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 rerun of a failure |
+| 2026-11-06 14:08 | jun-afternoon-in-toronto-is-evening-in-utc | 5 | 0/1 (0%) | $0.05 | `claude-haiku-5-5` | `b5cb9965` | `a8ba1865` | PR 164 rerun of a failure |
+| 2026-11-06 14:09 | before-friday | 5 | 0/1 (0%) | $0.01 | `claude-haiku-5-5` | `d6de9719` | `a8ba1865` | PR 164 baseline, main's prompt |
+| 2026-11-06 14:09 | jun-afternoon-in-toronto-is-evening-in-utc | 5 | 0/1 (0%) | $0.05 | `claude-haiku-5-5` | `d6de9719` | `a8ba1865` | PR 164 baseline, main's prompt |
+| 2026-11-06 14:09 | no-memory-shown-the-note-stands | 5 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 after the no memory line |
+| 2026-11-06 14:10 | 21 | 1 | 17/18 (94%) | $0.10 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 after the no memory line |
+| 2026-11-06 14:10 | 28 | 1 | 14/15 (93%) | $0.11 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 after the no memory line |
+| 2026-11-06 14:11 | no-memory-shown-the-note-stands | 5 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 listing says no note gives way |
+| 2026-11-06 14:11 | 21 | 1 | 18/18 (100%) | $0.10 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 listing says no note gives way |
+| 2026-11-06 14:11 | 28 | 1 | 15/15 (100%) | $0.10 | `claude-haiku-5-5` | `543696e4` | `a8ba1865` | PR 164 listing says no note gives way |
+| 2026-11-06 14:11 | no-memory-shown-the-note-stands | 5 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
+| 2026-11-06 14:11 | no-memory-shown-the-note-stands | 5 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
+| 2026-11-06 14:11 | 21 | 1 | 18/18 (100%) | $0.11 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
+| 2026-11-06 14:12 | 28 | 1 | 14/15 (93%) | $0.11 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
+| 2026-11-06 14:12 | 29 | 1 | 19/19 (100%) | $0.02 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
 
 ## Full runs by principle
 
