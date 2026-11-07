@@ -17,7 +17,7 @@ import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import { seal } from "../src/connectors/vault.js";
 import { sourceRefFor } from "../src/connectors/events.js";
-import { syncConnection } from "../src/connectors/sync.js";
+import { readAround, syncConnection } from "../src/connectors/sync.js";
 import { ensureThreadWrap, mintObjectKey } from "../src/blobs/keys.js";
 import { promote } from "../src/admin/promote.js";
 import { wipe } from "./labels-kit.js";
@@ -181,6 +181,28 @@ async function rowOf(id: string) {
     .executeTakeFirstOrThrow();
 }
 
+describe("reading Google around one moment, before a write is decided", () => {
+  it("brings a new event into the copy and leaves the sync token for the quarter-hour pass", async () => {
+    const ids = await setup();
+    google([item("invite", "Design review", 2)]);
+    await readAround(ids.accountId, at(2));
+    const copy = await db.selectFrom("connector_events").select("title").where("source_ref", "=", ref("invite")).executeTakeFirstOrThrow();
+    expect(copy.title).toBe("Design review");
+    const calendar = await db.selectFrom("connector_calendars").select("sync_token").where("id", "=", ids.calendarId).executeTakeFirstOrThrow();
+    expect(calendar.sync_token).toBe("tok-1");
+  });
+
+  it("leaves an event a row remembers to the pass that follows the row", async () => {
+    const ids = await setup();
+    await copy(ids, "dentist", "Dentist", 2);
+    await filed(ids.accountId, ids.trip, "dentist", "Dentist", 2);
+    google([item("dentist", "Dentist, moved", 2)]);
+    await readAround(ids.accountId, at(2));
+    const held = await db.selectFrom("connector_events").select("title").where("source_ref", "=", ref("dentist")).executeTakeFirstOrThrow();
+    expect(held.title).toBe("Dentist");
+  });
+});
+
 describe("an event deleted in Google", () => {
   it("takes the row filed as it on the quarter-hour pass, and leaves another account's row alone", async () => {
     const ids = await setup();
@@ -210,6 +232,10 @@ describe("an event deleted in Google", () => {
     const kept = await rowOf(mine);
     expect(kept.deleted_at).toBeNull();
     expect(kept.source_ref).toBeNull();
+    // Off the day it was on, as a row carrying a photo goes: nothing is happening then.
+    const dated = await db.selectFrom("content").select(["occurs_at", "occurs_end_at", "attrs"]).where("id", "=", mine).executeTakeFirstOrThrow();
+    expect([dated.occurs_at, dated.occurs_end_at]).toEqual([null, null]);
+    expect(dated.attrs).not.toHaveProperty("calendar_found");
 
     // It says so, and the row is still there to open.
     const told = await db.selectFrom("activity").select(["title", "kind", "sent", "thread_id", "content_id"]).where("account_id", "=", ids.accountId).execute();

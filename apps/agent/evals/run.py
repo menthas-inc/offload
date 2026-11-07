@@ -774,6 +774,23 @@ class Recorder:
                 if row_at != event_at:
                     return {"ok": False, "error": "different_time"}
                 return {"ok": True, "alreadyOn": True}
+            # `eventInTheEmail`: theirs, at the row's moment, every word of its
+            # title in the email, and a title that says which.
+            mail = fx.get("mail")
+            if mail:
+                zone = fx.get("time_zone", TIME_ZONE)
+                parts = (mail.get(k) or "" for k in ("subject", "note", "forwarded"))
+                said = _words(" ".join(parts))
+                row_at = _moment(self.content_at.get(content_id, ""), zone)
+                for event in fx.get("events") or []:
+                    event_at = _moment(event.get("startsAt", ""), zone)
+                    if event.get("allDay") and row_at and event_at:
+                        row_at, event_at = row_at.date(), event_at.date()
+                    title = _words(str(event.get("title") or ""))
+                    says_which = sum(len(word) >= 4 for word in title) >= 2
+                    same = event.get("yours", True) and row_at == event_at
+                    if same and says_which and title <= said:
+                        return {"ok": True, "alreadyOn": True}
             because = fx.get("calendar_waits")
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}
@@ -1427,10 +1444,12 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
         if "date_any" in matcher and not any(when.startswith(d) for d in matcher["date_any"]):
             return False
         # The moment, not the spelling: a model may write it in UTC or their zone.
-        if "end" in matcher:
-            zone = fx.get("time_zone", TIME_ZONE)
-            if _moment(str(args.get("occurs_end_at") or ""), zone) != _moment(matcher["end"], zone):
-                return False
+        zone = fx.get("time_zone", TIME_ZONE)
+        ends = str(args.get("occurs_end_at") or "")
+        if "end" in matcher and _moment(ends, zone) != _moment(matcher["end"], zone):
+            return False
+        if "at" in matcher and _moment(when, zone) != _moment(matcher["at"], zone):
+            return False
         if "priority_min" in matcher and (args.get("priority") or 50) < matcher["priority_min"]:
             return False
         if matcher.get("no_date") and when:
@@ -1737,6 +1756,9 @@ What the person sent:
 What offload did and said:
 {transcript}
 
+A time written with no offset, such as 2026-09-15T15:00, is the person's own
+clock in their zone: read it as written and never convert it.
+
 The rubric:
 {rubric}"""
 
@@ -1865,6 +1887,10 @@ async def _run_look(client: AsyncAnthropic, case: Case, model: str) -> Result:
         failures.append(f"kept {sorted(kept)}, wanted {want}")
     cost = _cost(model, 600 * len(pictures), 60)
     return Result(case, "", transcript, failures, True, transcript, cost=cost)
+
+
+def _words(text: str) -> set[str]:
+    return set(re.findall(r"\w+", unicodedata.normalize("NFKC", text).lower()))
 
 
 def _moment(value: str, zone: str | None) -> datetime | None:

@@ -8,7 +8,8 @@
     "answer.md: the calendar lines",
     "harness/tools.py: create_event takes content_id; edit_content takes a time; scope is one or following",
     "harness/tools.py: create_event takes calendar, their words for which calendar: a name, 'my calendar', or who it is shared with",
-    "019 amended 2026-11-06: an email about something already on their calendar"
+    "019 amended 2026-11-06: an email about something already on their calendar",
+    "plan_v2.md amended 2026-11-07: a clock time is written as their clock shows it"
   ],
   "cases": [
     {
@@ -1250,6 +1251,59 @@
           }
         ],
         "filed_count": 1
+      }
+    },
+    {
+      "id": "a-typed-time-is-their-clock",
+      "why": "3pm is 3pm where they are, in any month: on the old prompt it went up an hour out",
+      "surface": "file",
+      "input": "dentist tuesday 3pm",
+      "context": "calendar",
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "at": "2026-09-15T15:00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-typed-time-after-the-clocks-change",
+      "why": "the offset today is not the offset in November, and no arithmetic means no mistake",
+      "surface": "file",
+      "input": "dentist on 10 november at 3pm",
+      "context": "calendar",
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "at": "2026-11-10T15:00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "an-email-in-another-zone-keeps-its-moment",
+      "why": "the one case for an offset: 5pm Eastern is 10pm in Lisbon, and writing 17:00 would be five hours out",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Intro call @ Mon 14 Sep 2026 5pm - 5:20pm (EDT)",
+        "from_name": "Zoe Siegel",
+        "from_address": "zoe@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Zoe Siegel <zoe@northwind.test>\nSubject: Intro call @ Mon 14 Sep 2026 5pm - 5:20pm (EDT)\n\nIntro call\nWhen: Monday 14 September 2026, 5pm to 5:20pm Eastern Time (EDT)\n"
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "at": "2026-09-14T22:00",
+            "end": "2026-09-14T22:20"
+          }
+        ]
       }
     }
   ]
