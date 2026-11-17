@@ -116,6 +116,64 @@ export async function calendarOfEvent(accountId: string, sourceRef: string): Pro
   return row?.id ?? null;
 }
 
+/** An event of the person's own, as `yours` means it. */
+const THEIRS = sql<boolean>`(e.created_by_me is true or e.invited_me is true or (e.created_by_me is null and e.invited_me is null))`;
+
+/** An all-day event is a date: Google's is midnight UTC, a row's is noon. */
+function sameMoment(event: { occurs_at: Date | null; all_day: boolean }, at: Date | null): boolean {
+  const moment = (when: Date | null | undefined) => (event.all_day ? when?.toISOString().slice(0, 10) : when?.getTime());
+  return moment(event.occurs_at) === moment(at);
+}
+
+const wordsOf = (text: string): string[] => text.normalize("NFKC").toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+
+/** The event a forwarded email is about, when it is already on their calendar:
+ *  theirs, at the row's moment, every word of its title in what the turn read.
+ *
+ *  In code because the model matching it is not enough, as the first real
+ *  invitation showed. A stranger writes the email and, through the model, can
+ *  reach the row's time, so the title has to say which: two words of four
+ *  letters or more, or the model's reading decides. `readAround` has already
+ *  brought the copy up to date, outside the transaction. */
+export async function eventInTheEmail(
+  accountId: string,
+  row: { occurs_at: Date | null },
+  messageId: string,
+  trx: Executor,
+): Promise<string | null> {
+  if (!row.occurs_at) return null;
+  const message = await trx
+    .selectFrom("messages")
+    .select(["text", "attrs"])
+    .where("id", "=", messageId)
+    .where("account_id", "=", accountId)
+    .executeTakeFirst();
+  const mail = (message?.attrs as { mail?: { subject?: string; historyAt?: number | null } } | null)?.mail;
+  // The reply history below the forwarded message is not in the turn's copy.
+  const body = (message?.text ?? "").slice(0, mail?.historyAt ?? undefined);
+  const said = new Set(wordsOf(`${mail?.subject ?? ""} ${body}`));
+  const day = 86_400_000;
+  const near = await trx
+    .selectFrom("connector_events as e")
+    .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select(["e.source_ref", "e.title", "e.occurs_at", "e.all_day"])
+    .where("e.occurs_at", ">=", new Date(row.occurs_at.getTime() - day))
+    .where("e.occurs_at", "<=", new Date(row.occurs_at.getTime() + day))
+    .where("e.deleted_at", "is", null)
+    .where("c.selected", "=", true)
+    .where("n.account_id", "=", accountId)
+    .where("n.state", "=", "active")
+    .where("n.deleted_at", "is", null)
+    .where(THEIRS)
+    .execute();
+  const named = near.find((event) => {
+    const title = wordsOf(event.title);
+    return title.filter((word) => word.length >= 4).length >= 2 && sameMoment(event, row.occurs_at) && title.every((word) => said.has(word));
+  });
+  return named?.source_ref ?? null;
+}
+
 /** A row that turns out to be an event already on their calendar: an invitation
  *  that got there before the email reached offload. The row remembers it, so it
  *  is drawn once and follows the event, and `calendar_found` says offload did
@@ -143,12 +201,10 @@ export async function rememberEvent(
     .where("c.selected", "=", true)
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
-    .where(sql<boolean>`(e.created_by_me is true or e.invited_me is true or (e.created_by_me is null and e.invited_me is null))`)
+    .where(THEIRS)
     .executeTakeFirst();
   if (!found) return "unknown_event";
-  // An all-day event is a date: Google's is midnight UTC, a row's is noon.
-  const moment = (at: Date | null | undefined) => (found.all_day ? at?.toISOString().slice(0, 10) : at?.getTime());
-  if (moment(found.occurs_at) !== moment(row.occurs_at)) return "different_time";
+  if (!sameMoment(found, row.occurs_at)) return "different_time";
   await trx
     .updateTable("content")
     .set({

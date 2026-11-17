@@ -261,6 +261,23 @@ and is not committed.
 | 2026-11-06 14:11 | 21 | 1 | 18/18 (100%) | $0.11 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
 | 2026-11-06 14:12 | 28 | 1 | 14/15 (93%) | $0.11 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
 | 2026-11-06 14:12 | 29 | 1 | 19/19 (100%) | $0.02 | `claude-haiku-5-5` | `5c6f6af1` | `a8ba1865` | PR 164 learn rule scoped to additions |
+| 2026-11-06 17:08 | a-typed-time-is-their-clock | 3 | 1/1 (100%) | $0.01 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:08 | a-typed-time-after-the-clocks-change | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:08 | an-email-in-another-zone-keeps-its-moment | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:08 | ask-first-write-waits-as-waiting | 3 | 0/1 (0%) | $0.03 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | no-time-refusal-fixes-the-same-row | 3 | 0/1 (0%) | $0.03 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | asked-for-a-calendar-with-none-connected-says-once | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | earlier-rows-go-on-the-calendar-by-id | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | a-typed-appointment-does-not-look-first | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | forwarded-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | forwarded-all-day-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:09 | forwarded-invite-not-on-the-calendar-goes-on | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:10 | join-link-rides-a-row-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:10 | zoom-invite-offers-join | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:10 | google-meet-invite-offers-join | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:10 | screen | 1 | 69/74 (93%) | $0.22 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | local clock times and the mail rule |
+| 2026-11-06 17:11 | ask-first-write-waits-as-waiting | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | judge reads a local time as written |
+| 2026-11-06 17:11 | no-time-refusal-fixes-the-same-row | 3 | 1/1 (100%) | $0.03 | `claude-haiku-5-5` | `a16246b5` | `a15eed69` | judge reads a local time as written |
 
 ## Full runs by principle
 

@@ -2032,3 +2032,18 @@ async def test_anything_more_than_a_day_still_goes_to_the_judge():
         assert len(calls) == 1, text
     _, calls = await _judge_bare("the 10th", today=None)
     assert len(calls) == 1
+
+
+def test_a_clock_time_is_written_as_their_clock_shows_it():
+    # 2026-11-06. "3pm" in Lisbon went up as 15:00Z, an hour out, because the
+    # prompt had the model convert to UTC. The Core API reads a time with no
+    # offset in their zone, so the arithmetic was never the model's to do.
+    from offload_agent.harness.plan import filing_prompt
+    from offload_agent.harness.tools import SCHEMAS
+
+    prompt = filing_prompt(True)
+    assert "2026-09-28T09:00`" in prompt
+    assert "T09:00:00Z" not in prompt and "14:00:00Z" not in prompt
+    assert SCHEMAS["add_content"].model_validate(
+        {"thread_id": "t", "title": "x", "type": "event", "occurs_at": "2026-09-28T15:00"}
+    ).occurs_at == "2026-09-28T15:00"
