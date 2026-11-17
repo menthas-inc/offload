@@ -327,3 +327,30 @@ None new. React, React Native, Kysely, zod, and the existing `@offload/widgets`.
 - The working record is kept *only as long as the feature needs it*, which is until the next dump.
 - Calendar writes still confirm whenever they would notify people.
 - Nothing new reaches a model.
+
+## As built, API (2026-11-17)
+
+Where the build moved from the sections above. The code is the reference.
+
+- **The turn's result time.**
+  - `messages.settled_at` (0101) is stamped on the person's message when the turn's result arrives, whatever the outcome.
+  - The undo route decides `late` from `coalesce(settled_at, created_at)` by server time, and the wire carries `resultAt` from it.
+  - 0101 also recreates `readable_messages`, whose `select messages.*` would otherwise hide the two new columns (`predicate.test.ts`).
+- **New threads are found by their record.** A thread records nothing about the turn that made it, so `create_thread` writes a `turn_changes` row with `tool = 'create_thread'` and an empty `previous`, and `repliesFor` reads new threads from it.
+- **The changed-since guard on calendar rows.** Taking an event off a calendar touches its row after `since`. So `undoCalendarWrites` now returns the rows it unlinked, and `undoTurn` removes those regardless of `since`. Without this, a late Undo left the row behind.
+- **The late Undo's confirm.** `POST /v1/turns/:turnId/undo` answers `{ undone: false, confirm: <outward line> }` without doing anything when a late Undo would remove an event others can see. The person's yes is the same call with `?confirmed=1`. It is a query rather than a body, so clients from before post what they always posted. No pending-write record is made: the confirm is the Undo itself, asked again.
+- **The wire field is `parts`, not `reply`.** The stream's step and the single-message read already use `reply` for the sentence. `parts` rides:
+  - the tail, on the person's message;
+  - `GET /v1/messages/:id`;
+  - the stream's `done` event.
+- **Rows by id.** `search/found.ts` now has `rowsByIds(ids, viewer)`, which reads `readable_content` as the viewer. `foundFor` uses it, and so do slices. One row shape serves answers and replies.
+- **The neighbours** are the two most recently filed rows that are open now and were created before the turn, not the two nearest in the thread's order. That is one lateral query for the page, and simpler to state.
+- **The summary has an eighth kind, `changed`**, for a turn whose only writes were archives, renames, preferences or a mix. It needs words in `reply.ts`; see the shared tasks.
+- **Remind me** does what the row sheet's switch does:
+  - it switches on 042's label (`setReminders`);
+  - it sets `is_reminder`, so the row counts as asked for and a clock time is honoured;
+  - its undo clears both.
+- **The calendar pill's undo window.** It is `attrs.pill_calendar_at`, accepted within ten seconds (eight, plus the round trip) and refused after (409).
+- **The calendar pill's confirm.** It answers `{ confirm, pendingId }`, and the client uses the existing pending-write confirm.
+- **`readDay`** takes `{ past: true }`, and `GET /v1/today/day` takes `past=1`, for a reply showing a day up to a year back. `agendaQuery` now selects the row's location and place, so Today's rows carry them too.
+- **`shown`** is validated at the internal boundary as one real date, or a span of at most 62 days in order. It is written on offload's reply and cleared on a re-answer that shows nothing.

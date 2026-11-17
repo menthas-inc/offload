@@ -8,13 +8,13 @@
 
 ## T0 Setup and logs
 
-- [ ] **T0.1** Migration `0101_turn_changes.sql`:
+- [x] **T0.1** Migration `0101_turn_changes.sql`:
   - the table and index in the impl-spec;
   - `messages.shown`;
   - `"turn_changes.account_id": cascade` in `accounts/ledger.ts`.
 
   Test: the ledger test reads the new delete rule. A migration test inserts and cascades. *(AC-27, OFF-3)*
-- [ ] **T0.2** `docs/tech/decisions.md`:
+- [x] **T0.2** `docs/tech/decisions.md`:
   - Amend the OFF-6 allowlist entry: the late Undo reverses the filing and keeps the dump, a shared-calendar removal past eight seconds confirms, and the calendar pill is 019's conditional entry for one row. Close the ⚠️ item of 2026-10-02, since the turn's Undo now restores previous values for the six tools.
   - Add an entry for `turn_changes` retention.
 
@@ -32,19 +32,19 @@
 
 ## API
 
-- [ ] **T1.1** `turn_changes` written by `edit_content`, `move_content`, `complete_content`, `archive_content`, `rename_thread` and `set_thread_preference` in `routes/tools.ts`, first value wins.
+- [x] **T1.1** `turn_changes` written by `edit_content`, `move_content`, `complete_content`, `archive_content`, `rename_thread` and `set_thread_preference` in `routes/tools.ts`, first value wins.
   - Tests: each tool leaves one row with its previous value. A second write to the same field keeps the first, and a second tool's field is merged in (edit then tick keeps both). A calendar-derived row stores offload's columns and `source_ref` only.
 
   *(AC-9, AC-27, OFF-4)*
-- [ ] **T1.2** Retire on the next dump: inserting a dump nulls `previous` on the account's rows older than eight seconds, through `turn_changes_live_idx`, and leaves the ids.
+- [x] **T1.2** Retire on the next dump: inserting a dump nulls `previous` on the account's rows older than eight seconds, through `turn_changes_live_idx`, and leaves the ids.
   - Tests: two dumps a minute apart leave the first turn's `previous` null with its ids kept. Two dumps three seconds apart leave the first turn's Undo still restoring.
 
   *(AC-17, AC-27)*
-- [ ] **T1.3** `undoTurn` restores `turn_changes.previous` within its transaction.
+- [x] **T1.3** `undoTurn` restores `turn_changes.previous` within its transaction.
   - Test: a turn that ticked two rows and moved an event, undone within eight seconds, unticks both and moves the event back, on Google too, through the calendar undo path.
 
   *(AC-9, AC-17, OFF-6)*
-- [ ] **T1.4** The late Undo in `POST /v1/turns/:turnId/undo`:
+- [x] **T1.4** The late Undo in `POST /v1/turns/:turnId/undo`:
   - `late` is decided by server time against the turn's result.
   - A late Undo calls `undoTurn` with `keepMessageId` and `since`, and restores `previous` only where the row's `updated_at` is before `since`.
   - It returns `changed` (not `stayed`, which stays the memories').
@@ -57,7 +57,7 @@
   - a removal within eight seconds does not confirm.
 
   *(AC-17, AC-18, AC-19, OFF-1, OFF-3, OFF-6)*
-- [ ] **T1.5** `repliesFor(viewer, turns)` and `reply` on both conversation reads, schema-extended. Tests:
+- [x] **T1.5** `repliesFor(viewer, turns)` and `reply` on both conversation reads, schema-extended. Tests:
   - four groceries give one list slice with the neighbours rule;
   - a mixed dump gives a calendar slice and a list slice, in the order written;
   - four threads give three slices and `also`;
@@ -71,7 +71,7 @@
   - a zero open count is reported as 0 for the client to hide.
 
   *(AC-2, AC-3, AC-4, AC-7, AC-8, AC-10, AC-11, AC-24, SEC-2)*
-- [ ] **T1.6** Pills in `repliesFor`. Tests, one per row of the table:
+- [x] **T1.6** Pills in `repliesFor`. Tests, one per row of the table:
   - exactly-one rules;
   - order;
   - the cap of two;
@@ -83,11 +83,11 @@
   - no calendar pill with two writable calendars.
 
   *(AC-12, AC-14, AC-15, SEC-1)*
-- [ ] **T1.11** Widen `readDay`: `place` on `todayEvent` and `calendar { name, color }` on content rows.
+- [x] **T1.11** Widen `readDay`: `place` on `todayEvent` and `calendar { name, color }` on content rows.
   - Tests: an event with a resolved place returns it; a row on a calendar returns its name and colour; Today's existing day tests still pass.
 
   *(AC-5)*
-- [ ] **T1.7** `POST /v1/turns/:turnId/pills`. Tests:
+- [x] **T1.7** `POST /v1/turns/:turnId/pills`. Tests:
   - **calendar** writes one event to the named calendar and leaves the thread's picks unchanged;
   - it confirms when `outwardTest` says so;
   - `undo` within eight seconds deletes the event Google-first by `source_ref`, and after that is 409;
@@ -97,15 +97,15 @@
   - a caller who left the thread is 409.
 
   *(AC-13, AC-15, AC-16, OFF-6, SEC-2)*
-- [ ] **T1.8** `shown` on `POST /internal/v1/turn-result`: bounded to one date or a span of at most 62 days, and stored on the offload message.
+- [x] **T1.8** `shown` on `POST /internal/v1/turn-result`: bounded to one date or a span of at most 62 days, and stored on the offload message.
   - Tests: an over-long span is refused; a valid one round-trips to `reply`.
 
   *(AC-11, OFF-5)*
-- [ ] **T1.9** Egress: the new route and `repliesFor` log ids, kinds, counts and outcomes only.
+- [x] **T1.9** Egress: the new route and `repliesFor` log ids, kinds, counts and outcomes only.
   - Test: the log lines of a pill tap carry no title, name or domain.
 
   *(AC-28, OFF-1)*
-- [ ] **T1.10** Export (035) includes `turn_changes`.
+- [x] **T1.10** Export (035) includes `turn_changes`.
   - Test: the export of an account with a pending change carries it.
 
   *(AC-27)*
@@ -126,7 +126,7 @@
 
 ## Shared
 
-- [ ] **T3.1** `packages/widgets/src/reply.ts`: `summaryWords`, `pillLabel` (with the 24-character cap and the calendar name cut at a word), `alsoLine`, `sourceLine`, `changedLine` and `periodLabel`.
+- [x] **T3.1** `packages/widgets/src/reply.ts`: `summaryWords`, `pillLabel` (with the 24-character cap and the calendar name cut at a word), `alsoLine`, `sourceLine`, `changedLine` and `periodLabel`.
   - Table tests fed turn records, with no model.
   - A copy check finds no dash and no banned noun.
 

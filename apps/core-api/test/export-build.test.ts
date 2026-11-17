@@ -651,3 +651,22 @@ describe("how the copy is kept", () => {
     expect(await openCopy(w.ana.id)).toBeNull();
   });
 });
+
+describe("052 AC-27 what a turn changed", () => {
+  it("goes in the copy, on the message that changed it", async () => {
+    const me = await person("Ana Duarte");
+    const [dumpId] = await said(me, [["person", "got the milk"]]);
+    const t = await thread("Groceries", me);
+    const milk = await row(me.id, t, "Milk");
+    await sql`
+      insert into turn_changes (message_id, account_id, target_kind, target_id, tool, previous)
+      values (${dumpId!}::uuid, ${me.id}::uuid, 'content', ${milk}::uuid, 'complete_content', '{"done_at": null}'::jsonb)`.execute(db);
+    await buildCopy(await asked(me));
+    const files = await unzip(me.id);
+    const data = JSON.parse(files.get("data.json")!.toString()) as {
+      conversations: { messages: { from: string; changed?: { target: string; tool: string; previous: unknown }[] }[] }[];
+    };
+    const mine = data.conversations[0]!.messages.find((m) => m.from === "you")!;
+    expect(mine.changed).toEqual([{ target: milk, tool: "complete_content", previous: { done_at: null } }]);
+  });
+});

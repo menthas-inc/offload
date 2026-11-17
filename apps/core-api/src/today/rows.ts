@@ -11,6 +11,9 @@ import { shownThreadHue, shownThreadIcon } from "../threads/icons.js";
 import { contentRow, toRow, withPhotos, type RawRow } from "../routes/threads.js";
 
 export const agendaRow = contentRow.extend({
+  /** 052. The calendar a row is on, by its own name and Google's colour, when
+   *  it is one of this account's: a reply's details name it. */
+  calendar: z.object({ name: z.string(), colour: z.string().nullable() }).nullable().optional(),
   threadId: z.string(),
   threadName: z.string().nullable(),
   /** 037. Null with the name, for a row in the default thread. */
@@ -27,6 +30,8 @@ export function agendaQuery(accountId: string) {
     .selectFrom("readable_content as content")
     .innerJoin("threads", "threads.id", "content.thread_id")
     .leftJoin("accounts", "accounts.id", "content.account_id")
+    // 052. Where an event is, for a reply's details and their Directions.
+    .leftJoin("places", "places.id", "content.place_id")
     .select([
       "content.id as id",
       "content.type as type",
@@ -61,10 +66,10 @@ export function agendaQuery(accountId: string) {
           and am.account_id = content.account_id
           and am.state = 'accepted'
       )`.as("authorIsMember"),
-      sql<string | null>`null`.as("location"),
-      sql<number | null>`null`.as("placeLat"),
-      sql<number | null>`null`.as("placeLng"),
-      sql<boolean | null>`null`.as("placeApproximate"),
+      "content.location as location",
+      "places.lat as placeLat",
+      "places.lng as placeLng",
+      "places.approximate as placeApproximate",
     ])
     .where("content.viewer_account_id", "=", accountId)
     .where("content.deleted_at", "is", null)

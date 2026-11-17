@@ -18,6 +18,7 @@ import { authRoutes } from "./routes/auth.js";
 import { sessionRoutes } from "./routes/session.js";
 import { adminRoutes } from "./routes/admin.js";
 import { dumpRoutes } from "./routes/dumps.js";
+import { pillRoutes } from "./routes/pills.js";
 import { internalRoutes } from "./routes/internal.js";
 import { toolRoutes } from "./routes/tools.js";
 import { connectorRoutes } from "./routes/connectors.js";
@@ -185,6 +186,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(waitlistRoutes);
   await app.register(adminRoutes);
   await app.register(dumpRoutes);
+  await app.register(pillRoutes);
   await app.register(internalRoutes);
   await app.register(toolRoutes);
   await app.register(threadRoutes);

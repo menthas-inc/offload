@@ -661,9 +661,27 @@ export interface MessagesTable {
    *  so the turn that reads the message reads "today" and "3pm" in it. Null
    *  is read as UTC. Per message until the account carries one. */
   time_zone: string | null;
+  /** 052. What an answer showed beside its words, a day or a span, so its reply
+   *  draws a calendar. Offload's answering message only. */
+  shown: { on: string } | { span: { from: string; to: string } } | null;
+  /** 052. When the turn's result arrived, on the person's message. */
+  settled_at: Timestamp | null;
   created_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
+}
+
+/** 052. What a turn changed, so its reply shows it and its Undo puts it back.
+ *  `previous` is offload's own columns from before the turn, nulled when a
+ *  later dump retires the turn's Undo. */
+export interface TurnChangesTable {
+  message_id: string;
+  account_id: string;
+  target_kind: "content" | "note" | "thread";
+  target_id: string;
+  tool: string;
+  previous: Record<string, unknown> | null;
+  created_at: Generated<Timestamp>;
 }
 
 /** Where a turn got something from, for the chip under it.
@@ -1445,6 +1463,7 @@ export interface Database {
   pending_revocations: PendingRevocationsTable;
   jobs: JobsTable;
   turn_sources: TurnSourcesTable;
+  turn_changes: TurnChangesTable;
   lookups: LookupsTable;
   domain_reads: DomainReadsTable;
   analytics_events: AnalyticsEventsTable;

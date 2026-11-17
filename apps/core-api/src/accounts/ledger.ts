@@ -40,6 +40,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "messages.account_id": cascade,
   "message_chunks.account_id": cascade,
   "turn_sources.account_id": cascade,
+  "turn_changes.account_id": cascade,
   "questions.account_id": cascade,
   "people_lookups.account_id": cascade,
   "jobs.account_id": cascade,

@@ -2382,3 +2382,96 @@ describe("038 security review: Undo on an answer takes its memory back", () => {
     expect(await active()).toEqual([{ calendar_id: mine }]);
   });
 });
+
+describe("052 AC-19 a late Undo confirms taking an event off a calendar others see", () => {
+  async function written(participants: number) {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me), { summary: "Family", participants });
+    await pick(t, id, me);
+    const d = await dump(me, t);
+    const contentId = await row(me, t, "Dinner with Meera", d.messageId);
+    await tool({ tool: "create_event", jobId: d.jobId, toolCallId: "w1", contentId });
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+    google.deleteEvent.mockClear();
+    google.countParticipants.mockResolvedValue(participants);
+    return { me, contentId, ...d };
+  }
+  const late = async (messageId: string) => {
+    await sql`update messages set settled_at = now() - interval '1 minute' where id = ${messageId}::uuid`.execute(db);
+    await sql`update content set updated_at = now() - interval '2 minutes' where derived_from_message_id = ${messageId}::uuid`.execute(db);
+  };
+  const undo = async (me: string, turnId: string, confirmed = false) =>
+    app.inject({ method: "POST", url: `/v1/turns/${turnId}/undo${confirmed ? "?confirmed=1" : ""}`, headers: { cookie: await signIn(me) } });
+
+  afterAll(() => {
+    google.countParticipants.mockResolvedValue(1);
+  });
+
+  it("asks first, and removes nothing until the person agrees", async () => {
+    const w = await written(2);
+    await late(w.messageId);
+    const asked = await undo(w.me, w.turnId);
+    expect(asked.json()).toMatchObject({ undone: false, confirm: expect.any(String) });
+    expect(google.deleteEvent).not.toHaveBeenCalled();
+
+    const agreed = await undo(w.me, w.turnId, true);
+    expect(agreed.json()).toMatchObject({ undone: true });
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+    const row = await db.selectFrom("content").select(["deleted_at", "source_ref"]).where("id", "=", w.contentId).executeTakeFirstOrThrow();
+    expect(row.source_ref).toBeNull();
+    expect(row.deleted_at).not.toBeNull();
+  });
+
+  it("does not ask for a calendar only they see", async () => {
+    const w = await written(1);
+    await late(w.messageId);
+    expect((await undo(w.me, w.turnId)).json()).toMatchObject({ undone: true });
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask inside the first eight seconds, as 2026-10-28 has it", async () => {
+    const w = await written(2);
+    await sql`update messages set settled_at = now() where id = ${w.messageId}::uuid`.execute(db);
+    expect((await undo(w.me, w.turnId)).json()).toMatchObject({ undone: true });
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("052 AC-13 Add to {calendar} from a reply", () => {
+  it("writes the one row to that calendar, leaves the thread's picks alone, and its undo takes it off", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const cal = await calendar(await connection(me), { summary: "Personal" });
+    const d = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", d.messageId);
+    const cookie = await signIn(me);
+    const tap = (payload: Record<string, unknown>) => app.inject({ method: "POST", url: `/v1/turns/${d.turnId}/pills`, headers: { cookie }, payload });
+
+    expect((await tap({ kind: "calendar" })).json()).toEqual({ ok: true });
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+    const after = await db.selectFrom("content").select("source_ref").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(after.source_ref).toMatch(/:evt-/);
+    const picks = await db.selectFrom("thread_calendars").select("calendar_id").where("thread_id", "=", t).execute();
+    expect(picks.map((p) => p.calendar_id)).not.toContain(cal);
+
+    google.deleteEvent.mockClear();
+    expect((await tap({ kind: "calendar", undo: true })).json()).toEqual({ ok: true });
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+    const undone = await db.selectFrom("content").select(["source_ref", "deleted_at"]).where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(undone).toEqual({ source_ref: null, deleted_at: null });
+  });
+
+  it("refuses an undo past its eight seconds", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await calendar(await connection(me), { summary: "Personal" });
+    const d = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", d.messageId);
+    const cookie = await signIn(me);
+    const tap = (payload: Record<string, unknown>) => app.inject({ method: "POST", url: `/v1/turns/${d.turnId}/pills`, headers: { cookie }, payload });
+    await tap({ kind: "calendar" });
+    await sql`update content set attrs = attrs || jsonb_build_object('pill_calendar_at', (now() - interval '1 minute')::text) where id = ${contentId}::uuid`.execute(db);
+    expect((await tap({ kind: "calendar", undo: true })).statusCode).toBe(409);
+  });
+});
