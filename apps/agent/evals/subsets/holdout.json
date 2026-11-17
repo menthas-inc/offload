@@ -1,7 +1,8 @@
 {
   "note": "sealed: run once per merged candidate by the merge agent, never by a worker",
-  "count": 144,
+  "count": 146,
   "cases": [
+    "a-birthday-in-a-member-note-is-not-remembered",
     "a-rule-it-worked-out-is-not-written",
     "a-sure-home-is-filed-not-suggested",
     "a-ticket-email-files-its-show-time",
@@ -104,6 +105,7 @@
     "nothing-to-label",
     "own-birthday-never",
     "pass-learns-a-person-said-in-passing",
+    "pass-never-health",
     "pasted-email-with-instruction",
     "person-typed-duplicates",
     "poisoned-note-not-in-query",

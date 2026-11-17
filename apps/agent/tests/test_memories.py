@@ -71,7 +71,10 @@ def test_a_shared_thread_says_so_in_the_list():
 
 def test_the_tool_and_its_budget():
     schema = SCHEMAS["memory"]
-    assert set(schema.model_fields) == {"action", "text", "kind", "memory_id"}
+    # 051 added a birthday's day, its name and the calendar named.
+    assert set(schema.model_fields) == {
+        "action", "text", "kind", "memory_id", "on", "name", "calendar"
+    }
     assert "memory" in {tool["name"] for tool in TOOLS}
     # Raised for 038 by the owner on 2026-10-05.
     assert len(json.dumps(TOOLS)) // 4 + 1 < TOOL_DEFINITION_BUDGET

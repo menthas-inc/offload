@@ -180,7 +180,7 @@ export function memoryOrigin(memory: MemoryView, now: Date = new Date()): { glyp
   }
   if (source.type === "message") {
     const said = threadClause(source.thread, (n) => ` Said in ${n}.`, " Not in a thread.", "");
-    return { glyph: "text-quote", lead: "You asked offload to remember this", rest: `${on}.${said}` };
+    return { glyph: "text-quote", lead: "You told offload this", rest: `${on}.${said}` };
   }
   return { glyph: "text-quote", lead: "You added this", rest: `${on}.` };
 }

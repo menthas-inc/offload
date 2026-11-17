@@ -218,7 +218,7 @@ describe("the editor", () => {
   it("keeps the pane open with the reason when a change is refused", async () => {
     await mount();
     await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
-    expect(text()).toContain("You asked offload to remember this");
+    expect(text()).toContain("You told offload this");
     expect(text()).toContain("Said in Lisbon trip.");
     writeAnswer = { status: 200, body: { ok: false, error: "duplicate" } };
     await type(field(), "They call their mother Maman.");

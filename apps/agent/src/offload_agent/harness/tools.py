@@ -454,6 +454,12 @@ class Memory(BaseModel):
     kind: Literal["people", "things", "about", "rules", "patterns"] | None = None
     # A forget names the memory by the id it was shown with.
     memory_id: str | None = Field(default=None, max_length=40)
+    # 051. A birthday or an anniversary: its day as MM-DD, the few words of
+    # the sentence that name whose it is, and their words for a calendar
+    # ("any" when they asked for one without naming it).
+    on: str | None = Field(default=None, pattern=r"^\d{2}-\d{2}$")
+    name: str | None = Field(default=None, max_length=60)
+    calendar: str | None = Field(default=None, max_length=120)
 
 
 SCHEMAS: dict[str, type[BaseModel]] = {
@@ -568,13 +574,13 @@ _DESCRIPTIONS = {
         "with the short version in text."
     ),
     "memory": (
-        "Only when they explicitly ask you to remember or forget something "
-        "about them in general, not about one thread: 'remember that', 'from "
-        "now on, everywhere', 'forget that'. Remember: one sentence in the third "
-        "person from their own words, with its kind: people (who, how related, "
-        "birthdays), things (their accounts, places, belongings), about "
-        "(durable facts, what a name they use means), rules (always, never, "
-        "from now on), patterns. Forget: the memory's id. Never on your own initiative."
+        "When they explicitly ask you to remember or forget something about "
+        "them in general, and for every birthday or anniversary they state, "
+        "asked or not. Remember: one sentence in the third person from their "
+        "own words, with its kind: people (who, how related, birthdays), things, "
+        "about (durable facts, their own birthday), rules, patterns. A birthday "
+        "or anniversary adds on (MM-DD), name and any calendar they named. "
+        "Forget: the memory's id."
     ),
 }
 

@@ -11,6 +11,19 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-17 · A birthday's calendar question, and who a memory came from (051)
+**Surface:** iOS, Android, web (the conversation's question chips; the Memories tab's origin line)
+**Raised by:** the product owner, spec 051.
+**Why:** Kristina's birthday sat in loose as a yearly row and would have reminded twice; birthdays are memories, on a calendar, never rows.
+
+**Was:** a calendar question always read *Filed "<row>". Which calendar?*, about a row. A memory the person said read *You asked offload to remember this* in its origin line.
+
+**Is:** a birthday whose named calendar settles on none asks *Remembered "<name>". Which calendar?*, the same chips and `Not that`, and a tap draws Done with no thread pill. The origin line for any memory from the person's own message reads *You told offload this*, because a birthday is now kept without being asked.
+
+**Considered and not taken:** a calendar mark on a memory in the tab, and a different forget toast for a memory with an event; the calendar shows the event, and the forget's Undo covers both.
+
+**Design system impact:** the Memories kits' origin line for a stated memory becomes *You told offload this*; the conversation kit's calendar question gains the *Remembered "…"* wording beside *Filed "…"*. No new token or component.
+
 ### 2026-11-17 · Thread tiles lead with the name, and the glyph is large
 **Surface:** iOS, Android, web; the Threads grid's tile
 **Raised by:** the product owner: on Threads it is hard to tell which tile is which; the title and icon should be much larger. Off four options drawn in the session (A scaled up, B glyph as the picture, C name first, D the back glyph made legible); C was picked, then asked for larger still, holding up under a long line and more people.
