@@ -282,3 +282,18 @@ describe("the routes", () => {
     expect((await app.inject({ method: "GET", url: "/v1/today/reminders/dismiss", headers: { cookie } })).statusCode).toBe(404);
   });
 });
+
+describe("051 a memory on a calendar", () => {
+  it("is not drawn on its day, since Your day draws the event; earlier windows still are", async () => {
+    const me = await account();
+    const meera = await memory(me, "Meera's birthday is 2 November.");
+    await labelled(me, { noteId: meera }, { kind: "occasion", lead: "days", yearly_on: "11-02", name: "Meera's birthday" });
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).toContain(meera);
+    await db.updateTable("notes").set({ event_ref: "cal:evt" }).where("id", "=", meera).execute();
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).not.toContain(meera);
+    const week = await memory(me, "Ana's birthday is 6 November.");
+    await labelled(me, { noteId: week }, { kind: "occasion", lead: "days", yearly_on: "11-06", name: "Ana's birthday" });
+    await db.updateTable("notes").set({ event_ref: "cal:evt2" }).where("id", "=", week).execute();
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).toContain(week);
+  });
+});

@@ -166,8 +166,9 @@ export default function Privacy() {
           <h3 className={styles.h3}>What comes from an app you connect</h3>
           <p>
             If you connect an app, such as a calendar, offload reads what you choose to give it,
-            keeps what its features need, and writes to it when you ask. Section 7 says more about
-            Google.
+            keeps what its features need, and adds events for things you put in, such as
+            appointments and birthdays. It changes or deletes them when you ask or when you forget
+            the memory they came from. Section 7 says more about Google.
           </p>
 
           <h3 className={styles.h3}>What we collect because software has to run</h3>
@@ -283,8 +284,9 @@ export default function Privacy() {
             If you connect a Google account, offload accesses your calendar list, the events in the
             calendars you choose, and who your calendars are shared with. It uses them to show your
             calendar in offload, to file and answer from it, to mention your events in the
-            notifications you choose, and to add, change or delete events when you ask, and it asks
-            you first before a change that would notify other people. We keep only what those
+            notifications you choose, and to add events for things you put in, such as appointments
+            and birthdays. It changes or deletes them when you ask or when you forget the memory they
+            came from, and it asks you first before a change that would notify other people. We keep only what those
             features need, delete it when you disconnect or delete your account, and ask Google to
             revoke our access when you delete your account. What offload already wrote in your
             threads from your calendar stays until you delete it.

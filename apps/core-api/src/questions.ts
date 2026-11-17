@@ -84,6 +84,10 @@ export type QuestionOnWire = z.infer<typeof questionOnWire>;
 
 /** One template per field, with the row's own title as the only slot. The
  *  thread is not named: the pill under the turn already says where. */
+/** 051. The calendar question's dimension when it is about a memory. Not a
+ *  word anybody can say: a person's name is clipped to 16 characters. */
+const MEMORY = "\u0000memory";
+
 export function renderText(field: Field, title: string, dimension?: string): string {
   const name = clip(title, 40);
   switch (field) {
@@ -97,6 +101,8 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return "For which country?";
     case "calendar": {
       if (!dimension) return `Filed "${name}". Which calendar?`;
+      // 051. About a memory, not a row.
+      if (dimension === MEMORY) return `Remembered "${name}". Which calendar?`;
       // 038. Named by who it is shared with: their word, then as much of the
       // row's title as the bound leaves, so Today's card still says which row.
       const who = clip(dimension, 16);
@@ -576,7 +582,9 @@ export async function raiseCalendarQuestion(
   input: {
     accountId: string;
     messageId: string;
-    contentId: string;
+    /** The row going on the calendar, or, for 051, the memory (`noteId`). */
+    contentId?: string;
+    noteId?: string;
     title: string;
     calendars: Array<{ id: string; name: string; owned: boolean }>;
     /** What the tap does beyond writing. `pick`: the thread had no calendar,
@@ -610,6 +618,37 @@ export async function raiseCalendarQuestion(
   if (options.length === 0) return false;
   options.push({ label: ESCAPE_LABEL, value: null });
 
+  // 051. A memory's question stands alone: it never joins a row's, and with
+  // one already open in the conversation (one at a time) it is not raised.
+  if (input.noteId) {
+    const open = await trx
+      .selectFrom("questions")
+      .select("id")
+      .where("conversation_id", "=", message.conversation_id)
+      .where("state", "in", ["open", "pending"])
+      .executeTakeFirst();
+    if (open) return false;
+    await storeQuestions(
+      trx,
+      [{ field: "calendar", text: renderText("calendar", input.title, MEMORY), options, targetContentId: null, targetNoteId: input.noteId }],
+      {
+        accountId: input.accountId,
+        conversationId: message.conversation_id,
+        messageId: input.messageId,
+        turnId: message.turn_id,
+        derivedFromUntrusted: input.sawApps || input.calendars.some((calendar) => !calendar.owned),
+      },
+    );
+    await trx
+      .updateTable("questions")
+      .set({ previous_value: JSON.stringify({ named: true }) })
+      .where("turn_id", "=", message.turn_id)
+      .where("field", "=", "calendar")
+      .where("target_note_id", "=", input.noteId)
+      .execute();
+    return true;
+  }
+
   // 2026-10-13. A turn that files eight classes calls `create_event` eight
   // times, and every raise took the same ordinal, so the second to eighth
   // were dropped on conflict and the tap wrote one event. A later raise in
@@ -631,8 +670,9 @@ export async function raiseCalendarQuestion(
       (held.person ?? null) === (input.person ?? null);
     const offered = (values: StoredOption[]) => values.map((o) => o.value).filter((v): v is string => v !== null).sort().join(",");
     if (!sameAnswer || offered(open.options as StoredOption[]) !== offered(options)) return false;
-    if (open.target_content_id === input.contentId) return true;
-    const also = [...(held.also ?? []).filter((id) => id !== input.contentId), input.contentId];
+    if (open.target_content_id === input.contentId || !input.contentId) return true;
+    const contentId = input.contentId;
+    const also = [...(held.also ?? []).filter((id) => id !== contentId), contentId];
     const first = open.target_content_id
       ? await trx.selectFrom("content").select("title").where("id", "=", open.target_content_id).executeTakeFirst()
       : undefined;
@@ -650,7 +690,7 @@ export async function raiseCalendarQuestion(
   const text = renderText("calendar", input.title, input.person ?? undefined);
   await storeQuestions(
     trx,
-    [{ field: "calendar", text, options, targetContentId: input.contentId, targetNoteId: null }],
+    [{ field: "calendar", text, options, targetContentId: input.contentId ?? null, targetNoteId: null }],
     {
       accountId: input.accountId,
       conversationId: message.conversation_id,

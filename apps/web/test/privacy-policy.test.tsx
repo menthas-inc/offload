@@ -95,6 +95,13 @@ describe("the privacy policy states intent, not implementation", () => {
     expect(policy).toContain("offload still asks a site you link to for the picture it shows beside the link");
   });
 
+  it("says offload adds events for what is put in, birthdays included, and changes them when asked (051, owner 2026-11-17)", () => {
+    expect(policy).toContain("adds events for things you put in, such as appointments and birthdays");
+    expect(policy).toContain("changes or deletes them when you ask or when you forget the memory they came from");
+    expect(policy).not.toContain("add, change or delete events when you ask");
+    expect(policy).not.toContain("writes to it when you ask");
+  });
+
   it("says what stays when a calendar is disconnected (Limited Use review)", () => {
     expect(policy).toContain("What offload already wrote in your threads from your calendar stays until you delete it.");
   });
@@ -163,8 +170,8 @@ describe("the privacy policy states intent, not implementation", () => {
 
   it("leaves no owner marker, no dated promise of a future feature, and no dash", () => {
     expect(policy).not.toMatch(/\[OWNER|We plan to encrypt|A person reads it/);
-    expect(policy).not.toMatch(/[–—]/);
-    expect(companies).not.toMatch(/[–—]|\[OWNER/);
+    expect(policy).not.toMatch(/[\u2013\u2014]/);
+    expect(companies).not.toMatch(/[\u2013\u2014]|\[OWNER/);
   });
 
   it("is shorter than the page it replaced", () => {

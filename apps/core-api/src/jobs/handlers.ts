@@ -12,6 +12,7 @@ import { sql, type ExpressionBuilder, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
+import { memoryEvent } from "../memories/calendar.js";
 import { locateCalendar, refreshPlace, resolvePlace } from "../places/resolve.js";
 import { agePlaces } from "../places/age.js";
 import { backfillMaps } from "../places/backfill.js";
@@ -1253,6 +1254,7 @@ export const handlers: Record<string, Handler> = {
   "maps.backfill": mapsBackfill,
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
+  "memory.event": (payload) => memoryEvent(payload as { noteId?: unknown; accountId?: unknown; action?: unknown; on?: unknown }),
   "blob.daily": blobDaily,
   "people.daily": peopleDaily,
   "analytics.ship": analyticsShip,

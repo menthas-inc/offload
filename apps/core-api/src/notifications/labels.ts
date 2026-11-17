@@ -10,6 +10,7 @@
 // the daily run, the worker and this file cannot drift apart.
 
 import { sql } from "kysely";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Executor } from "../threads/access.js";
 import type { RemindKind, RemindLead } from "../schema.js";
 
@@ -134,7 +135,7 @@ async function write(trx: Executor, accountId: string, entry: LabelEntry, before
 }
 
 /** A memory about the person themselves that names their birthday. */
-const OWN_BIRTHDAY = /\b(their|my)\s+(own\s+)?birthday\b/i;
+export const OWN_BIRTHDAY = /\b(their|my)\s+(own\s+)?birthday\b/i;
 
 /** Memories a memory pass is shown to date, at most this many a night. */
 export const MEMORIES_SHOWN = 20;
@@ -183,11 +184,30 @@ export async function applyMemoryDates(
       fingerprint: sql<string>`(select note_fingerprint(n) from notes n where n.id = ${entry.id}::uuid)`,
       labelled_at: sql<Date>`now()`,
     };
+    // 051. A memory on a calendar follows its new day there: moved, or
+    // deleted when its words no longer hold one. Read before the label moves.
+    // shortcut: an edit in the tab moves the event at the next nightly pass,
+    // not at the edit; read the day in `changeMemory` if the lag is noticed.
+    const was = await trx
+      .selectFrom("notes as n")
+      .leftJoin("reminder_labels as l", "l.note_id", "n.id")
+      .select(["n.event_ref", "l.yearly_on"])
+      .where("n.id", "=", entry.id)
+      .executeTakeFirst();
     await trx
       .insertInto("reminder_labels")
       .values({ account_id: input.accountId, note_id: entry.id, date_set_at: sql<Date>`(select created_at from notes where id = ${entry.id}::uuid)`, ...values } as never)
       .onConflict((oc) => oc.column("note_id").where("note_id", "is not", null).doUpdateSet(values as never))
       .execute();
+    if (was?.event_ref && was.yearly_on !== on) {
+      await enqueue({
+        kind: "memory.event",
+        accountId: input.accountId,
+        payload: { noteId: entry.id, accountId: input.accountId, action: on ? "move" : "undate", on },
+        priority: PRIORITY.background,
+        tx: trx,
+      });
+    }
     dated += 1;
   }
   return { dated, ignored };

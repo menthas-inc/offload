@@ -964,7 +964,20 @@ async def plan(
             if ctx.looking_at is not None and ctx.looking_at_notes is not None
             else None
         ),
+        members_on_screen=bool(ctx.looking_at_notes and ctx.looking_at_notes.members),
     )
+
+
+def _carries_members(body: object) -> bool:
+    """051. A tool result with another member's words in it: their notes on a
+    thread, or a row of theirs from a read."""
+    if not isinstance(body, dict):
+        return False
+    if body.get("notesFromMembers"):
+        return True
+    result = body.get("result")
+    rows = result.get("rows", []) if isinstance(result, dict) else body.get("rows", [])
+    return any(isinstance(row, dict) and row.get("yours") is False for row in rows or [])
 
 
 def _cache_so_far(messages: list[dict]) -> list[dict]:
@@ -1001,6 +1014,7 @@ async def _run(
     answering: bool = False,
     asks_to_find_out: bool = False,
     about_the_world: bool = False,
+    members_on_screen: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
@@ -1031,6 +1045,9 @@ async def _run(
     # 038. Whether this turn has read the web, which the Core API needs to
     # refuse a memory and cannot see for itself: the reader runs here.
     read_web = False
+    # 051. And whether it has read another member's words: their notes on
+    # screen, or a result carrying their notes or their rows.
+    read_members = members_on_screen
 
     # The same on every call of the turn: effort is part of what the cache
     # matches, so changing it mid-turn would re-pay the prefix.
@@ -1274,8 +1291,10 @@ async def _run(
             sent = args.model_dump()
             if block.name == "memory":
                 # 038. Set here, never by the model: the turn has read the web,
-                # so the Core API refuses the memory.
-                sent = {**sent, "after_lookup": read_web}
+                # so the Core API refuses the memory. 051: likewise another
+                # member's words, which a birthday nobody asked to remember
+                # could otherwise have been taken from.
+                sent = {**sent, "after_lookup": read_web, "after_members": read_members}
             body = await call_tool(block.name, block.id, sent)
             if (
                 notes_carried is not None
@@ -1287,6 +1306,8 @@ async def _run(
                 body = {k: v for k, v in body.items() if k not in _NOTE_KEYS}
             if block.name == "look_up":
                 read_web = True
+            if _carries_members(body):
+                read_members = True
 
             # A read that returned rows. Collected here rather than parsed out
             # of the reply: 005 settled that the links come from the ids and

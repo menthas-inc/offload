@@ -58,7 +58,7 @@ describe("a memory's day and meta", () => {
 describe("where a memory came from, in the editor", () => {
   it("names the thread only when there is one to name", () => {
     const named = { type: "message" as const, thread: { id: "t", name: "Lisbon trip", notInAThread: false } };
-    expect(memoryOrigin(memory({ source: named }), NOW)).toEqual({ glyph: "text-quote", lead: "You asked offload to remember this", rest: " on 3 Oct. Said in Lisbon trip." });
+    expect(memoryOrigin(memory({ source: named }), NOW)).toEqual({ glyph: "text-quote", lead: "You told offload this", rest: " on 3 Oct. Said in Lisbon trip." });
     expect(memoryOrigin(memory({ source: { type: "message", thread: { id: "t", name: null, notInAThread: true } } }), NOW).rest).toBe(" on 3 Oct. Not in a thread.");
     expect(memoryOrigin(memory({ source: { type: "message", thread: null } }), NOW).rest).toBe(" on 3 Oct.");
     expect(memoryOrigin(memory({ origin: "learned", createdAt: at(1), source: { type: "note", thread: { id: "t", name: "Groceries", notInAThread: false } } }), NOW)).toEqual({

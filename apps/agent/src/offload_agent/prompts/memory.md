@@ -14,6 +14,7 @@ One sentence about the person that is true across their threads and will still b
 ## Never a memory
 
 - Something that happens once: a plan, a task, an appointment, a trip. That is already a row. A date is a memory only when it recurs, like a birthday.
+- A birthday or an anniversary a memory already holds, in other words: one fact, one memory. A message that states one already held adds nothing.
 - Anything about one thread. That is a note.
 - A guess: feelings, personality, motives, anything worked out rather than said or done.
 - Health, religion, political views, sexuality or gender identity, ethnicity, criminal record, money and debts. Never, whatever is said.

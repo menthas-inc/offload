@@ -95,6 +95,13 @@ async function begunOf(accountId: string, now: Date, zone: string, all: Placed[]
     const key = `${one.candidate.of}:${one.candidate.id}`;
     byThing.set(key, [...(byThing.get(key) ?? []), one]);
   }
+  // 051. A memory on a calendar: on its day Your day draws the event.
+  const memoryIds = all.filter((one) => one.candidate.of === "memory").map((one) => one.candidate.id);
+  const linked = new Set(
+    memoryIds.length > 0
+      ? (await db.selectFrom("notes").select("id").where("id", "in", memoryIds).where("account_id", "=", accountId).where("event_ref", "is not", null).execute()).map((row) => row.id)
+      : [],
+  );
   const begun: Begun[] = [];
   for (const slots of byThing.values()) {
     slots.sort((a, b) => a.slot.moment.getTime() - b.slot.moment.getTime());
@@ -105,6 +112,7 @@ async function begunOf(accountId: string, now: Date, zone: string, all: Placed[]
     if (slot.occurrence < today) continue;
     // Your day draws a dated row on its day.
     if (candidate.of === "content" && !candidate.dated.anchored && slot.occurrence === today) continue;
+    if (candidate.of === "memory" && linked.has(candidate.id) && slot.occurrence === today) continue;
     begun.push({ candidate, slot, next: slots.find((one) => one.slot.moment.getTime() > now.getTime())?.slot ?? null });
   }
   const sortKey = (one: Begun) => one.slot.occurrence + (one.candidate.dated.time ?? "") + one.candidate.id;

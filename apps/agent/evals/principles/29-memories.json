@@ -1,12 +1,14 @@
 {
-  "statement": "offload remembers something about a person across their threads only when they ask, or overnight from what they said themselves, and never a plan, a guess, the sensitive list unless asked, or anybody else's words. It uses what it remembers to file well, keeps their own words in a shared thread, and says in one short line what it remembered or forgot.",
+  "statement": "offload remembers something about a person across their threads only when they ask, or overnight from what they said themselves, and a birthday or an anniversary they state whether asked or not, never as a row; never a plan, a guess, the sensitive list unless asked, or anybody else's words. It uses what it remembers to file well, keeps their own words in a shared thread, and says in one short line what it remembered or forgot.",
   "why": "A memory reaches every model call for that person, so a wrong one costs more than a missing one, and the field's research says unasked inference is where the harm is. Most days nothing is learned.",
   "sources": [
     "038 feature-spec sections 1, 2, 4 and 5",
     "plan_v2.md: What offload knows about them",
     "answer.md: What offload knows about them",
     "memory.md",
-    "harness/tools.py: memory"
+    "harness/tools.py: memory",
+    "051 feature-spec sections 1 to 4",
+    "plan_v2.md: A birthday or an anniversary is always a memory"
   ],
   "cases": [
     {
@@ -438,6 +440,272 @@
         "kinds": [
           "people"
         ]
+      }
+    },
+    {
+      "id": "a-birthday-unasked-is-a-memory",
+      "why": "051: a birthday is a fact about someone, said with or without remember, and never a row",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "Kristina's birthday is Feb 1st",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "kind": "people",
+              "on": "02-01",
+              "name": "Kristina's birthday"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content",
+          "add_note",
+          "create_event"
+        ],
+        "because": "remembered"
+      }
+    },
+    {
+      "id": "a-birthday-for-the-calendar-is-still-a-memory",
+      "why": "051: the calendar ask rides on the memory; offload puts it on, the model never files a row or calls create_event",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "Kristina's birthday is Feb 1st, save it on my personal calendar for every year",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "on": "02-01"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content",
+          "add_note",
+          "create_event"
+        ]
+      }
+    },
+    {
+      "id": "an-anniversary-is-a-memory",
+      "why": "051: an anniversary is the same kind of fact",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "our wedding anniversary is June 12",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "kind": "people",
+              "on": "06-12"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ]
+      }
+    },
+    {
+      "id": "their-own-birthday-is-about",
+      "why": "051: their own birthday is About, and reminds nobody",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "my birthday is May 3rd",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "kind": "about",
+              "on": "05-03"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ]
+      }
+    },
+    {
+      "id": "a-birthday-in-a-forwarded-email-is-not-remembered",
+      "why": "051 keeps 038: a memory never comes from somebody else's words",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "mail": {
+        "subject": "Party!",
+        "from_name": "Ana",
+        "from_address": "ana@example.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Ana <ana@example.test>\nSubject: Party!\n\nKristina's birthday is Feb 1st, we're doing drinks on the Saturday after. Come along!"
+      },
+      "expect": {
+        "calls_with_none": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-birthday-in-a-member-note-is-not-remembered",
+      "why": "051: another member's note is their words, not the person's",
+      "surface": "file",
+      "input": "buy a cake",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "notes_from_members": {
+        "00000013-0000-0000-0000-000000000000": [
+          "Kristina's birthday is Feb 1st."
+        ]
+      },
+      "expect": {
+        "not_called": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "a-monthly-bill-is-a-row",
+      "why": "051: a date that recurs but is not about a person stays a row",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "rent is due on the 5th every month",
+      "expect": {
+        "not_called": [
+          "memory"
+        ],
+        "filed_count": 1
+      }
+    },
+    {
+      "id": "a-birthday-party-is-a-row",
+      "why": "051: a one-off day about somebody is an event, not a memory",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "Kristina's party on Saturday at 8",
+      "expect": {
+        "not_called": [
+          "memory"
+        ],
+        "filed_count": 1
+      }
+    },
+    {
+      "id": "a-birthday-and-a-task",
+      "why": "051: the birthday is a memory and the task is filed as usual",
+      "surface": "file",
+      "context": "behrooz",
+      "input": "Kristina's birthday is Feb 1st, order her a gift",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "on": "02-01"
+            }
+          },
+          {
+            "tool": "add_content",
+            "args": {
+              "type": "task"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-corrected-birthday",
+      "why": "051: a new day for the same person is remembered, and offload replaces the old one",
+      "surface": "file",
+      "context": "behrooz",
+      "memories": [
+        {
+          "id": "00000099-0000-0000-0000-000000000011",
+          "kind": "people",
+          "text": "Kristina's birthday is 1 February."
+        }
+      ],
+      "input": "actually Kristina's birthday is Feb 2nd",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "on": "02-02"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ]
+      }
+    },
+    {
+      "id": "a-held-birthday-onto-the-calendar",
+      "why": "051: asking later puts a held birthday on the calendar through the memory, never a row",
+      "surface": "file",
+      "context": "behrooz",
+      "memories": [
+        {
+          "id": "00000099-0000-0000-0000-000000000012",
+          "kind": "people",
+          "text": "Kristina's birthday is 1 February."
+        }
+      ],
+      "input": "add Kristina's birthday, Feb 1st, to my calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember",
+              "on": "02-01"
+            }
+          }
+        ],
+        "not_called": [
+          "add_content",
+          "create_event"
+        ]
+      }
+    },
+    {
+      "id": "pass-a-held-birthday-adds-nothing",
+      "why": "051: the pass never writes a second memory for a birthday already held",
+      "surface": "memory",
+      "input": {
+        "memories": [
+          {
+            "id": "00000099-0000-0000-0000-000000000013",
+            "kind": "people",
+            "text": "Kristina's birthday is 1 February.",
+            "origin": "stated"
+          }
+        ],
+        "messages": [
+          {
+            "day": "2026-11-14",
+            "text": "Kristina's birthday is Feb 1st, save it on my personal calendar for every year"
+          }
+        ]
+      },
+      "expect": {
+        "no_change": true
       }
     }
   ]
