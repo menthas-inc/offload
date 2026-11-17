@@ -210,6 +210,42 @@ describe("moving by keyboard (AC-8)", () => {
   });
 });
 
+// 2026-11-17: the owner could not tell tiles apart. The name leads, large, the
+// glyph is large at the foot with the people, and the back glyph is gone.
+describe("the tile's text and glyph", () => {
+  const css = (file: string) => readFileSync(join(process.cwd(), "src/components", file), "utf8");
+  const crowd = { ...thread("t9", "Kitchen renovation with the builders", 4), meta: "9 · Tuesday · with Ana, Tom, Sam, Lea, Jo", faces: ["AN", "TO", "SA", "LE", "JO"].map((initials, i) => ({ accountId: `a${i}`, initials })) };
+
+  it("leads with the name and its line, then the people and the glyph at the foot, and no back glyph", async () => {
+    await draw({ groups: [{ key: "now", threads: [crowd] }] });
+    const tile = tiles()[0]!;
+    const [text, foot] = [...tile.children] as HTMLElement[];
+    expect(tile.children).toHaveLength(2);
+    expect(text!.textContent).toBe("Kitchen renovation with the builders9 · Tuesday · with Ana, Tom, Sam, Lea, Jo");
+    expect(foot!.textContent).toBe("ANTO+3");
+    expect(foot!.lastElementChild!.querySelector("[aria-hidden]")).not.toBeNull();
+  });
+
+  it("scales the name and glyph with the tile, clamps the name to two lines and the line to one, and lets the text give way", () => {
+    const tile = css("ThreadTile.module.css");
+    expect(tile).toMatch(/\.tile \{[^}]*container-type: inline-size/);
+    expect(tile).toMatch(/\.name \{[^}]*-webkit-line-clamp: 2[^}]*\}/);
+    expect(tile).toMatch(/\.name \{[^}]*font-size: calc\(clamp\(17px, 10cqi, var\(--size-title-1\)\) \* var\(--type-scale\)\)/);
+    expect(tile).toMatch(/\.name \{[^}]*hyphens: auto/);
+    expect(tile).toMatch(/\.meta \{[^}]*white-space: nowrap[^}]*text-overflow: ellipsis/);
+    expect(tile).toMatch(/\.glyph \{[^}]*width: clamp\(30px, 22cqi, 60px\);\s*height: clamp\(30px, 22cqi, 60px\)/);
+    // The line wraps into a hidden second column, whole, rather than being cut.
+    expect(tile).toMatch(/\.text \{[^}]*flex-wrap: wrap[^}]*flex: 1[^}]*min-height: 0[^}]*overflow: hidden/);
+    expect(tile).toMatch(/\.text > \* \{\s*flex-shrink: 0;\s*width: 100%;/);
+  });
+
+  it("takes fewer columns before a tile is too short for two lines, its line and the glyph", () => {
+    const page = css("panes/MyThreads.module.css");
+    expect(page).toMatch(/@container \(max-width: 760px\) \{\s*\.grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(page).toMatch(/@container \(max-width: 420px\) \{\s*\.grid \{\s*grid-template-columns: minmax\(0, 1fr\)/);
+  });
+});
+
 describe("the tile on a touch screen and the chip's target", () => {
   const css = (file: string) => readFileSync(join(process.cwd(), "src/components", file), "utf8");
   it("lets a finger scroll the grid from a tile, and says the tile has a menu", async () => {

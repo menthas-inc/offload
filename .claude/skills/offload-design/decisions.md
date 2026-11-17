@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-17 · Thread tiles lead with the name, and the glyph is large
+**Surface:** iOS, Android, web; the Threads grid's tile
+**Raised by:** the product owner: on Threads it is hard to tell which tile is which; the title and icon should be much larger. Off four options drawn in the session (A scaled up, B glyph as the picture, C name first, D the back glyph made legible); C was picked, then asked for larger still, holding up under a long line and more people.
+
+**Was:** the glyph at 30 (web 26) top left, the people top right, the name at 16 (web 17) and its line at the foot, and the glyph again behind them at 190%, hardened, 12% white.
+
+**Is:** the name leads at the top left at `--size-title-1` semibold, two lines then an ellipsis, with its line under it at `--size-caption`, one line then an ellipsis, white at 92% (86% fell under 4.5:1 on grounds 2, 6 and 10 in light). The foot holds the people (two faces, then +N) on the left and the glyph on the right. The name is never what gives way: when two lines of name and the line do not fit, the line goes whole rather than being cut.
+- **Phones:** the name 26 on a 28 line, the glyph 54. `tileFit` in `lib/threadGrid.ts` decides from the tile's side and the text scale (capped at 1.3): on a 375 or 402 phone at the default size everything shows; with larger text the line goes; at 320 (Display Zoom) the glyph shrinks to 45, and to 30 at the largest text. The initials do not grow in their 24 circle. iOS does not hyphenate a long word and Android does; the name is not tracked, as React Native has no em tracking.
+- **Web:** the tile is a size container. The name is `clamp(17px, 10cqi, var(--size-title-1))` at `--leading-display` and `--tracking-title`, hyphenated; the glyph `clamp(30px, 22cqi, 60px)`; the padding stays 18. The line wraps into a hidden second column when it does not fit. The grid drops to two columns at a 760 pane, not 520, and to one at 420, not 300.
+- The back glyph is gone, with `backGlyph` in `@offload/widgets` and the phones' hardened `Glyph`.
+
+**Considered and not taken:** A, the same layout scaled up; B, the glyph centred as the picture with the name under it; D, the back glyph made whole and legible behind a larger name.
+
+**Design system impact:** section 3 of `handoff/APPLY-2026-10-29-threads-grid.md` is superseded for the tile: name and line at the top, people and the glyph at the foot, no back glyph, sizes as above. The kits (`ui_kits/mobile_app/ThreadsScreen.jsx`, `ui_kits/android_app/M3ThreadsScreen.jsx`) still draw the list from before the grid, so the grid itself has to be drawn there first. That section's 9pt unread dot is drawn by neither client. No new tokens or components.
+
 ### 2026-11-06 · Finished to-dos start hidden
 **Surface:** iOS, Android, web (a thread's To do section)
 **Raised by:** the product owner: done tasks and folded notes should both be hidden until somebody asks for them.

@@ -1,32 +1,7 @@
-// 2026-10-29. My threads as a grid: where each tile's back glyph sits, a move
-// by one place or a drop, and the words, so the phones and the web agree.
+// 2026-10-29. My threads as a grid: a move by one place or a drop, and the words, so the phones and the web agree.
 
 import { describe, expect, it } from "vitest";
-import { backGlyph, moveThread, ORDER_COPY, orderThreads, tileLabel } from "../src/threads-grid.js";
-
-describe("the back glyph (AC-6)", () => {
-  it("sits up and to the left, turned in quarters, from the seed", () => {
-    expect(backGlyph(0)).toEqual({ left: -25, top: -20, turn: 0 });
-    // 54 % 55 = 54, (54 >>> 5) % 60 = 1, ((54 >>> 2) % 4) * 90 = 90.
-    expect(backGlyph(54)).toEqual({ left: -79, top: -21, turn: 90 });
-  });
-
-  it("differs between two tiles", () => {
-    const seen = new Set([0x1a2b3c4d, 0x5e6f7081, 0x92a3b4c5, 0xd6e7f809].map((seed) => JSON.stringify(backGlyph(seed))));
-    expect(seen.size).toBe(4);
-  });
-
-  it("stays in its bounds for any seed", () => {
-    for (const seed of [0, 1, 2 ** 31, 2 ** 32 - 1]) {
-      const at = backGlyph(seed);
-      expect(at.left).toBeLessThanOrEqual(-25);
-      expect(at.left).toBeGreaterThanOrEqual(-79);
-      expect(at.top).toBeLessThanOrEqual(-20);
-      expect(at.top).toBeGreaterThanOrEqual(-79);
-      expect([0, 90, 180, 270]).toContain(at.turn);
-    }
-  });
-});
+import { moveThread, ORDER_COPY, orderThreads, tileLabel } from "../src/threads-grid.js";
 
 describe("a move", () => {
   const ids = ["a", "b", "c", "d"];
