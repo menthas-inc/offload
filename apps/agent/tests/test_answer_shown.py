@@ -125,3 +125,24 @@ async def test_the_calendar_read_of_the_same_week_counts_as_the_same_window():
         has_calendar=True,
     )
     assert shown_from(both) == {"span": {"from": "2026-11-16", "to": "2026-11-22"}}
+
+
+async def test_the_same_window_written_two_ways_is_one_read():
+    events = Response(
+        content=[
+            ToolUse(
+                id="e1",
+                name="find_events",
+                input={"from_iso": "2026-11-16T00:00:00", "to_iso": "2026-11-23"},
+            )
+        ],
+        stop_reason="tool_use",
+    )
+    outcome = await _answer(
+        _agenda("2026-11-16", "2026-11-23T00:00"),
+        events,
+        _said,
+        outcomes=[_read, {"ok": True, "events": []}],
+        has_calendar=True,
+    )
+    assert shown_from(outcome) == {"span": {"from": "2026-11-16", "to": "2026-11-22"}}

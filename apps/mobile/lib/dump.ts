@@ -18,7 +18,7 @@
 // watched by this same poll.
 
 import { File } from "expo-file-system";
-import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf } from "@offload/widgets";
+import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf, type Pill, type PillKind, type ReplySummary } from "@offload/widgets";
 import { API_URL, send, upload } from "./api";
 import { failed } from "./log";
 
@@ -133,6 +133,58 @@ export interface Source {
   url: string;
 }
 
+/** 052. A thread a reply names, as the reader may see it now. Null name and
+ *  icon for the default thread, which a slice heads Not in a thread. */
+export interface ReplyThread {
+  id: string;
+  name: string | null;
+  icon: string | null;
+  hue: number | null;
+}
+
+/** 052. A note or a memory in a slice, marked when the turn wrote it. */
+export interface SliceNote {
+  id: string;
+  text: string;
+  marked: boolean;
+}
+
+/** 052. One place a turn wrote to or read from, resolved as the reader now. */
+export type Slice =
+  | {
+      kind: "list";
+      thread: ReplyThread;
+      openCount: number;
+      rows: FoundRow[];
+      marked: string[];
+      notes: SliceNote[];
+      previous: Record<string, { dueAt?: string | null; occursAt?: string | null }>;
+      truncated: boolean;
+    }
+  | { kind: "newThread"; thread: ReplyThread; rows: FoundRow[]; notes: SliceNote[] }
+  | { kind: "memories"; memoryKind: string; memories: SliceNote[] }
+  | {
+      kind: "calendar";
+      period: { from: string; to: string };
+      day: string;
+      marked: string[];
+      span: boolean;
+      /** 052. A moved row's dates before the turn, while its Undo holds them. */
+      previous?: Record<string, { dueAt?: string | null; occursAt?: string | null }>;
+    }
+  | { kind: "removed" };
+
+/** 052. A turn's reply beside its words: slices, pills and what it did. The
+ *  words are `@offload/widgets`', never the wire's. */
+export interface Reply {
+  slices: Slice[];
+  also: ReplyThread[];
+  pills: Pill[];
+  summary: ReplySummary | null;
+  /** When the turn's result arrived, on the server's clock. */
+  resultAt: string | null;
+}
+
 /** 018. A question offload asked back, while it is open. Labels and kinds
  *  only: the values stay on the server and an index goes back. */
 export interface QuestionOnWire {
@@ -172,6 +224,8 @@ export interface Answer {
    *  The poll reads it every tick, so the bubble draws the words the moment
    *  they exist, ahead of the reply. */
   voice?: VoiceOnWire | null;
+  /** 052. The turn's reply, once it has settled. */
+  parts?: Reply | null;
 }
 
 /** 021. The voice note on a person's message, as the server sends it. The
@@ -214,6 +268,8 @@ export interface TailMessage {
   sources?: Source[];
   /** 025. On the person's message: what the turn applied. */
   labels?: { id: string; name: string; colour: number }[];
+  /** 052. On the person's message: the turn's reply. */
+  parts?: Reply | null;
 }
 
 /** The day's model budget is spent (security review 2026-09-22, M6). The
@@ -452,6 +508,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
     photos?: PhotoOnWire[];
+    parts?: Reply | null;
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
   return {
@@ -467,6 +524,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     question: data.question ?? null,
     found: data.found ?? [],
     voice: data.voice ?? null,
+    parts: data.parts ?? null,
     // 041. The message's files as the server has them now.
     ...(data.photos ? { photos: data.photos } : {}),
   };
@@ -599,6 +657,40 @@ export async function undoTurn(turnId: string): Promise<false | string[]> {
     method: "POST",
   });
   return (data?.undone ?? false) && (data?.stayed ?? []);
+}
+
+/** 052. The reply's Undo. The server decides whether it is early, which takes
+ *  the whole turn back, or late, which keeps the dump and leaves what changed
+ *  since. A late one that would take an event off a calendar others see does
+ *  nothing and answers `confirm`; the yes is the same call, `confirmed`. Null
+ *  when it did not land. */
+export async function undoReply(
+  turnId: string,
+  confirmed: boolean,
+): Promise<{ undone: boolean; stayed?: string[]; changed?: string[]; confirm?: string } | null> {
+  const { data } = await send<{ undone: boolean; stayed?: string[]; changed?: string[]; confirm?: string }>(
+    `/v1/turns/${turnId}/undo${confirmed ? "?confirmed=1" : ""}`,
+    { method: "POST" },
+  );
+  return data ?? null;
+}
+
+/** 052. A pill's tap: the turn and the kind, and nothing else, since the
+ *  server works the row and the calendar out again from its own record.
+ *  "refused" when it is no longer offered or not theirs; null when it did
+ *  not land. */
+export async function tapPill(
+  turnId: string,
+  kind: Extract<PillKind, "calendar" | "remind">,
+  undo = false,
+): Promise<"ok" | { confirm: string; pendingId: string } | "refused" | null> {
+  const { status, data } = await send<{ ok: true } | { confirm: string; pendingId: string }>(`/v1/turns/${turnId}/pills`, {
+    method: "POST",
+    body: JSON.stringify(undo ? { kind, undo: true } : { kind }),
+  });
+  if (status === 404 || status === 409) return "refused";
+  if (!data) return null;
+  return "confirm" in data ? { confirm: data.confirm, pendingId: data.pendingId } : "ok";
 }
 
 /** Stop a turn that is taking too long. 017.

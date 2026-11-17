@@ -2475,3 +2475,32 @@ describe("052 AC-13 Add to {calendar} from a reply", () => {
     expect((await tap({ kind: "calendar", undo: true })).statusCode).toBe(409);
   });
 });
+
+describe("052 security review: a late Undo asks about every event it would change", () => {
+  it("asks before putting back a move on a calendar others see", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me), { externalId: "cal-shared", participants: 2 }), me);
+    google.countParticipants.mockResolvedValue(2);
+    try {
+      const first = await dump(me, t);
+      const contentId = await row(me, t, "Dentist appointment", first.messageId);
+      await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "r1", contentId });
+      const next = await dump(me, t, first.conversationId);
+      const found = (
+        await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "r2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+      ).json() as { events: Array<{ sourceRef: string }> };
+      const moved = (
+        await tool({ tool: "edit_event", jobId: next.jobId, toolCallId: "e1", sourceRef: found.events[0]!.sourceRef, scope: "one", startsAt: "2026-09-23T10:00:00Z" })
+      ).json() as Record<string, unknown>;
+      expect(moved["written"]).toBe(true);
+      google.patchEvent.mockClear();
+      await sql`update messages set settled_at = now() - interval '1 minute' where id = ${next.messageId}::uuid`.execute(db);
+      const asked = await app.inject({ method: "POST", url: `/v1/turns/${next.turnId}/undo`, headers: { cookie: await signIn(me) } });
+      expect(asked.json()).toMatchObject({ undone: false, confirm: expect.any(String) });
+      expect(google.patchEvent).not.toHaveBeenCalled();
+    } finally {
+      google.countParticipants.mockResolvedValue(1);
+    }
+  });
+});

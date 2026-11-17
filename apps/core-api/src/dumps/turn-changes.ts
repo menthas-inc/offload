@@ -62,11 +62,16 @@ export async function restoreChanges(
   for (const one of rows) {
     const previous = one.previous as Record<string, unknown>;
     if (one.target_kind === "thread") {
+      // Only a thread the reader is still in: one they were taken out of is
+      // neither changed back nor named (OFF-3, SEC-2).
       const held = await trx
         .selectFrom("threads")
-        .select(["name", "updated_at"])
-        .where("id", "=", one.target_id)
-        .where("deleted_at", "is", null)
+        .innerJoin("thread_members as m", (join) =>
+          join.onRef("m.thread_id", "=", "threads.id").on("m.account_id", "=", accountId).on("m.state", "=", "accepted"),
+        )
+        .select(["threads.name as name", "threads.updated_at as updated_at"])
+        .where("threads.id", "=", one.target_id)
+        .where("threads.deleted_at", "is", null)
         .executeTakeFirst();
       if (!held) continue;
       if (since && held.updated_at && held.updated_at.toISOString() > new Date(since).toISOString()) {
@@ -86,10 +91,12 @@ export async function restoreChanges(
       continue;
     }
     if (one.target_kind !== "content") continue;
+    // Read as the reader, so a row in a thread they have left is out of reach.
     const held = await trx
-      .selectFrom("content")
+      .selectFrom("readable_content")
       .select(["title", "thread_id", "updated_at"])
       .where("id", "=", one.target_id)
+      .where("viewer_account_id", "=", accountId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
     if (!held) continue;
@@ -112,5 +119,12 @@ export async function restoreChanges(
       }
     }
   }
+  // Put back once: the values are no longer anybody's to undo (OFF-1).
+  await trx
+    .updateTable("turn_changes")
+    .set({ previous: null })
+    .where("message_id", "in", messageIds)
+    .where("account_id", "=", accountId)
+    .execute();
   return changed;
 }

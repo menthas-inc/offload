@@ -31,6 +31,8 @@ export function agendaQuery(accountId: string) {
     .innerJoin("threads", "threads.id", "content.thread_id")
     .leftJoin("accounts", "accounts.id", "content.account_id")
     // 052. Where an event is, for a reply's details and their Directions.
+    // shortcut: every agenda read pays this join, Today's included, which never
+    // draws a place; split a reply-only variant if Today's read is seen slow.
     .leftJoin("places", "places.id", "content.place_id")
     .select([
       "content.id as id",

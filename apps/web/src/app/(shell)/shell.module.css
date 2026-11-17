@@ -3102,6 +3102,17 @@ a.settingsRow:hover,
   color: var(--text-primary);
 }
 
+/* 052. A reply's calendar: the name and how far away, with nothing to step. */
+.railMonth[data-still] {
+  min-height: 44px;
+  padding-bottom: 0;
+}
+
+.railAside {
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+}
+
 .railStep {
   display: flex;
   align-items: center;

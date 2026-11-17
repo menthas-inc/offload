@@ -473,54 +473,6 @@
   .phraseOut { display: none; }
 }
 
-.turnFooter {
-  align-self: stretch;
-  display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--chip-h);
-  /* **A gap, because the footer is not part of the bubble above it.** The log's
-     own `gap` separates turns and does not reach inside one, so the chips sat
-     flush against the reply they describe and read as an extension of it. */
-  margin-top: var(--space-3);
-
-  /* **One height for everything in this row.** It held three: 22 for the Done
-     mark, 26 for a source, 30 for a thread. Side by side that reads as a
-     mistake, which is what it was.
-
-     30, because that is `Chip`, the governed component the thread pills already
-     use; the other two were bespoke marks that happened to sit beside it. The
-     design system's own `TurnFooter` draws 24 and 26 next to a 30 `Chip`, so
-     this is a divergence from the kit and an inconsistency inside it. Logged.
-
-     Inherited by the three of them rather than repeated, so the next mark added
-     to this row cannot be a fourth height. The value sits on the log, because
-     the quick replies under a question share it. */
-}
-
-/* The Done mark used to be absolutely positioned into the sent bubble's bottom
-   left corner. In a row that grows sideways that put it under the bubble it was
-   tucked into, which is why the footer exists rather than the bubble simply
-   gaining chips.
-
-   `.seen` sat here beside it and is gone with the emoji it drew. */
-.done {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: var(--chip-h);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--moss-600);
-  border-radius: 99px;
-  background: var(--moss-600);
-  color: var(--text-on-solid);
-  font-weight: var(--weight-medium);
-  font-size: calc(11px * var(--type-scale));
-  line-height: 1;
-  font-family: var(--font-core);
-}
-
 /* A turn that failed, or half worked, is carried by the turn itself: the
    message you wrote takes a clay border and one clay line beneath it. Tighter
    than a tinted card in the middle of a conversation, and the failure is
@@ -570,39 +522,6 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* Where offload actually filed things. Links, because a reply that names a
-   place you cannot go to is a reply that makes you go looking. */
-/* Outline, never moss. Moss means "offload did this, you didn't" everywhere in
-   this system, and a citation is the opposite: evidence of where a fact came
-   from rather than something offload worked out. */
-.sourceChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--chip-h);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-secondary);
-  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
-  text-decoration: none;
-  max-width: 22ch;
-  overflow: hidden;
-}
-
-.sourceDomain {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sourceMore {
-  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
-  color: var(--text-tertiary);
-  white-space: nowrap;
 }
 
 .wentTo {

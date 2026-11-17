@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { token } from "@offload/tokens";
-import { RETURNED_MS, UNDO_MS, type UndoEntry } from "@offload/widgets";
+import { RETURNED_MS, UNDO_MS, summaryWords, type ReplySummary, type UndoEntry } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
 import { undoStore, useDrawn, useReturned, useUndoEntry } from "../../lib/undo";
 import { Glyph } from "../Glyph";
@@ -105,6 +105,89 @@ export function UndoLine({
       ) : null}
       {entry.failed ? null : <Clock key={entry.startedAt} startedAt={entry.startedAt} amber={slot} />}
     </Animated.View>
+  );
+}
+
+/** 052. The glyph for what a turn did. */
+const DID: Record<ReplySummary["kind"], string> = {
+  new: "plus",
+  filed: "lasso",
+  moved: "lasso",
+  ticked: "check",
+  changed: "pencil",
+  started: "lasso",
+  remembered: "cloudy",
+  added: "plus",
+};
+
+/** 052. The fourth form, **turn**, at the foot of a reply: what the turn did,
+ *  in moss, and Undo. Not a store entry like the other three, because it
+ *  outlives eight seconds: early it carries 043's clock and takes the whole
+ *  turn back; late it stays, with no clock, until the next dump retires it.
+ *  A refusal is the same line with circle-alert and Retry; a late Undo that
+ *  would take an event off a calendar others see asks first, in its place. */
+export function TurnLine({
+  summary,
+  phase,
+  startedAt,
+  folded,
+  ask,
+  failed,
+  onUndo,
+  onConfirm,
+  onDecline,
+}: {
+  summary: ReplySummary;
+  phase: "early" | "late" | "retired";
+  startedAt: number | null;
+  /** A late Undo landed: the changed line, and nothing to press. */
+  folded?: string | undefined;
+  /** A late Undo that has to ask first: the outward line. */
+  ask?: string | undefined;
+  failed?: boolean | undefined;
+  onUndo: () => void;
+  onConfirm: () => void;
+  onDecline: () => void;
+}) {
+  const COLOR = useColors();
+  const action =
+    folded !== undefined || phase === "retired"
+      ? null
+      : ask
+        ? { label: "Undo", run: onConfirm }
+        : failed
+          ? { label: "Retry", run: onUndo }
+          : { label: "Undo", run: onUndo };
+  return (
+    <View
+      accessibilityLiveRegion={failed ? "assertive" : "polite"}
+      accessibilityRole={failed ? "alert" : undefined}
+      className="flex-row items-center overflow-hidden"
+      style={{ gap: 8, minHeight: 44 }}
+    >
+      <Glyph name={failed ? "circle-alert" : DID[summary.kind]} size={14} color={ask || failed ? COLOR.quiet : COLOR.accent} />
+      <Text
+        className={`flex-1 font-core ${ask ? (isAndroid ? "text-a-on-var" : "text-text-secondary") : "font-medium text-text-accent"}`}
+        style={{ fontSize: 12.5, lineHeight: 17.5 }}
+      >
+        {folded ?? ask ?? summaryWords(summary)}
+      </Text>
+      {ask ? (
+        <Pressable onPress={onDecline} accessibilityRole="button" className="items-center justify-center" style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 6 }}>
+          <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
+            Not now
+          </Text>
+        </Pressable>
+      ) : null}
+      {action ? (
+        <Pressable onPress={action.run} accessibilityRole="button" className="items-center justify-center" style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 6 }}>
+          <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 13 }}>
+            {action.label}
+          </Text>
+        </Pressable>
+      ) : null}
+      {phase === "early" && startedAt !== null && !failed && !ask && folded === undefined ? <Clock key={startedAt} startedAt={startedAt} amber={false} /> : null}
+    </View>
   );
 }
 

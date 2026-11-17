@@ -281,6 +281,7 @@ const replyOnWire = z.object({
         day: z.string(),
         marked: z.array(z.string()),
         span: z.boolean(),
+        previous: z.record(z.string(), z.object({ dueAt: z.string().nullable().optional(), occursAt: z.string().nullable().optional() })),
       }),
       z.object({ kind: z.literal("removed") }),
     ]),
@@ -1192,6 +1193,8 @@ export async function takeDump(
 
     const message = inserted;
 
+    // shortcut: an account that never dumps again keeps its last turn's values
+    // until its next dump or its deletion; add a sweep if that is ever wanted.
     // 052. A new dump retires the Undo of the turns before it: what they
     // changed loses its values, keeping the ids a reopened reply reads. A turn
     // still inside its first eight seconds keeps them, so a quick second dump
@@ -2475,6 +2478,43 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
     .where(sql<boolean>`attrs ? 'event_found'`)
     .execute();
 
+  const { filed, answered, remembered, answeredMemories } = await eventsOfTurn(accountId, turnId, since);
+
+  // One event can be found both ways (an answer's memory names its message), and is undone once.
+  const undone = new Set<string>();
+  const unlinked: string[] = [];
+  for (const row of [...filed, ...answered, ...remembered, ...answeredMemories]) {
+    if (!row.sourceRef || undone.has(row.sourceRef)) continue;
+    undone.add(row.sourceRef);
+    // `source_ref` is `<calendar external id>:<event id>`, so the calendar it
+    // belongs to is the prefix.
+    const externalId = row.sourceRef.split(":")[0];
+    if (!externalId) continue;
+
+    const calendar = await db
+      .selectFrom("connector_calendars as c")
+      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+      .select("c.id as id")
+      .where("c.external_id", "=", externalId)
+      .where("n.account_id", "=", accountId)
+      .where("n.deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!calendar) continue;
+
+    const target = await targetFor(calendar.id, accountId);
+    if (!target) continue;
+
+    const gone = await undoWrite(target, row.sourceRef).catch(() => false);
+    if (gone && "contentId" in row && row.contentId) unlinked.push(row.contentId as string);
+  }
+  return unlinked;
+}
+
+/** 052. Every event a turn's Undo would take back: rows it filed and put on a
+ *  calendar, rows a tapped answer in it put on one, and the same two for
+ *  memories (051). One reading, used by the Undo and by the late Undo's
+ *  confirm, so the two can never disagree about what is touched. */
+async function eventsOfTurn(accountId: string, turnId: string, since?: string) {
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2485,6 +2525,9 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
     .where("content.account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
     .where("content.source_ref", "is not", null)
+    // A row that found an event offload did not write only forgets it, and
+    // the event stays: it is never something an Undo removes.
+    .where(sql<boolean>`not (content.attrs ? 'calendar_found')`)
     .$if(since !== undefined, (qb) => qb.where("content.updated_at", "<=", sql<Date>`${since}::timestamptz`))
     .execute();
   const answered = await db
@@ -2518,34 +2561,7 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
     .where("notes.event_ref", "is not", null)
     .execute();
 
-  // One event can be found both ways (an answer's memory names its message), and is undone once.
-  const undone = new Set<string>();
-  const unlinked: string[] = [];
-  for (const row of [...filed, ...answered, ...remembered, ...answeredMemories]) {
-    if (!row.sourceRef || undone.has(row.sourceRef)) continue;
-    undone.add(row.sourceRef);
-    // `source_ref` is `<calendar external id>:<event id>`, so the calendar it
-    // belongs to is the prefix.
-    const externalId = row.sourceRef.split(":")[0];
-    if (!externalId) continue;
-
-    const calendar = await db
-      .selectFrom("connector_calendars as c")
-      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-      .select("c.id as id")
-      .where("c.external_id", "=", externalId)
-      .where("n.account_id", "=", accountId)
-      .where("n.deleted_at", "is", null)
-      .executeTakeFirst();
-    if (!calendar) continue;
-
-    const target = await targetFor(calendar.id, accountId);
-    if (!target) continue;
-
-    const gone = await undoWrite(target, row.sourceRef).catch(() => false);
-    if (gone && "contentId" in row && row.contentId) unlinked.push(row.contentId as string);
-  }
-  return unlinked;
+  return { filed, answered, remembered, answeredMemories };
 }
 
 /** 052. A late Undo removes events the turn put on calendars. One that other
@@ -2553,33 +2569,44 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
  *  line to confirm with, or null when nothing it removes needs asking. The
  *  2026-10-28 exception covers the first eight seconds only. */
 async function lateCalendarAsk(accountId: string, turnId: string, since: string): Promise<string | null> {
-  const filed = await db
-    .selectFrom("content")
-    .innerJoin("messages", "messages.id", "content.derived_from_message_id")
-    .select(["content.source_ref as sourceRef"])
-    .where("messages.turn_id", "=", turnId)
-    .where("content.account_id", "=", accountId)
-    .where("content.deleted_at", "is", null)
-    .where("content.source_ref", "is not", null)
-    .where(sql<boolean>`not (content.attrs ? 'calendar_found')`)
-    .where("content.updated_at", "<=", sql<Date>`${since}::timestamptz`)
+  const { filed, answered, remembered, answeredMemories } = await eventsOfTurn(accountId, turnId, since);
+  // And what the turn changed or removed through its own tools, which the
+  // Undo puts back (`undoToolWrites`): asked about as a removal would be,
+  // the stricter of the two tests.
+  const tools = await db
+    .selectFrom("connector_pending_writes as w")
+    .innerJoin("messages as m", "m.id", "w.message_id")
+    .select(["w.source_ref as sourceRef", "w.calendar_id as calendarId"])
+    .where("m.turn_id", "=", turnId)
+    .where("w.account_id", "=", accountId)
+    .where("w.confirmed_at", "is not", null)
+    .where("w.source_ref", "is not", null)
     .execute();
-  for (const row of filed) {
-    const externalId = row.sourceRef?.split(":")[0];
-    if (!row.sourceRef || !externalId) continue;
-    const calendar = await db
-      .selectFrom("connector_calendars as c")
-      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-      .select("c.id as id")
-      .where("c.external_id", "=", externalId)
-      .where("n.account_id", "=", accountId)
-      .where("n.deleted_at", "is", null)
-      .executeTakeFirst();
-    if (!calendar) continue;
-    const target = await targetFor(calendar.id, accountId);
+  const byRef = new Map<string, string | null>();
+  for (const row of [...filed, ...answered, ...remembered, ...answeredMemories]) {
+    if (row.sourceRef && !byRef.has(row.sourceRef)) byRef.set(row.sourceRef, null);
+  }
+  for (const row of tools) if (row.sourceRef) byRef.set(row.sourceRef, row.calendarId);
+  for (const [sourceRef, known] of byRef) {
+    let calendarId = known;
+    if (!calendarId) {
+      const externalId = sourceRef.split(":")[0];
+      if (!externalId) continue;
+      const calendar = await db
+        .selectFrom("connector_calendars as c")
+        .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+        .select("c.id as id")
+        .where("c.external_id", "=", externalId)
+        .where("n.account_id", "=", accountId)
+        .where("n.deleted_at", "is", null)
+        .executeTakeFirst();
+      calendarId = calendar?.id ?? null;
+    }
+    if (!calendarId) continue;
+    const target = await targetFor(calendarId, accountId);
     if (!target) continue;
     try {
-      const verdict = await verdictFor(target, { action: "delete", sourceRef: row.sourceRef, scope: "one" }, await accessTokenFor(target.connectionId));
+      const verdict = await verdictFor(target, { action: "delete", sourceRef, scope: "one" }, await accessTokenFor(target.connectionId));
       const line = outwardLine(verdict);
       if (line) return line;
     } catch {

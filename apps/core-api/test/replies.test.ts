@@ -64,6 +64,21 @@ describe("a list slice", () => {
     expect(reply.summary).toEqual({ kind: "new", count: 4 });
   });
 
+  it("still shows two neighbours when the turn changed the newest open row", async () => {
+    const me = await account();
+    const groceries = await thread(me, "Groceries");
+    await earlier(me, groceries, "Coffee beans");
+    await earlier(me, groceries, "Bin bags");
+    const newest = await earlier(me, groceries, "Washing up liquid");
+    await sql`update content set created_at = now() - interval '30 seconds' where id = ${newest}::uuid`.execute(db);
+    const d = await dump(me, "washing up liquid is the eco one, and milk");
+    await tool(app, { tool: "edit_content", jobId: d.jobId, toolCallId: "c1", contentId: newest, title: "Eco washing up liquid" });
+    await tool(app, { tool: "add_content", jobId: d.jobId, toolCallId: "c2", threadId: groceries, type: "task", title: "Milk" });
+    const slice = (await replyOf(me, d.turnId)).slices[0]!;
+    if (slice.kind !== "list") throw new Error(slice.kind);
+    expect(slice.rows.map((r) => r.title)).toEqual(["Coffee beans", "Bin bags", "Eco washing up liquid", "Milk"]);
+  });
+
   it("reports a zero open count as zero", async () => {
     const me = await account();
     const groceries = await thread(me, "Groceries");
@@ -106,6 +121,20 @@ describe("a mixed dump", () => {
     if (cal.kind !== "calendar") throw new Error(cal.kind);
     expect(cal.period.from.slice(8)).toBe("01");
     expect(cal.day).toBe(day(100));
+  });
+});
+
+describe("a moved event", () => {
+  it("sits on its new day with its previous time beside it, while the Undo holds it", async () => {
+    const me = await account();
+    const health = await thread(me, "Health");
+    const dentist = await row(me, health, "Dentist", { type: "event", occurs_at: new Date(`${day(3)}T15:00:00Z`) });
+    const d = await dump(me, "move the dentist to tomorrow at 10");
+    await tool(app, { tool: "edit_content", jobId: d.jobId, toolCallId: "c1", contentId: dentist, occursAt: `${day(1)}T10:00` });
+    const cal = (await replyOf(me, d.turnId)).slices[0]!;
+    if (cal.kind !== "calendar") throw new Error(cal.kind);
+    expect(cal.day).toBe(day(1));
+    expect(cal.previous[dentist]?.occursAt?.slice(0, 10)).toBe(day(3));
   });
 });
 
@@ -153,6 +182,25 @@ describe("a remember", () => {
     expect(slice.memoryKind).toBe("people");
     expect(slice.memories.filter((m) => m.marked).map((m) => m.text)).toEqual(["Meera is allergic to cashews"]);
     expect(reply.summary).toEqual({ kind: "remembered", count: 1 });
+  });
+});
+
+describe("a remember, beside what was known", () => {
+  it("shows up to seven others of the kind, unmarked, after the new one", async () => {
+    const me = await account();
+    for (const text of ["Meera is your wife", "Ana lives in Lisbon"]) {
+      await sql`insert into notes (account_id, scope, subject_id, kind, text, origin)
+                values (${me}::uuid, 'account', ${me}::uuid, 'people', ${text}, 'stated')`.execute(db);
+    }
+    const d = await dump(me, "remember Meera is allergic to cashews");
+    await tool(app, { tool: "memory", jobId: d.jobId, toolCallId: "c1", action: "remember", text: "Meera is allergic to cashews", kind: "people" });
+    const slice = (await replyOf(me, d.turnId)).slices[0]!;
+    if (slice.kind !== "memories") throw new Error(slice.kind);
+    expect(slice.memories.map((m) => [m.text, m.marked])).toEqual([
+      ["Meera is allergic to cashews", true],
+      ["Ana lives in Lisbon", false],
+      ["Meera is your wife", false],
+    ]);
   });
 });
 

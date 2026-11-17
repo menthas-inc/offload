@@ -1317,7 +1317,7 @@ async def _run(
                 if isinstance(day, str) and _DAY.match(day[:10]):
                     outcome.dates.append(day[:10])
             if block.name in DAY_READS and isinstance(body, dict) and body.get("ok"):
-                window = (str(sent.get("from_iso", "")), str(sent.get("to_iso", "")))
+                window = (_moment(sent.get("from_iso")), _moment(sent.get("to_iso")))
                 if window not in outcome.agenda:
                     outcome.agenda.append(window)
             if _carries_members(body):
@@ -2164,6 +2164,13 @@ def build_answer_blocks(ctx: AnswerContext, facts: dict | None = None) -> list[d
 _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 #: 052. The reads of a span of days, whose window the reply draws as a calendar.
 DAY_READS = frozenset({"list_agenda", "find_events"})
+def _moment(value: object) -> str:
+    """A window's end as one spelling: a midnight is the bare date, so the same
+    week read as `2026-11-16` and as `2026-11-16T00:00:00` is one read."""
+    text = str(value or "")
+    return text[:10] if len(text) == 10 or text[10:16] in ("T00:00", " 00:00") else text
+
+
 #: The longest span a reply draws as one calendar, as the Core API bounds it.
 _SHOWN_DAYS = 62
 

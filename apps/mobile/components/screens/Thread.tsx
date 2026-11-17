@@ -94,8 +94,10 @@ import {
   type ContentPatch,
   type ContentSnapshot,
   fetchOne,
+  rowTap,
   type Point,
 } from "../../lib/threads";
+import { EDIT_PARAM, SHARE_PARAM } from "../../lib/reply";
 import { perform, useWrites, type Reversible } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib/when";
@@ -139,7 +141,14 @@ const SHEET_CHROME = 48;
 
 export default function Thread() {
   const COLOR = useColors();
-  const params = useLocalSearchParams<{ id: string; [ROW_PARAM]?: string; [NOTE_PARAM]?: string; [ARCHIVED_PARAM]?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    [ROW_PARAM]?: string;
+    [NOTE_PARAM]?: string;
+    [ARCHIVED_PARAM]?: string;
+    [EDIT_PARAM]?: string;
+    [SHARE_PARAM]?: string;
+  }>();
   const { id } = params;
   const router = useRouter();
   const [thread, setThread] = useState<ThreadBundle | null>(null);
@@ -149,6 +158,9 @@ export default function Thread() {
   // 049. What Search opened the thread at: read back to once, kept unfolded,
   // marked and scrolled to. A row the read does not hold is not marked.
   const target = useRef(params[ROW_PARAM] ?? null);
+  // 052. A reply opened the page at a row's sheet, or its date field, once.
+  const editAt = useRef(params[EDIT_PARAM] ?? null);
+  const [renamingAt, setRenamingAt] = useState<"when" | null>(null);
   const [reveal, setReveal] = useState<string | null>(params[ROW_PARAM] ?? params[NOTE_PARAM] ?? null);
   const scroll = useRef<ScrollView>(null);
   const scrolledTo = useRef<string | null>(null);
@@ -161,6 +173,10 @@ export default function Thread() {
     view.measureLayout(content, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - 120), animated: false }));
   }, [reveal]);
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
+  // 052. The date field only for the opening a reply asked for.
+  useEffect(() => {
+    if (!renaming) setRenamingAt(null);
+  }, [renaming]);
   // 020. The photo open in the viewer, by row id, and the row a move sheet
   // is up for. The viewer pages through every photo row on the page.
   const [viewing, setViewing] = useState<string | null>(null);
@@ -175,7 +191,9 @@ export default function Thread() {
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   // 022. The share sheet, and Leave with its confirmation.
-  const [shareOpen, setShareOpen] = useState(false);
+  // 052. A reply's Share with {name} opens the sheet with them picked.
+  const [shareOpen, setShareOpen] = useState(params[SHARE_PARAM] !== undefined);
+  const [sharePick, setSharePick] = useState<string | null>(params[SHARE_PARAM] ?? null);
   const [leaving, setLeaving] = useState(false);
   // 2026-10-07. The row asking before it is archived: in a shared thread
   // archive hides it for everyone, so it asks first.
@@ -282,6 +300,13 @@ export default function Thread() {
       if (away) return router.replace(away);
       setThread(bundle);
       setRows(page?.rows ?? []);
+      const at = editAt.current;
+      editAt.current = null;
+      const opened = at && through ? page?.rows.find((row) => row.id === through) : undefined;
+      if (opened && (at === "when" || rowTap(opened) === "edit")) {
+        setRenamingAt(at === "when" ? "when" : null);
+        setRenaming(opened);
+      }
       setCursor(page?.nextCursor ?? null);
       adopt((page?.rows ?? []).map((row) => row.id), (bundle?.notes ?? []).map((note) => note.id));
     } catch (error) {
@@ -1542,6 +1567,7 @@ export default function Thread() {
         // tick rather than sequencing it.
         key={renaming?.id ?? "none"}
         row={renaming}
+        at={renamingAt}
         onClose={() => setRenaming(null)}
         onOpenPhoto={(row) => {
           setRenaming(null);
@@ -1597,7 +1623,11 @@ export default function Thread() {
         threadId={thread.id}
         threadName={thread.name}
         viewerId={you?.accountId ?? null}
-        onClose={() => setShareOpen(false)}
+        preselect={sharePick}
+        onClose={() => {
+          setShareOpen(false);
+          setSharePick(null);
+        }}
         onChanged={() => void load()}
       />
       <ConfirmSheet

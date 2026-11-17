@@ -22,8 +22,10 @@ import { targetFor, undoWrite, type WriteAction } from "../connectors/write.js";
 import { calendarSpan } from "../threads/dates.js";
 import { seriesFor } from "./tools.js";
 
-/** A calendar pill's own Undo lasts as long as its line: eight seconds, and two
- *  for the round trip. After that the event is removed from its row, where
+/** A calendar pill's own Undo lasts as long as its line: eight seconds on the
+ *  person's screen, and two for the round trip, so a press at 7.9 seconds is
+ *  not refused on arrival (security review: OFF-6 says eight; the two are
+ *  transit, not a longer window). After that the event is removed from its row, where
  *  019's delete confirmation applies. */
 const CALENDAR_UNDO_SECONDS = 10;
 

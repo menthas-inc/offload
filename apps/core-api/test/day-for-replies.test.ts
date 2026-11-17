@@ -62,12 +62,28 @@ describe("what an entry's details need", () => {
       .executeTakeFirstOrThrow();
     await db
       .insertInto("connector_calendars")
-      .values({ connection_id: conn.id, external_id: "cal-home", summary: "Home", access_role: "owner", selected: true, participants: 2, is_primary: false, colour: "#E67C73" })
+      .values({ connection_id: conn.id, external_id: "cal-home", summary: "Home", access_role: "owner", selected: true, participants: 2, is_primary: false, colour: "provider-flamingo" })
       .execute();
     await row(me, home, "Pay rent", { type: "task", due_at: new Date(`${day(2)}T09:00:00Z`), source_ref: "cal-home:evt-1" });
     const read = await readDay(me, day(2));
     if (read === "bad_date") throw new Error("bad_date");
     const rent = [...read.timed, ...read.rest][0]!;
-    expect(rent).toMatchObject({ title: "Pay rent", calendar: { name: "Home", colour: "#E67C73" } });
+    expect(rent).toMatchObject({ title: "Pay rent", calendar: { name: "Home", colour: "provider-flamingo" } });
+  });
+});
+
+describe("a past month for a reply", () => {
+  it("counts the days before today when a reply asks", async () => {
+    const { readMonth } = await import("../src/today/day.js");
+    const me = await account();
+    const home = await thread(me, "Health");
+    await row(me, home, "Dentist", { type: "event", occurs_at: new Date(`${day(-3)}T15:00:00Z`) });
+    const today = (await readMonth(me, day(-6), day(0))) as { days: { date: string }[] };
+    expect(today.days.map((d) => d.date)).not.toContain(day(-3));
+    const reply = (await readMonth(me, day(-6), day(0), new Date(), { past: true })) as { days: { date: string }[] };
+    expect(reply.days.map((d) => d.date)).toContain(day(-3));
+    const cookie = await signIn(me);
+    const res = await as(app, cookie).get(`/v1/today/month?from=${day(-6)}&to=${day(0)}&past=1`);
+    expect((res.json() as { days: { date: string }[] }).days.map((d) => d.date)).toContain(day(-3));
   });
 });

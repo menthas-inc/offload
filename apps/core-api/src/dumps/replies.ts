@@ -45,7 +45,15 @@ export type Slice =
     }
   | { kind: "newThread"; thread: ThreadRef; rows: FoundRow[]; notes: SliceNote[] }
   | { kind: "memories"; memoryKind: MemoryClass; memories: SliceNote[] }
-  | { kind: "calendar"; period: { from: string; to: string }; day: string; marked: string[]; span: boolean }
+  | {
+      kind: "calendar";
+      period: { from: string; to: string };
+      day: string;
+      marked: string[];
+      span: boolean;
+      /** A moved row's dates before the turn, while its Undo still holds them. */
+      previous: Record<string, { dueAt?: string | null; occursAt?: string | null }>;
+    }
   | { kind: "removed" };
 
 export type SummaryKind = "new" | "filed" | "moved" | "ticked" | "changed" | "started" | "remembered" | "added";
@@ -73,6 +81,8 @@ const ms = (at: unknown): number => new Date(at as string | Date).getTime();
 const MAX_SLICES = 3;
 /** Open rows from before the turn shown above its own, per list slice. */
 const NEIGHBOURS = 2;
+/** Memories of the kind shown beside the turn's own. */
+const OTHER_MEMORIES = 7;
 
 function addDays(day: string, n: number): string {
   const at = new Date(`${day}T12:00:00Z`);
@@ -147,10 +157,10 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
           .execute()
       : [],
     personIds.length
-      ? db.selectFrom("messages").select(["turn_id", "settled_at"]).where("id", "in", personIds).execute()
+      ? db.selectFrom("messages").select(["turn_id", "settled_at"]).where("id", "in", personIds).where("account_id", "=", accountId).execute()
       : [],
     offloads.length
-      ? db.selectFrom("messages").select(["turn_id", "shown"]).where("id", "in", offloads.map((m) => m.id)).where("shown", "is not", null).execute()
+      ? db.selectFrom("messages").select(["turn_id", "shown"]).where("id", "in", offloads.map((m) => m.id)).where("account_id", "=", accountId).where("shown", "is not", null).execute()
       : [],
     foundFor(offloads.map((m) => m.id), accountId),
   ]);
@@ -211,11 +221,15 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
         let d = sliceFor.get(key);
         if (!d) {
           const day = dayIn(new Date(row.occursAt ?? row.dueAt!), zone);
-          d = { key, at: entry.at, slice: { kind: "calendar", period: periodFor(day, today), day, marked: [], span: false } };
+          d = { key, at: entry.at, slice: { kind: "calendar", period: periodFor(day, today), day, marked: [], span: false, previous: {} } };
           sliceFor.set(key, d);
           list.push(d);
         }
-        if (d.slice.kind === "calendar") d.slice.marked.push(row.contentId);
+        if (d.slice.kind === "calendar") {
+          d.slice.marked.push(row.contentId);
+          const was = previousDates(entry.previous);
+          if (was) d.slice.previous[row.contentId] = was;
+        }
         continue;
       }
       const key = `list:${row.threadId}`;
@@ -228,13 +242,8 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
       if (d.slice.kind === "list") {
         d.slice.rows.push(row);
         d.slice.marked.push(row.contentId);
-        const prev = entry.previous;
-        if (prev && ("occurs_at" in prev || "due_at" in prev)) {
-          d.slice.previous[row.contentId] = {
-            ...("occurs_at" in prev ? { occursAt: (prev.occurs_at as string | null) ?? null } : {}),
-            ...("due_at" in prev ? { dueAt: (prev.due_at as string | null) ?? null } : {}),
-          };
-        }
+        const was = previousDates(entry.previous);
+        if (was) d.slice.previous[row.contentId] = was;
       }
     }
 
@@ -296,9 +305,9 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
     }
     const shown = shownRows.find((s) => s.turn_id === turnId)?.shown;
     if (shown && "span" in shown) {
-      list.push({ key: "shown", at: Number.MAX_SAFE_INTEGER, slice: { kind: "calendar", period: shown.span, day: shown.span.from, marked: [], span: true } });
+      list.push({ key: "shown", at: Number.MAX_SAFE_INTEGER, slice: { kind: "calendar", period: shown.span, day: shown.span.from, marked: [], span: true, previous: {} } });
     } else if (shown && "on" in shown) {
-      list.push({ key: "shown", at: Number.MAX_SAFE_INTEGER, slice: { kind: "calendar", period: periodFor(shown.on, today), day: shown.on, marked: [], span: false } });
+      list.push({ key: "shown", at: Number.MAX_SAFE_INTEGER, slice: { kind: "calendar", period: periodFor(shown.on, today), day: shown.on, marked: [], span: false, previous: {} } });
     }
     drafts.set(turnId, list);
   }
@@ -306,6 +315,32 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
   // The pills, one batch for the page.
   const turnIds = [...new Set(persons.map((m) => m.turn_id))];
   const pills = await pillsFor(accountId, turnIds.map((turnId) => ({ turnId, personIds: persons.filter((m) => m.turn_id === turnId).map((m) => m.id) })));
+
+  // Memories: beside the turn's own, up to seven others of the kind, newest
+  // first, so the slice shows the group it joined. One query per kind shown.
+  const memoryKinds = [...new Set([...drafts.values()].flat().flatMap((d) => (d.slice.kind === "memories" ? [d.slice.memoryKind] : [])))];
+  for (const kind of memoryKinds) {
+    const others = await db
+      .selectFrom("notes")
+      .select(["id", "text"])
+      .where("scope", "=", "account")
+      .where("subject_id", "=", accountId)
+      .where("account_id", "=", accountId)
+      .where("kind", "=", kind)
+      .where("deleted_at", "is", null)
+      .where("superseded_at", "is", null)
+      .orderBy("created_at", "desc")
+      .limit(OTHER_MEMORIES + 8)
+      .execute();
+    for (const list of drafts.values()) {
+      for (const d of list) {
+        if (d.slice.kind !== "memories" || d.slice.memoryKind !== kind) continue;
+        const own = new Set(d.slice.memories.map((m) => m.id));
+        const rest = others.filter((o) => !own.has(o.id)).slice(0, OTHER_MEMORIES);
+        d.slice.memories.push(...rest.map((o) => ({ id: o.id, text: o.text, marked: false })));
+      }
+    }
+  }
 
   // The neighbours and the open counts, one query each for the page.
   const neighbours = await neighboursFor(accountId, neighbourAsks);
@@ -340,6 +375,15 @@ export async function repliesFor(accountId: string, page: PageMessage[]): Promis
     }
   }
   return out;
+}
+
+/** A changed row's dates before the turn, when the change recorded any. */
+function previousDates(prev: Record<string, unknown> | null): { dueAt?: string | null; occursAt?: string | null } | null {
+  if (!prev || !("occurs_at" in prev || "due_at" in prev)) return null;
+  return {
+    ...("occurs_at" in prev ? { occursAt: (prev.occurs_at as string | null) ?? null } : {}),
+    ...("due_at" in prev ? { dueAt: (prev.due_at as string | null) ?? null } : {}),
+  };
 }
 
 function summaryOf(
@@ -385,21 +429,21 @@ async function neighboursFor(
   if (asks.length === 0) return out;
   const found = await sql<{ key: string; id: string }>`
     select k.key, c.id::text as id
-    from unnest(${asks.map((a) => a.key)}::text[], ${asks.map((a) => a.threadId)}::uuid[], ${asks.map((a) => a.before.toISOString())}::timestamptz[])
-      as k(key, thread_id, before)
+    from unnest(${asks.map((a) => a.key)}::text[], ${asks.map((a) => a.threadId)}::uuid[], ${asks.map((a) => a.before.toISOString())}::timestamptz[],
+                ${asks.map((a) => a.exclude.join(","))}::text[])
+      as k(key, thread_id, before, exclude)
     cross join lateral (
       select c.id from readable_content c
       where c.viewer_account_id = ${accountId}::uuid and c.thread_id = k.thread_id
         and c.deleted_at is null and c.done_at is null and c.archived_at is null
         and c.created_at < k.before
+        -- The turn's own rows are its rows, not neighbours: left out before
+        -- the limit, so a turn that changed the newest row still gets two.
+        and not (c.id::text = any(string_to_array(k.exclude, ',')))
       order by c.created_at desc
       limit ${NEIGHBOURS}
     ) c`.execute(db);
-  for (const row of found.rows) {
-    const ask = asks.find((a) => a.key === row.key)!;
-    if (ask.exclude.includes(row.id)) continue;
-    out.set(row.key, [...(out.get(row.key) ?? []), row.id]);
-  }
+  for (const row of found.rows) out.set(row.key, [...(out.get(row.key) ?? []), row.id]);
   return out;
 }
 

@@ -354,3 +354,35 @@ Where the build moved from the sections above. The code is the reference.
 - **The calendar pill's confirm.** It answers `{ confirm, pendingId }`, and the client uses the existing pending-write confirm.
 - **`readDay`** takes `{ past: true }`, and `GET /v1/today/day` takes `past=1`, for a reply showing a day up to a year back. `agendaQuery` now selects the row's location and place, so Today's rows carry them too.
 - **`shown`** is validated at the internal boundary as one real date, or a span of at most 62 days in order. It is written on offload's reply and cleared on a re-answer that shows nothing.
+- **After the API reviews (2026-11-17):**
+  - **The Undo's restore is scoped to the reader.** `restoreChanges` reads a row through `readable_content` and a thread through an accepted membership, so a row or a thread the reader has left is neither changed back nor named. It nulls the values it put back.
+  - **The export carries only what the person can still read.** `turn_changes` reaches it only for rows in `readable_content` and threads the person is still in.
+  - **One reading of a turn's events.** `eventsOfTurn` is the reading shared by `undoCalendarWrites` and the late Undo's confirm. The confirm also asks about the turn's own performed tool writes (`connector_pending_writes` confirmed), each treated as a removal, the stricter test, so a late Undo never touches a calendar others see without asking. Rows that found an event (`calendar_found`) are never in the set, since the Undo only unlinks them.
+  - **Neighbours exclude the turn's own rows inside the query**, before the limit, so a turn that changed the newest open row still shows two.
+  - **The agent normalises a window's midnight** (`_moment`), so the same week written two ways is one read.
+  - **The calendar pill's ten seconds stay:** eight on screen, two for transit.
+  - **Known and accepted:** `?confirmed=1` is the person's own client saying yes to their own Undo, with no server record that the line was shown (security review, medium; the owner's call). An account that never dumps again keeps its last turn's values until deletion (`shortcut:` at the retire).
+
+## As built, clients (2026-11-17)
+
+- **The component names.** It is `ReplyParts.tsx` on both clients, since the web already had a `Reply.tsx` that renders offload's markup. The calendar is `CalendarSlice.tsx`.
+- **The turn form of the undo line.**
+  - On the phones it is a separate `TurnLine` export of `UndoLine.tsx`, because `UndoForm` lives in `@offload/widgets` and a turn's line is not an eight-second store entry.
+  - On the web it is a `turn` form plus a `clock` prop.
+- **Details expand by a plain conditional render on both.** `InPlace` is the Undo-in-place list, not a motion.
+- **The question bubble** sits after the reply's parts for answered turns too (the spec's order), no longer inside offload's bubble.
+- **Date and share pills.**
+  - On the phones they push the thread page with `edit=when` or `share=<accountId>`, which opens the row sheet at its date or the share sheet with that person picked.
+  - On the web, Add a date opens the row's edit modal as Today does (focus starts on the title). Share opens `ShareModal` with a `preselect`.
+- **The pill's own line** after a tap reads *Added* (from `summaryWords`) or *Reminder on*. *Reminder on*, *Since removed* and *not on a calendar* are client strings with no widgets function yet.
+- **Lazy reads.**
+  - On the phones they run on measure-at-layout, plus the sheet settling and a scroll ending, with at most three in flight.
+  - On the web they use `IntersectionObserver`.
+  - A reply's month and day reads pass `past=1`, and `readMonth` takes `{ past }` as `readDay` does.
+- **The two-week grid** always starts on Monday, matching the server's period. The month grid follows the person's week start.
+- **A partial turn** draws its slices with no pills and no undo line, so Finish and Undo never show together. A turn from another device shows its summary without Undo.
+- **AC-9's "was" line.**
+  - The API sends `previous` on calendar slices as well.
+  - Both clients draw *was {day}, {time}* under a moved entry while the Undo holds the values.
+- **The memories slice** carries up to seven others of the kind, unmarked, after the turn's own.
+- **The calendar slice's to-do ticks** are display only on the phones (`shortcut:`); list slices tick.

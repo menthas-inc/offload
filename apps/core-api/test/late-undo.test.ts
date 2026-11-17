@@ -90,3 +90,31 @@ describe("settled_at", () => {
     expect(m.settled_at).not.toBeNull();
   });
 });
+
+describe("what the reader can no longer reach (security review)", () => {
+  it("leaves another member's row alone once the reader is out of the thread, and names nothing", async () => {
+    const { join } = await import("./labels-kit.js");
+    const me = await account();
+    const them = await account("Tom Reilly");
+    const shared = await thread(them, "Their flat");
+    await join(shared, me);
+    const theirs = await row(them, shared, "Bins on Tuesday");
+    const d = await dump(me, "bins done");
+    await tool(app, { tool: "complete_content", jobId: d.jobId, toolCallId: "c1", contentId: theirs, done: true });
+    await settled(d.messageId, "1 minute");
+    await db.updateTable("content").set({ title: "Bins on Wednesday", updated_at: new Date() }).where("id", "=", theirs).execute();
+    await db.updateTable("thread_members").set({ state: "removed" }).where("thread_id", "=", shared).where("account_id", "=", me).execute();
+    const res = await undo(me, d.turnId);
+    expect(JSON.stringify(res.json())).not.toContain("Bins");
+    const after = await db.selectFrom("content").select("done_at").where("id", "=", theirs).executeTakeFirstOrThrow();
+    expect(after.done_at).not.toBeNull();
+  });
+
+  it("forgets the values it put back", async () => {
+    const t = await turn();
+    await settled(t.messageId, "1 minute");
+    await undo(t.me, t.turnId);
+    const left = await sql<{ n: number }>`select count(*)::int as n from turn_changes where message_id = ${t.messageId}::uuid and previous is not null`.execute(db);
+    expect(left.rows[0]!.n).toBe(0);
+  });
+});

@@ -397,11 +397,19 @@ function ruleDays(row: AgendaRaw, anchor: string, first: string, last: string): 
  *  a shared thread must not be able to make another's month slow. A day
  *  before today or past the calendar copy's edge carries nothing, since it
  *  does not open. `bad_window` for anything that is not a short window. */
-export async function readMonth(accountId: string, from: string, to: string, now = new Date()): Promise<MonthResponse | "bad_window"> {
+export async function readMonth(
+  accountId: string,
+  from: string,
+  to: string,
+  now = new Date(),
+  /** 052. A reply's grid may show days gone by, up to a year back. */
+  opts: { past?: boolean } = {},
+): Promise<MonthResponse | "bad_window"> {
   if (!isDay(from) || !isDay(to) || to < from || to > addUtcDays(from, MONTH_DAYS)) return "bad_window";
   const zone = await zoneOf(accountId);
   const today = dayIn(now, zone);
-  const first = from < today ? today : from;
+  const earliest = opts.past ? addUtcDays(today, -DAYS_AHEAD) : today;
+  const first = from < earliest ? earliest : from;
   const edge = addUtcDays(today, DAYS_AHEAD);
   const last = to > edge ? edge : to;
   if (first > last) return { days: [] };

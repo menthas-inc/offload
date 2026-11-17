@@ -41,7 +41,7 @@ async function writable(me: string, name = "Personal") {
     .executeTakeFirstOrThrow();
   const cal = await db
     .insertInto("connector_calendars")
-    .values({ connection_id: conn.id, external_id: `cal-${name}-${Math.random()}`, summary: name, access_role: "owner", selected: true, participants: 1, is_primary: false, colour: "#7986CB" })
+    .values({ connection_id: conn.id, external_id: `cal-${name}-${Math.random()}`, summary: name, access_role: "owner", selected: true, participants: 1, is_primary: false, colour: "provider-lavender" })
     .returning("id")
     .executeTakeFirstOrThrow();
   return cal.id;

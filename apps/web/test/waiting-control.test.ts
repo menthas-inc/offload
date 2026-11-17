@@ -57,11 +57,12 @@ describe("a proposed calendar write, once it is answered", () => {
 });
 
 describe("a tapped calendar, for a row where no thread is named", () => {
-  it("wears Done from what the server says the tap did, not from a pill", () => {
-    // The default thread has no pill, so `threads` is empty on a tap that
-    // wrote. Done was drawn from the pills alone and waited for a reload.
+  // 052 retired the Done mark (AC-1): what a turn did is its reply's undo
+  // line, from the record, so the composer no longer works out a Done at all.
+  it("draws no Done from pills or from anything else", () => {
     expect(source).not.toContain("did: (sent.threads?.length ?? 0) > 0");
-    expect(source).toContain("did: turnDid(sent)");
+    expect(source).not.toMatch(/did: turnDid/);
+    expect(source).not.toContain('"done" as const');
   });
 });
 

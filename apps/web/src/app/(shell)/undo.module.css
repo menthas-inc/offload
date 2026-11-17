@@ -36,6 +36,25 @@
   color: var(--text-secondary);
 }
 
+/* 052. At the foot of a reply: what the turn did in moss, Undo in ink. No
+   ground of its own; the rule runs along its foot for the first eight
+   seconds. */
+.turn {
+  min-height: 44px;
+  padding: var(--space-0);
+  color: var(--text-accent);
+  font-weight: var(--weight-medium);
+}
+
+.turn .action {
+  margin-left: auto;
+  color: var(--text-primary);
+}
+
+.turn[role="alert"] {
+  color: var(--text-secondary);
+}
+
 .glyph {
   flex: 0 0 auto;
 }

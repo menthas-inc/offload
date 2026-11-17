@@ -28,15 +28,15 @@ describe("pillLabel", () => {
     expect(pillLabel({ kind: "date" })).toBe("Add a date");
     expect(pillLabel({ kind: "remind" })).toBe("Remind me");
     expect(pillLabel({ kind: "directions" })).toBe("Directions");
-    expect(pillLabel({ kind: "calendar", calendar: { id: "c", name: "Personal", colour: "#7986CB" } })).toBe("Add to Personal");
+    expect(pillLabel({ kind: "calendar", calendar: { id: "c", name: "Personal", colour: "provider-lavender" } })).toBe("Add to Personal");
     expect(pillLabel({ kind: "share", person: { accountId: "a", name: "Ana Duarte" } })).toBe("Share with Ana");
   });
 
   it("keeps every label to 24 characters, cutting a long name at a word", () => {
-    const label = pillLabel({ kind: "calendar", calendar: { id: "c", name: "Family and friends shared calendar", colour: "#000" } });
+    const label = pillLabel({ kind: "calendar", calendar: { id: "c", name: "Family and friends shared calendar", colour: "provider-black" } });
     expect(label).toBe("Add to Family and…");
     expect(label.length).toBeLessThanOrEqual(24);
-    const one = pillLabel({ kind: "calendar", calendar: { id: "c", name: "Supercalifragilisticexpialidocious", colour: "#000" } });
+    const one = pillLabel({ kind: "calendar", calendar: { id: "c", name: "Supercalifragilisticexpialidocious", colour: "provider-black" } });
     expect(one.length).toBeLessThanOrEqual(24);
   });
 });
@@ -86,6 +86,6 @@ describe("the words", () => {
       alsoLine([{ id: "1", name: "x" }])!.lead,
       sourceLine([1, 2, 3, 4].map((n) => ({ domain: `${n}.com`, url: "" })))!.more!,
     ].join(" ");
-    expect(all).not.toMatch(/[–—]|\b(item|thing|things|folder|capture)\b/i);
+    expect(all).not.toMatch(/[\u2013\u2014]|\b(item|thing|things|folder|capture)\b/i);
   });
 });

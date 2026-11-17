@@ -21,7 +21,7 @@ import { Icon } from "../Icon";
 import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
 import { useClock } from "../../lib/clock";
-import type { FoundResult, FoundRow } from "../../lib/dump";
+import type { FoundResult, FoundRow, SliceNote } from "../../lib/dump";
 import styles from "../../app/(shell)/answer.module.css";
 
 /** This surface's default, passed in rather than reached for.
@@ -73,20 +73,35 @@ export function AnswerResults({
   return (
     <div className={styles.results}>
       {found.map((result) => (
-        <Result key={result.threadId} result={result} onToggle={onToggle} shown={shown} />
+        <AnswerResult key={result.threadId} result={result} onToggle={onToggle} shown={shown} />
       ))}
     </div>
   );
 }
 
-function Result({
+/** One result, and since 052 one slice of a reply: the same card for a read
+ *  and for where a dump landed. */
+export function AnswerResult({
   result,
   onToggle,
-  shown,
+  shown = ROWS_SHOWN,
+  count,
+  marked,
+  notes = [],
+  eyebrow,
 }: {
   result: FoundResult;
   onToggle?: (row: FoundRow) => void;
-  shown: number;
+  shown?: number;
+  /** 052. The thread's open count; not drawn at zero. Absent counts the rows. */
+  count?: number;
+  /** 052. The rows and notes that take the change mark: only when the turn's
+   *  result arrived on this screen, never on a load. */
+  marked?: ReadonlySet<string>;
+  /** 052. What the turn wrote about the thread, under Notes, in offload's voice. */
+  notes?: SliceNote[];
+  /** 052. Over the name: New thread, for a thread the turn started. */
+  eyebrow?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { zone, today } = useClock();
@@ -99,17 +114,31 @@ function Result({
   // words, and the full list where the thread would open.
   const loose = result.threadName === null;
   const href = loose ? "/threads/loose" : `/threads/${result.threadId}`;
+  const counted = count ?? result.rows.length;
+  const mark = (id: string) => (marked?.has(id) ? { "data-marked": true, className: styles.marked } : null);
 
   return (
     <div className={styles.card}>
       <Link href={href} className={styles.head}>
         {loose ? null : <ThreadIcon icon={result.threadIcon ?? DEFAULT_THREAD_ICON} hue={result.threadHue ?? 1} seed={result.threadId} size={18} round />}
-        <b className={styles.headName}>{loose ? "Not in a thread" : result.threadName}</b>
-        <span className={styles.headCount}>{result.rows.length}</span>
+        {eyebrow ? (
+          <span className={styles.headStack}>
+            <span className={styles.eyebrow}>{eyebrow}</span>
+            <b className={styles.headNameNew}>{result.threadName}</b>
+          </span>
+        ) : (
+          <b className={styles.headName}>{loose ? "Not in a thread" : result.threadName}</b>
+        )}
+        {counted > 0 ? <span className={styles.headCount}>{counted}</span> : null}
       </Link>
 
       {drawn.map((row) => (
-        <div key={row.contentId} className={`${styles.row} ${row.done ? styles.done : ""}`} data-row>
+        <div
+          key={row.contentId}
+          className={`${styles.row} ${row.done ? styles.done : ""} ${mark(row.contentId)?.className ?? ""}`}
+          data-row
+          data-marked={mark(row.contentId)?.["data-marked"]}
+        >
           {onToggle && tickable(row.type) ? (
             <button
               type="button"
@@ -156,6 +185,21 @@ function Result({
           </span>
         </div>
       ))}
+
+      {notes.length > 0 ? (
+        <div data-notes>
+          <span className={styles.section}>Notes</span>
+          {notes.map((note) => (
+            <p
+              key={note.id}
+              className={`${styles.note} ${mark(note.id)?.className ?? ""}`}
+              data-marked={mark(note.id)?.["data-marked"]}
+            >
+              {note.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
 
       {/* Whichever tail is true, never both. There is more in hand, or the read
           hit its page and what was not read was not sent, so there is nothing

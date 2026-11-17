@@ -229,6 +229,29 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               .select(["message_id", "target_id", "tool", "previous"])
               .where("account_id", "=", accountId)
               .where("message_id", "in", messageIds)
+              // Only what the person can still read: a row or a thread they
+              // have left keeps its earlier words out of their copy.
+              .where((eb) =>
+                eb.or([
+                  eb.and([
+                    eb("target_kind", "=", "content"),
+                    eb.exists(
+                      eb.selectFrom("readable_content as c").select("c.id").whereRef("c.id", "=", "turn_changes.target_id").where("c.viewer_account_id", "=", accountId),
+                    ),
+                  ]),
+                  eb.and([
+                    eb("target_kind", "=", "thread"),
+                    eb.exists(
+                      eb
+                        .selectFrom("thread_members as m")
+                        .select("m.thread_id")
+                        .whereRef("m.thread_id", "=", "turn_changes.target_id")
+                        .where("m.account_id", "=", accountId)
+                        .where("m.state", "=", "accepted"),
+                    ),
+                  ]),
+                ]),
+              )
               .orderBy("created_at")
               .execute();
 

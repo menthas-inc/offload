@@ -19,7 +19,7 @@
   - Add an entry for `turn_changes` retention.
 
   *(OFF-6, DEV-2)*
-- [ ] **T0.3** `.claude/skills/offload-design/decisions.md`: one entry, *Replies in place*, with **Design system impact** filled in. It covers:
+- [x] **T0.3** `.claude/skills/offload-design/decisions.md`: one entry, *Replies in place*, with **Design system impact** filled in. It covers:
   - `TurnFooter` retired;
   - `AnswerResult` as the list slice;
   - `UndoLine`'s `turn` form;
@@ -134,20 +134,20 @@
 
 ## Web
 
-- [ ] **T4.1** Remove `TurnFooter.tsx`, `footerFor` and their renders.
+- [x] **T4.1** Remove `TurnFooter.tsx`, `footerFor` and their renders.
   - Test: a filing turn renders no Done, no thread pill and no source pill.
 
   *(AC-1)*
-- [ ] **T4.0** `AnswerResult` on the web gains `count` (the open count, hidden at zero), `marked` and `notes`. Component tests. *(AC-2, AC-11)*
-- [ ] **T4.2** `Reply.tsx` with `ListSlice` (via `AnswerResult` with `marked`), `NewThreadSlice`, `MemoriesSlice`, `Also`, `Pills` (Chip, 44 targets), `SourceLine`, and `UndoLine` `turn`.
+- [x] **T4.0** `AnswerResult` on the web gains `count` (the open count, hidden at zero), `marked` and `notes`. Component tests. *(AC-2, AC-11)*
+- [x] **T4.2** `Reply.tsx` with `ListSlice` (via `AnswerResult` with `marked`), `NewThreadSlice`, `MemoriesSlice`, `Also`, `Pills` (Chip, 44 targets), `SourceLine`, and `UndoLine` `turn`.
   - Component tests for AC-2, AC-7, AC-8, AC-10, AC-12, AC-22, and the order of the parts.
 
   *(AC-2, AC-7, AC-8, AC-10, AC-12, AC-22, AC-26)*
-- [ ] **T4.3** `MonthGrid` `still`: no arrows, no Today, `onStep` optional. `CalendarSlice` reads `/v1/today/month` and `/v1/today/day` lazily, cached per key. A day tap swaps the list. Entries expand in place with span, place and Directions, thread, and calendar dot or *not on a calendar*.
+- [x] **T4.3** `MonthGrid` `still`: no arrows, no Today, `onStep` optional. `CalendarSlice` reads `/v1/today/month` and `/v1/today/day` lazily, cached per key. A day tap swaps the list. Entries expand in place with span, place and Directions, thread, and calendar dot or *not on a calendar*.
   - Tests: the two-week and month periods, today outlined, the day filled, the entry expand and fold with `aria-expanded`, the 60-character title wrapped at the composer's minimum width.
 
   *(AC-3, AC-4, AC-5, AC-6, AC-26)*
-- [ ] **T4.4** The undo line's two phases.
+- [x] **T4.4** The undo line's two phases.
   - First eight seconds: 043's clock and whole-turn removal.
   - Late: no clock, slices fold to *Undone*, `changed` named, `confirm` opens the pending-write confirm.
   - Retired at the next dump.
@@ -155,24 +155,24 @@
   - No plate line for a conversation dump.
 
   Tests for each. *(AC-17, AC-19, AC-20, AC-21)*
-- [ ] **T4.5** Pill taps: date opens the edit modal at the date field; calendar and remind call the route and draw 043's under line with Undo; share opens 022's confirmation with the person; directions opens the link. Component tests. *(AC-12 to AC-15)*
-- [ ] **T4.6** States: partial, cancelled and failed turns; offline reopen. Change mark only on live arrival. Tests. *(AC-25)*
-- [ ] **T4.7** Run `dead-classes.mjs`, `dead-css.mjs` and `dead-icons.mjs`, and lint.
+- [x] **T4.5** Pill taps: date opens the edit modal at the date field; calendar and remind call the route and draw 043's under line with Undo; share opens 022's confirmation with the person; directions opens the link. Component tests. *(AC-12 to AC-15)*
+- [x] **T4.6** States: partial, cancelled and failed turns; offline reopen. Change mark only on live arrival. Tests. *(AC-25)*
+- [x] **T4.7** Run `dead-classes.mjs`, `dead-css.mjs` and `dead-icons.mjs`, and lint.
 
 ## Mobile
 
-- [ ] **T5.1** Remove the inline `TurnFooter` in `Conversation.tsx`. Test as T4.1. *(AC-1)*
-- [ ] **T5.0** `AnswerResult` on the phones gains `count`, `marked` and `notes`, as T4.0. *(AC-2, AC-11)*
-- [ ] **T5.2** `Reply.tsx` and its slices, as T4.2. *(AC-2, AC-7, AC-8, AC-10, AC-12, AC-22, AC-26)*
-- [ ] **T5.3** `components/shell/MonthGrid.tsx` `still`, which also turns off its horizontal pan. `CalendarSlice` lazy reads use list viewability. Expand through `useInPlace`. Tests as T4.3, plus no pan handler in `still`. *(AC-3 to AC-6, AC-26)*
-- [ ] **T5.4** The undo line's two phases and `Plate.tsx` skipping the plate line, as T4.4. *(AC-17, AC-19 to AC-21)*
-- [ ] **T5.5** Pill taps, as T4.5, with the row sheet for date and 022's share sheet. *(AC-12 to AC-15)*
-- [ ] **T5.6** States and the change mark, as T4.6. *(AC-25)*
-- [ ] **T5.7** Run `dead-icons.mjs` and `dead-classes.mjs`, and the mobile typecheck. Refresh stale `.expo` route types first if needed.
+- [x] **T5.1** Remove the inline `TurnFooter` in `Conversation.tsx`. Test as T4.1. *(AC-1)*
+- [x] **T5.0** `AnswerResult` on the phones gains `count`, `marked` and `notes`, as T4.0. *(AC-2, AC-11)*
+- [x] **T5.2** `Reply.tsx` and its slices, as T4.2. *(AC-2, AC-7, AC-8, AC-10, AC-12, AC-22, AC-26)*
+- [x] **T5.3** `components/shell/MonthGrid.tsx` `still`, which also turns off its horizontal pan. `CalendarSlice` lazy reads use list viewability. Expand through `useInPlace`. Tests as T4.3, plus no pan handler in `still`. *(AC-3 to AC-6, AC-26)*
+- [x] **T5.4** The undo line's two phases and `Plate.tsx` skipping the plate line, as T4.4. *(AC-17, AC-19 to AC-21)*
+- [x] **T5.5** Pill taps, as T4.5, with the row sheet for date and 022's share sheet. *(AC-12 to AC-15)*
+- [x] **T5.6** States and the change mark, as T4.6. *(AC-25)*
+- [x] **T5.7** Run `dead-icons.mjs` and `dead-classes.mjs`, and the mobile typecheck. Refresh stale `.expo` route types first if needed.
 
 ## Close
 
-- [ ] **T6.1** The checks CI runs, from the root: `pnpm typecheck`, lint, every suite, the dead-class scripts. Record each suite's exit code and vitest's Errors line.
+- [x] **T6.1** The checks CI runs, from the root: `pnpm typecheck`, lint, every suite, the dead-class scripts. Record each suite's exit code and vitest's Errors line.
 - [ ] **T6.2** Device pass on the Pixel and the iOS simulator. Take the `pixel` and `sim-<device>` holds. Run the twelve reference turns in `design/twelve-turns.dc.html`. On each device check:
   - expanding an entry mid-scroll inside the conversation sheet;
   - a grid inside the sheet with no pan conflict;
