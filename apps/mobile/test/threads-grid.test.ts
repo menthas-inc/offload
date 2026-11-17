@@ -17,7 +17,7 @@ vi.mock("../lib/api", () => ({
 }));
 
 const threads = await import("../lib/threads");
-const { cellAt, cellUnder, gridMetrics, HOLD_MS, STILL_PT } = await import("../lib/threadGrid");
+const { cellAt, cellUnder, gridMetrics, HOLD_MS, STILL_PT, tileFit } = await import("../lib/threadGrid");
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8").replace(/\/\/.*$/gm, "");
 const screen = read("../components/screens/MyThreads.tsx");
@@ -114,7 +114,9 @@ describe("the screen (AC-1, AC-2, AC-7)", () => {
   });
 
   it("caps the tile's text size, since the square cannot grow", () => {
-    expect(tile.match(/maxFontSizeMultiplier=\{1\.3\}/g)?.length).toBe(2);
+    // The name, its line and the +N; the initials sit in a fixed 24 circle and do not grow.
+    expect(tile.match(/maxFontSizeMultiplier=\{1\.3\}/g)?.length).toBe(3);
+    expect(tile).toContain("maxFontSizeMultiplier={1}");
   });
 
   it("names each tile with its line, and offers a screen reader Move earlier and Move later", () => {
@@ -137,14 +139,49 @@ describe("the tile (AC-5, AC-6)", () => {
     expect(tile).toMatch(/corner/);
   });
 
-  it("draws the glyph again behind it, hardened, at 190%, 12% white, from the seed", () => {
-    expect(tile).toMatch(/<Glyph[^>]*hard/);
-    expect(tile).toContain("backGlyph(");
-    expect(tile).toContain("1.9");
-    expect(tile).toContain("0.12");
-    expect(glyph).toContain('strokeLinecap={hard ? "square" : "round"}');
-    expect(glyph).toContain('strokeLinejoin={hard ? "miter" : "round"}');
-    expect(glyph).toContain("strokeWidth={hard ? 3 : 2}");
-    expect(glyph).toMatch(/rx=\{hard \? 0 : shape\.rx\}/);
+  // 2026-11-17: the owner could not tell tiles apart. The name leads, large,
+  // the glyph is large at the foot, and the back glyph is gone.
+  it("leads with the name on two lines, then its line on one, and draws no back glyph", () => {
+    expect(tile).not.toContain("backGlyph");
+    expect(tile).not.toMatch(/<Glyph[^>]*hard/);
+    expect(glyph).not.toContain("hard");
+    const name = tile.indexOf("{thread.name}");
+    const meta = tile.indexOf("{thread.meta}");
+    expect(name).toBeGreaterThan(-1);
+    expect(meta).toBeGreaterThan(name);
+    expect(tile).toMatch(/numberOfLines=\{2\}[^>]*>\s*\{thread\.name\}/);
+    expect(tile).toMatch(/numberOfLines=\{1\}[^>]*>\s*\{thread\.meta\}/);
+  });
+
+  it("puts the people and the glyph at the foot, after the text, so neither narrows the name", () => {
+    const meta = tile.indexOf("{thread.meta}");
+    const faces = tile.indexOf("faces.slice(0, 2)");
+    const big = tile.search(/<Glyph name=\{glyph\} size=\{fit\.glyph\}/);
+    expect(faces).toBeGreaterThan(meta);
+    expect(big).toBeGreaterThan(faces);
+  });
+
+  it("keeps the 54 glyph and the line on a 375 or 402 phone at the default text size", () => {
+    for (const width of [375, 402]) expect(tileFit(gridMetrics(width, 20).side, 1)).toEqual({ glyph: 54, meta: true });
+  });
+
+  it("drops the line whole, never the name, when two lines of name and the line do not fit", () => {
+    // 375, larger text: the name's two lines still fit, the line goes.
+    expect(tileFit(161, 1.15)).toEqual({ glyph: 54, meta: false });
+    // 320 (Display Zoom): a smaller glyph, and no line.
+    expect(tileFit(134, 1)).toEqual({ glyph: 45, meta: false });
+    // 320 at the largest text: the glyph gives way to the name, down to 30.
+    expect(tileFit(134, 1.3)).toEqual({ glyph: 33, meta: false });
+    expect(tileFit(100, 1.3).glyph).toBe(30);
+    // The text scale is capped where the tile caps it.
+    expect(tileFit(161, 2)).toEqual(tileFit(161, 1.3));
+  });
+
+  it("draws by the fit, with the name at title-1 and the line at caption", () => {
+    expect(tile).toContain("tileFit(side, fontScale)");
+    expect(tile).toMatch(/size=\{fit\.glyph\}/);
+    expect(tile).toMatch(/fit\.meta && thread\.meta \?/);
+    expect(tile).toContain("text-title-1");
+    expect(tile).toContain("text-caption");
   });
 });

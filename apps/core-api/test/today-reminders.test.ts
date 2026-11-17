@@ -225,9 +225,11 @@ describe("dismiss: this reminder, not the thing", () => {
   it("is swept by the purge once its day is a week past, and not before", async () => {
     const me = await account();
     const t = await thread([me]);
-    const form = await row(me, t, "Submit the form", { day: "2026-11-04" });
-    await labelled(me, { contentId: form }, { kind: "deadline", lead: "days" });
-    await dismissReminder(me, { of: "content", id: form, day: "2026-11-04", window: "short" }, NOW);
+    // The purge reads the real clock, so the kept row's day is today: a fixed
+    // day here went stale a week after it (2026-11-11).
+    const today = new Date().toISOString().slice(0, 10);
+    const form = await row(me, t, "Submit the form", { day: today });
+    await db.insertInto("reminder_dismissals").values({ account_id: me, content_id: form, occurrence: today, window_name: "short" } as never).execute();
     const past = await row(me, t, "Last year's form", { day: "2026-01-04" });
     await db.insertInto("reminder_dismissals").values({ account_id: me, content_id: past, occurrence: "2026-01-04", window_name: "day" } as never).execute();
     await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
