@@ -71,6 +71,9 @@ export type JobKind =
   // Drained by the Python worker, which holds the key; enqueued by the
   // transcript write and by blob.daily for any reference left behind.
   | "voice.forget"
+  // 051. A memory's calendar event, deleted after a forget's Undo has closed
+  // or moved after the memory pass read a new day into its words.
+  | "memory.event"
   // 022. Expiry made explicit for requests, waiting shares and proposals,
   // and the record of who asked whom kept only as long as the seven-day
   // rule reads it.

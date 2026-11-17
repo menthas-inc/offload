@@ -52,6 +52,12 @@ export function askedToForget(said: string): boolean {
  *  of it they said, and an always, a never or a from now on in what they said. */
 export function ruleGrounded(text: string, said: string): boolean {
   if (!/\b(always|never|from now on)\b/i.test(said.normalize("NFKC"))) return false;
+  return everyWordHeard(text, said);
+}
+
+/** Every word of it, bar the ignored ones, in what they said. A rule is held
+ *  to this, and so is a birthday nobody asked offload to remember (051). */
+export function everyWordHeard(text: string, said: string): boolean {
   const own = new Set(flat(said).split(" ").filter(Boolean));
   const mine = words(text);
   return mine.length > 0 && mine.every((word) => heard(word, own));

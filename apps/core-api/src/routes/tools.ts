@@ -79,6 +79,8 @@ import { linkPhoto, pdfForRow, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
 import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
 import { forget, remember } from "../memories/store.js";
+import { rememberDay } from "../memories/birthdays.js";
+import { dayOnCalendar, type DayCalendar } from "../memories/calendar.js";
 import { askedToForget, askedToRemember, groundedIn, ruleGrounded } from "../memories/ground.js";
 import { flat } from "../memories/flat.js";
 
@@ -159,8 +161,17 @@ const body = z.discriminatedUnion("tool", [
     text: z.string().max(400).nullish(),
     kind: z.enum(["people", "things", "about", "rules", "patterns"]).nullish(),
     memoryId: z.string().uuid().nullish(),
+    /** 051. A day that comes round every year, as `MM-DD`, and the few words
+     *  of the sentence that name whose it is. */
+    on: z.string().regex(/^\d{2}-\d{2}$/).nullish(),
+    name: z.string().max(60).nullish(),
+    /** 051. Their words for a calendar, or "any" for one they did not name. */
+    calendar: z.string().max(120).nullish(),
     /** Set by the worker, never the model: the turn has read a web page. */
     afterLookup: z.boolean().optional(),
+    /** Set by the worker, never the model: the turn has read another
+     *  member's note or row. */
+    afterMembers: z.boolean().optional(),
   }),
   z.strictObject({
     tool: z.literal("create_thread"),
@@ -655,7 +666,13 @@ const result = z.union([
   /** The row found its event: written by nobody here, so nothing to say. */
   z.object({ ok: z.literal(true), alreadyOn: z.literal(true) }),
   /** 038. What the memory tool did. */
-  z.object({ ok: z.literal(true), remembered: z.object({ id: z.string() }) }),
+  z.object({
+    ok: z.literal(true),
+    remembered: z.object({ id: z.string() }),
+    /** 051. What became of a remembered day on a calendar: nothing to say
+     *  unless it is `noCalendar` they asked for, `waiting`, or `refused`. */
+    calendar: z.enum(["written", "asked", "waiting", "noCalendar", "refused"]).nullable().optional(),
+  }),
   z.object({ ok: z.literal(true), forgot: z.object({ id: z.string() }) }),
   z.object({
     ok: z.literal(false),
@@ -794,7 +811,7 @@ type Outcome =
   | { ok: true; asked: true }
   | { ok: true; noCalendar: true }
   | { ok: true; alreadyOn: true }
-  | { ok: true; remembered: { id: string } }
+  | { ok: true; remembered: { id: string }; calendar?: DayCalendar }
   | { ok: true; forgot: { id: string } }
   | {
       ok: false;
@@ -978,6 +995,15 @@ async function memoryTool(
       return gone.ok ? { ok: true, forgot: { id: gone.id } } : gone;
     }
     if (!call.text || !call.kind) return { ok: false, error: "empty" };
+    // 051. A day that comes round every year, asked for or not, under its own
+    // gate. Another member's words in the turn are enough to refuse it: with
+    // no ask to anchor it, a day from their note is otherwise indistinguishable.
+    if (call.on) {
+      // Fails closed: a worker that does not say is a turn that may have.
+      if (call.afterMembers !== false) return { ok: false, error: "untrusted_turn" };
+      const kept = await rememberDay(trx, { accountId: turn.accountId, messageId: turn.messageId, said, text: call.text, kind: call.kind, on: call.on, name: call.name });
+      return kept.ok ? { ok: true, remembered: { id: kept.id } } : kept;
+    }
     // Asked for in so many words, and the words their own: a rule, which
     // every later turn follows, to every word of it.
     if (!askedToRemember(said) || !groundedIn(call.text, said)) return { ok: false, error: "not_their_words" };
@@ -2219,6 +2245,19 @@ export async function toolRoutes(app: App): Promise<void> {
         };
         })
       );
+
+      // 051. A day the turn remembered goes on a calendar once it is
+      // committed, so the write's own connection sees the memory, and
+      // Google is never called from inside the transaction.
+      if (call.tool === "memory" && call.on && messageId && outcome.ok && "remembered" in outcome) {
+        const calendar = await dayOnCalendar({ accountId, messageId, noteId: outcome.remembered.id, calendar: call.calendar, name: call.name, sawApps }).catch(
+          (error: unknown) => {
+            console.log(JSON.stringify({ level: "warn", msg: "memory calendar failed", error: error instanceof Error ? error.name : "unknown" }));
+            return null;
+          },
+        );
+        return reply.send({ ...outcome, calendar });
+      }
 
       return reply.send(outcome);
     }
