@@ -1,12 +1,13 @@
 {
-  "statement": "The answer is the reply and nothing is wrapped around it. Which ones is a list with no count in front; which one, when or where is a sentence or less; yes or no is yes or no; one level down is not answered; one side of a pair is not the pairing; rows drawn beside the reply are not typed out again; context is added only when it changes what they would do next.",
+  "statement": "The answer is the reply and nothing is wrapped around it. Which ones is a list with no count in front; which one, when or where is a sentence or less; yes or no is yes or no; one level down is not answered; one side of a pair is not the pairing; rows drawn beside the reply are not typed out again; context is added only when it changes what they would do next; a read of days is drawn beside the reply as a calendar, so its answer is the count, while calendars and connected apps are still listed in words.",
   "why": "They asked for one thing. A reply that begins Two: and ends by explaining the item they did not ask about has said the answer once and everything else twice. Going one level down is the commonest way a short answer becomes a long one.",
   "sources": [
     "013: reply shape",
     "013 AC-5, AC-5b",
     "answer.md: The answer is the reply",
     "the brevity change of 2026-09-10, measured with /test-llm",
-    "answer.md: a row not in a thread answers like any other (F1, 2026-10-17)"
+    "answer.md: a row not in a thread answers like any other (F1, 2026-10-17)",
+    "052: a read of days is drawn beside the reply (answer.md, 2026-11-17)"
   ],
   "cases": [
     {
@@ -1487,6 +1488,34 @@
           "try"
         ],
         "rubric": "One short sentence that offload does not have the optician, or nothing about it. No apology, no suggestion to try other words, nothing about threads."
+      }
+    },
+    {
+      "id": "a-week-is-drawn-beside-the-reply",
+      "why": "052: the week a read covers is drawn beside the reply with every entry under its day, so the words are the count and nothing listed",
+      "surface": "answer",
+      "input": "what's on next week?",
+      "context": "calendar",
+      "expect": {
+        "max_words": 6,
+        "must_not_contain": [
+          "Standup",
+          "Dinner"
+        ],
+        "rubric": "Says how many are on next week in one short sentence and names none of them: the week is drawn beside the reply."
+      }
+    },
+    {
+      "id": "calendars-are-still-listed",
+      "why": "052: calendars are not drawn beside a reply, so asked which ones offload reads, the list is still the reply",
+      "surface": "answer",
+      "input": "which calendars do you read?",
+      "context": "calendar",
+      "expect": {
+        "contains": [
+          "Studio"
+        ],
+        "rubric": "Names the calendars offload reads. A list, no count in front."
       }
     }
   ]

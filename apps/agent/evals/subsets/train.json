@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 526,
+  "count": 528,
   "cases": [
     "a-birthday-and-a-task",
     "a-birthday-for-the-calendar-is-still-a-memory",
@@ -24,6 +24,7 @@
     "a-typed-appointment-does-not-look-first",
     "a-typed-time-after-the-clocks-change",
     "a-typed-time-is-their-clock",
+    "a-week-is-drawn-beside-the-reply",
     "after-the-20th",
     "an-anniversary-is-a-memory",
     "an-earlier-email-reads-as-a-count",
@@ -85,6 +86,7 @@
     "calendar-not-connected-cancel",
     "calendar-not-connected-move",
     "calendar-write",
+    "calendars-are-still-listed",
     "call-with-day-and-time",
     "call-with-day-only-asks-time",
     "cancel-for-good",

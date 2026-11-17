@@ -112,15 +112,15 @@
 
 ## Agent
 
-- [ ] **T2.1** `worker.py` answered result: `shown` from a single `list_agenda` read's window (one day `on`, longer `span`), and `shown.on` from a lookup's structured `date`.
+- [x] **T2.1** `worker.py` answered result: `shown` from a single `list_agenda` read's window (one day `on`, longer `span`), and `shown.on` from a lookup's structured `date`.
   - Tests in `apps/agent/tests`: a week read posts `shown.span`; a one-day read posts `shown.on`; a fact answer with a date posts `shown.on`; a list-content answer posts none.
 
   *(AC-11)*
-- [ ] **T2.2** `prompts/answer.md:51` rewritten positively for calendars and connected apps, with a line that a read of days is answered with its count. Principle 17's `statement` and `sources` are updated in the same change. Add cases to `apps/agent/evals/principles/17-the-answer-is-the-reply.json`:
+- [x] **T2.2** `prompts/answer.md:51` rewritten positively for calendars and connected apps, with a line that a read of days is answered with its count. Principle 17's `statement` and `sources` are updated in the same change. Add cases to `apps/agent/evals/principles/17-the-answer-is-the-reply.json`:
   - *what's on this week?* answers with the count only;
   - *which calendars do you read?* still lists them.
 
-  **Running them waits for the owner's go-ahead.** The before and after runs of principle 17 come only with that permission.
+  **Cases written 2026-11-17; not run yet: running them waits for the owner's go-ahead.** `find_events` over the same window counts as the same read (`DAY_READS`). The before and after runs of principle 17 come only with that permission.
 
   *(AC-29, OFF-8)*
 

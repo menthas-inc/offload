@@ -422,6 +422,9 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         "body = await call_tool(block.name, block.id, sent)",
         # 038. The same, setting that flag once a look-up has run.
         'if block.name == "look_up":',
+        # 052. A membership test against a closed set of the reads of days,
+        # recording the window from the arguments the schema validated.
+        'if block.name in DAY_READS and isinstance(body, dict) and body.get("ok"):',
         # Recorded on a list of what the server declined, with its reason: a
         # tool name and an error code, never a value. A string appended to a
         # list.
