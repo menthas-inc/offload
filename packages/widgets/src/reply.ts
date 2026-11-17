@@ -1,6 +1,11 @@
 // 052. The words a reply draws beside its slices, from the turn's record. No
 // model writes any of these (AC-23), so both clients word a reply the same way.
 
+import { dayIn } from "./days.js";
+import { timeIn } from "./nearness.js";
+import { dayTitle } from "./today.js";
+import { monthDated, monthFor, twoWeekFor, type Month, type MonthCount, type WeekStart } from "./timeline.js";
+
 export type SummaryKind = "new" | "filed" | "moved" | "ticked" | "changed" | "started" | "remembered" | "added";
 export interface ReplySummary {
   kind: SummaryKind;
@@ -103,4 +108,31 @@ export function periodLabel(day: string, today: string): string | null {
   if (away < 14) return null;
   const amount = away <= 26 * 7 ? `${Math.round(away / 7)} weeks` : `${Math.round(away / 30.44)} months`;
   return days > 0 ? `in ${amount}` : `${amount} ago`;
+}
+
+/** The grid for a reply's period: two weeks inside this week and next, from
+ *  Monday as the server's period is, the month otherwise, and only the weeks the period reaches. */
+export function gridFor(period: { from: string; to: string }, counts: readonly MonthCount[], today: string, weekStart: WeekStart = "monday"): Month {
+  const dated = monthDated(counts);
+  const days = Math.round((at(period.to) - at(period.from)) / DAY);
+  const grid = days <= 13 ? twoWeekFor(period.from, dated, today, "monday") : monthFor(period.from, dated, today, weekStart);
+  return { ...grid, weeks: grid.weeks.filter((week) => week.days[6]!.iso >= period.from && week.days[0]!.iso <= period.to) };
+}
+
+/** AC-9. When a moved entry was, from the reply's record of its date before
+ *  the turn, while the Undo holds it. */
+export function wasLine(previous: { dueAt?: string | null; occursAt?: string | null } | undefined, zone: string | null): string | null {
+  const at = previous?.occursAt ?? previous?.dueAt;
+  if (!at) return null;
+  const when = new Date(at);
+  return `was ${dayTitle(dayIn(when, zone))}, ${timeIn(when, zone, "en-GB")}`;
+}
+
+const COLOUR = /^(#[0-9a-f]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i;
+
+/** A calendar's colour as its provider stores it, only when it is a colour:
+ *  it goes into an inline style, where `url(...)` would fetch and a bad
+ *  string breaks the drawing. Null falls back to the token. */
+export function calendarColour(value: string | null | undefined): string | null {
+  return value && COLOUR.test(value) ? value : null;
 }

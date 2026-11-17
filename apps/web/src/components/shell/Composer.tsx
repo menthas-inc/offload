@@ -1072,19 +1072,23 @@ export function Composer({
     onFiled([]);
   }
 
+  const undoing = useRef(new Set<string>());
+
   /** 052. The reply's Undo. Its first eight seconds are 004's whole-turn
    *  Undo; after that, until the next dump, the server takes back the filing
    *  and keeps the dump, and the slices fold to what it says. The server
    *  decides which by its own clock; this only decides what to draw. */
   async function undoPressed(turn: Turn, confirmed = false): Promise<void> {
     const turnId = turn.turnId;
-    if (!turnId) return;
+    // A second press while the first is out sends nothing.
+    if (!turnId || undoing.current.has(turnId)) return;
+    undoing.current.add(turnId);
     if (!confirmed && Date.now() - (turn.settledAt ?? 0) < UNDO_MS) {
       markTurn(turnId, { undoFailed: false });
-      return undo(turnId);
+      return undo(turnId).finally(() => undoing.current.delete(turnId));
     }
     markTurn(turnId, { undoFailed: false, undoAsk: null });
-    const answer = await undoAnswer(turnId, confirmed);
+    const answer = await undoAnswer(turnId, confirmed).finally(() => undoing.current.delete(turnId));
     if (answer && !answer.undone && answer.confirm) return markTurn(turnId, { undoAsk: answer.confirm });
     if (!answer || !answer.undone) return markTurn(turnId, { undoFailed: true });
     markTurn(turnId, { undone: changedLine(answer.changed ?? []) });
@@ -1101,12 +1105,17 @@ export function Composer({
   /** 052. A pill tapped. Date, share and directions open what already exists;
    *  calendar and remind send the turn and the kind, and the server works out
    *  the row again. True when the pill has done its job. */
+  /** 052. A reply's row, or its Add a date, opens the row's edit modal as Today's rows do. */
+  async function openRow(contentId: string): Promise<void> {
+    const row = await fetchOne(contentId);
+    if (row) rowTools.handlers.onEdit(row);
+  }
+
   async function pillPressed(turn: Turn, pill: Pill): Promise<boolean> {
     const turnId = turn.turnId;
     if (!turnId) return false;
     if (pill.kind === "date") {
-      const row = pill.rowId ? await fetchOne(pill.rowId) : null;
-      if (row) rowTools.handlers.onEdit(row);
+      if (pill.rowId) await openRow(pill.rowId);
       return false;
     }
     if (pill.kind === "share") {
@@ -1119,6 +1128,10 @@ export function Composer({
     const kind = pill.kind;
     const at = { id: `pill:${turnId}`, icon: kind === "remind" ? "bell" : "calendar", form: "under" as const };
     const got = await tapPill(turnId, kind);
+    if (got === "refused") {
+      toast.show("That didn't go through", undefined, at);
+      return true;
+    }
     if (!got) {
       toast.show("That didn't go through", { label: "Retry", onPress: () => void pillPressed(turn, pill) }, at);
       return false;
@@ -1130,7 +1143,9 @@ export function Composer({
     }
     onFiled([]);
     const takeBack = async (): Promise<void> => {
-      if (await tapPill(turnId, kind, true)) onFiled([]);
+      const back = await tapPill(turnId, kind, true);
+      if (back === "refused") toast.show("Couldn't put that back", undefined, at);
+      else if (back) onFiled([]);
       else toast.show("Couldn't put that back", { label: "Retry", onPress: takeBack }, at);
     };
     toast.show(kind === "remind" ? "Reminder on" : summaryWords({ kind: "added", count: 1 }), { label: "Undo", onPress: takeBack }, at);
@@ -1246,6 +1261,7 @@ export function Composer({
         onAsk={(yes) => (yes ? void undoPressed(turn, true) : markTurn(turn.turnId!, { undoAsk: null }))}
         onToggle={(row) => void tick(turn.id, row)}
         onPill={(pill) => pillPressed(turn, pill)}
+        onOpen={(row) => void openRow(row.contentId)}
         onChanged={() => onFiled([])}
       />
     ) : null;

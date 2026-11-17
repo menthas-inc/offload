@@ -218,6 +218,29 @@ describe("the undo line (AC-17, AC-20)", () => {
     expect(host.querySelector('[data-part="undone"]')!.textContent).toBe("Undone, except Pay rent, which changed since");
   });
 
+  it("sends one late Undo however fast it is pressed twice", async () => {
+    answers["/v1/turns/t1/undo"] = () => new Response(JSON.stringify({ undone: true, changed: [] }), { status: 200 });
+    await answered();
+    await act(() => vi.advanceTimersByTimeAsync(9_000));
+    await act(async () => {
+      button("Undo")!.click();
+      button("Undo")!.click();
+    });
+    await settle();
+    expect(posted("/v1/turns/t1/undo")).toHaveLength(1);
+  });
+
+  it("sends one Undo inside the eight seconds however fast it is pressed twice", async () => {
+    answers["/v1/turns/t1/undo"] = () => new Response(JSON.stringify({ undone: true }), { status: 200 });
+    await answered();
+    await act(async () => {
+      button("Undo")!.click();
+      button("Undo")!.click();
+    });
+    await settle();
+    expect(posted("/v1/turns/t1/undo")).toHaveLength(1);
+  });
+
   it("asks first when a late Undo would take an event off a calendar others see", async () => {
     let asked = false;
     answers["/v1/turns/t1/undo"] = () => {
@@ -272,6 +295,15 @@ describe("pills (AC-12 to AC-16)", () => {
     await act(async () => undos.find((one) => !undoLine()!.contains(one))!.click());
     await settle();
     expect(posted("/v1/turns/t1/pills").map((one) => one.body)).toEqual(['{"kind":"calendar"}', '{"kind":"calendar","undo":true}']);
+  });
+
+  it("drops a pill the server refuses, with no Retry that could only fail again", async () => {
+    answers["/v1/turns/t1/pills"] = () => new Response(JSON.stringify({ error: "refused" }), { status: 409 });
+    await answered(filed({ parts: parts({ pills: [calendar] }) }));
+    await press("Add to Personal");
+    expect(button("Add to Personal")).toBeUndefined();
+    expect(document.body.textContent).toContain("That didn't go through");
+    expect(button("Retry")).toBeUndefined();
   });
 
   it("switches Remind me on with the kind only", async () => {
@@ -330,6 +362,12 @@ describe("pills (AC-12 to AC-16)", () => {
     const dialog = document.body.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute("aria-label")).toBe("Edit");
     expect((dialog.querySelector('input[aria-label="Title"]') as HTMLInputElement).value).toBe("Milk");
+    await act(async () => (dialog.querySelector('button[aria-label="Close"]') as HTMLButtonElement | null)?.click());
+    await settle();
+    // A row in the slice opens the same modal, as it opens the sheet on the phones.
+    await press("Milk");
+    expect(document.body.querySelector('[role="dialog"][aria-label="Edit"]')).not.toBeNull();
+    expect(calls.filter((one) => one.url.endsWith("/v1/content/c1")).length).toBe(2);
   });
 });
 

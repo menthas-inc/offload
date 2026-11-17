@@ -5,27 +5,23 @@
 
 import {
   UNDO_MS,
-  dayIn,
   dayTitle,
   directionsUrl,
   eventRange,
   memoryKind,
-  monthDated,
-  monthFor,
   timeIn,
-  twoWeekFor,
-  type Month,
   type MonthCount,
   type Pill,
-  type WeekStart,
 } from "@offload/widgets";
+import { token } from "@offload/tokens";
 import type { FoundResult, MessageState, Reply, ReplyThread, Slice } from "./dump";
 import { fetchDay, fetchMonth, type Day, type TodayEvent, type TodayRow } from "./today";
+import { onSignedOut } from "./session-end";
 
 const MAX_SLICES = 3;
 const MAX_PILLS = 2;
-/** The readme's `--duration-mark`. */
-export const MARK_MS = 1400;
+/** The readme's `--duration-mark`, from the tokens. */
+export const MARK_MS = parseFloat(token("duration-mark"));
 
 /** What these rules read of a turn. */
 interface ReplyTurn {
@@ -112,10 +108,10 @@ export function clockStart(turn: ReplyTurn): number | null {
 /** Where a turn's undo line is. **early**: 043's clock, and Undo takes the
  *  whole turn. **late**: no clock, and Undo keeps the dump. **retired**: the
  *  next dump was sent, so the summary stands alone. Null when the turn wrote
- *  nothing. The server decides early or late for itself; this decides only
+ *  nothing, or did not finish and Finish is the way on. The server decides early or late for itself; this decides only
  *  what is drawn. */
 export function linePhase(turn: ReplyTurn, turns: readonly ReplyTurn[], now: number): "early" | "late" | "retired" | null {
-  if (!turn.parts?.summary) return null;
+  if (!turn.parts?.summary || turn.state !== "answered") return null;
   const latest = [...turns].reverse().find((one) => one.from === "you");
   if (latest?.id !== turn.id) return "retired";
   const start = clockStart(turn);
@@ -123,23 +119,6 @@ export function linePhase(turn: ReplyTurn, turns: readonly ReplyTurn[], now: num
 }
 
 // ---------------------------------------------------------------- the calendar
-
-/** The grid for a slice's period: two weeks inside this week and next, the
- *  month otherwise, and only the weeks the period reaches. */
-export function gridFor(
-  period: { from: string; to: string },
-  counts: readonly MonthCount[],
-  today: string,
-  weekStart: WeekStart = "monday",
-): Month {
-  const dated = monthDated(counts);
-  const days = Math.round((Date.parse(period.to) - Date.parse(period.from)) / 86_400_000);
-  const grid = days <= 13 ? twoWeekFor(period.from, dated, today, weekStart) : monthFor(period.from, dated, today, weekStart);
-  return {
-    ...grid,
-    weeks: grid.weeks.filter((week) => week.days[6]!.iso >= period.from && week.days[0]!.iso <= period.to),
-  };
-}
 
 export type Entry = { kind: "event"; id: string; item: TodayEvent } | { kind: "row"; id: string; item: TodayRow };
 
@@ -157,7 +136,7 @@ export interface EntryDetails {
   place: { words: string; url: string | null } | null;
   thread: ReplyThread | null;
   calendar: { name: string; colour: string | null } | null;
-  /** Somebody's calendar event: its title and its time, nothing else (019). */
+  /** Another member's event: its title and its time, nothing else (019). */
   theirs: boolean;
 }
 
@@ -167,12 +146,13 @@ export function entryDetails(entry: Entry, date: string, zone: string | null): E
   if (entry.kind === "event") {
     const event = entry.item;
     const span = `${day}, ${eventRange(event, zone)}`;
-    if (event.source === "calendar") return { span, place: null, thread: null, calendar: null, theirs: true };
+    // Another member's event, by whose it is (019), the web's rule too.
+    if (!event.mine) return { span, place: null, thread: null, calendar: null, theirs: true };
     return {
       span,
       place: placeOf(event.location ?? null, event.place ?? null),
       thread: event.threadId ? { id: event.threadId, name: event.threadName, icon: event.threadIcon, hue: event.threadHue } : null,
-      calendar: event.calendar ?? null,
+      calendar: event.calendar ?? (event.calendarName ? { name: event.calendarName, colour: null } : null),
       theirs: false,
     };
   }
@@ -192,9 +172,11 @@ function placeOf(words: string | null, at: { lat: number | null; lng: number | n
   return { words: words ?? "", url };
 }
 
-// Each month and day a reply reads, once a session, three at a time. A read
+// Each month and day a reply reads, once until something changes, three at a time. A read
 // that failed is forgotten, so the next sight of the slice asks again.
 const reads = new Map<string, Promise<unknown>>();
+// The next account on a shared phone never sees the last one's calendar.
+onSignedOut(() => reads.clear());
 const IN_FLIGHT = 3;
 let out = 0;
 const waiting: (() => void)[] = [];
@@ -227,8 +209,11 @@ function once<T>(key: string, run: () => Promise<T | null>): Promise<T | null> {
   return read;
 }
 
-export const dayOnce = (date: string, past: boolean): Promise<Day | null> => once(`day:${date}:${past}`, () => fetchDay(date, past));
-export const monthOnce = (from: string, to: string): Promise<MonthCount[] | null> => once(`month:${from}:${to}`, () => fetchMonth(from, to, true));
+/** `fresh` is when the slice last heard something changed: a new value reads
+ *  again. shortcut: the old keys stay until sign-out, a few dozen small
+ *  promises a session; drop them per change if a long session holds many. */
+export const dayOnce = (date: string, past: boolean, fresh = 0): Promise<Day | null> => once(`day:${date}:${past}:${fresh}`, () => fetchDay(date, past));
+export const monthOnce = (from: string, to: string, fresh = 0): Promise<MonthCount[] | null> => once(`month:${from}:${to}:${fresh}`, () => fetchMonth(from, to, true));
 
 /** The transcript stopped moving, so a slice not yet read can look again
  *  whether it is on screen. */
@@ -249,11 +234,3 @@ export function onTranscriptMoved(listener: () => void): () => void {
 export const EDIT_PARAM = "edit";
 export const SHARE_PARAM = "share";
 
-/** 052 AC-9. Under a moved entry: when it was, from the slice's record of the
- *  dates before the turn, while its Undo still holds them. */
-export function wasLine(previous: { dueAt?: string | null; occursAt?: string | null } | undefined, zone: string | null): string | null {
-  const at = previous?.occursAt ?? previous?.dueAt;
-  if (!at) return null;
-  const when = new Date(at);
-  return `was ${dayTitle(dayIn(when, zone))}, ${timeIn(when, zone, "en-GB")}`;
-}

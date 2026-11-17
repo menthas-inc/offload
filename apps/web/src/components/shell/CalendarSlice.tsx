@@ -15,22 +15,22 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import {
-  dayIn,
+  calendarColour,
   dayTitle,
   daysBetween,
   directionsUrl,
   eventRange,
-  monthDated,
-  monthFor,
+  gridFor,
   nothingLine,
   periodLabel,
   timeIn,
-  twoWeekFor,
+  wasLine,
   type MonthCount,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { MonthGrid } from "../panes/MonthGrid";
 import { useClock } from "../../lib/clock";
+import { useChanged, useThreads } from "./threads-context";
 import { useAppearance } from "../../lib/appearance";
 import { completeContent } from "../../lib/threads";
 import { dayOnce, monthOnce, type AgendaRow, type Day, type TodayEvent } from "../../lib/today";
@@ -39,6 +39,9 @@ import answer from "../../app/(shell)/answer.module.css";
 import styles from "../../app/(shell)/reply-parts.module.css";
 
 type CalendarSliceData = Extract<Slice, { kind: "calendar" }>;
+
+/** A span reads each day that has something on it, this many at most. */
+const SPAN_DAYS = 7;
 
 /** Whether the element has been on screen. Without an observer, it has. */
 function useSeen(box: React.RefObject<HTMLElement | null>): boolean {
@@ -66,42 +69,50 @@ export function CalendarSlice({ slice, live, onChanged }: { slice: CalendarSlice
   const [picked, setPicked] = useState<string | null>(slice.span ? null : slice.day);
   const [counts, setCounts] = useState<MonthCount[] | null | undefined>(undefined);
   const [reads, setReads] = useState<ReadonlyMap<string, Day | null>>(new Map());
+  // Read again when a turn files something here, or a change is heard from
+  // elsewhere or on coming back to the tab, as the spec's slices do.
+  const { filed } = useThreads();
+  const [heard, setHeard] = useState(0);
+  useChanged(["thread", "today"], () => setHeard(Date.now()));
+  const fresh = Math.max(filed?.at ?? 0, heard);
 
   useEffect(() => {
     if (!seen) return;
     let on = true;
-    void monthOnce(from, to).then((got) => {
+    void monthOnce(from, to, fresh).then((got) => {
       if (on) setCounts(got);
     });
     return () => {
       on = false;
     };
-  }, [seen, from, to]);
+  }, [seen, from, to, fresh]);
 
   const listed = picked
     ? [picked]
-    : (counts ?? []).filter((one) => one.date >= from && one.date <= to && one.task + one.event + one.calendar > 0).map((one) => one.date);
+    : (counts ?? [])
+        .filter((one) => one.date >= from && one.date <= to && one.task + one.event + one.calendar > 0)
+        .map((one) => one.date)
+        // shortcut: a span lists its first seven days with entries, as the phones do; read the rest as they scroll in when a month answer is seen to need it.
+        .slice(0, SPAN_DAYS);
   const listedKey = listed.join(",");
   useEffect(() => {
     if (!seen) return;
     let on = true;
-    // shortcut: a span reads each of its days at once, at most a month's; read as they scroll into view if that is seen to cost.
     for (const date of listedKey ? listedKey.split(",") : []) {
-      void dayOnce(date, date < today).then((got) => {
+      void dayOnce(date, date < today, fresh).then((got) => {
         if (on) setReads((held) => new Map(held).set(date, got));
       });
     }
     return () => {
       on = false;
     };
-  }, [seen, listedKey, today]);
+  }, [seen, listedKey, today, fresh]);
 
   // Offline: nothing to draw, and the undo line's summary stands alone.
   if (counts === null) return null;
 
-  const dated = monthDated(counts ?? []);
+  const grid = gridFor(slice.period, counts ?? [], today, weekStart);
   const two = daysBetween(from, to) < 14;
-  const grid = two ? twoWeekFor(from, dated, today, "monday") : monthFor(slice.day, dated, today, weekStart);
   const marked = new Set(live ? slice.marked : []);
 
   return (
@@ -155,15 +166,6 @@ function DayEntries({
       ))}
     </section>
   );
-}
-
-/** 052 AC-9. When a moved entry was, from the slice's record of the dates
- *  before the turn. */
-function wasLine(previous: { dueAt?: string | null; occursAt?: string | null } | undefined, zone: string | null): string | null {
-  const at = previous?.occursAt ?? previous?.dueAt;
-  if (!at) return null;
-  const when = new Date(at);
-  return `was ${dayTitle(dayIn(when, zone))}, ${timeIn(when, zone, "en-GB")}`;
 }
 
 /** One entry under the grid: an event with its time, a to-do with its tick,
@@ -269,7 +271,7 @@ function Entry({
                 <Icon name="calendar" size={14} />
                 {calendar ? (
                   <>
-                    {calendar.colour ? <span className={styles.dot} style={{ background: calendar.colour }} data-calendar-dot aria-hidden="true" /> : null}
+                    {calendarColour(calendar.colour) ? <span className={styles.dot} style={{ background: calendarColour(calendar.colour)! }} data-calendar-dot aria-hidden="true" /> : null}
                     {calendar.name}
                   </>
                 ) : event?.source === "calendar" && event.calendarName ? (

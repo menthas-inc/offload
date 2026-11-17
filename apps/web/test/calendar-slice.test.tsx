@@ -78,6 +78,7 @@ const days: Record<string, object> = {
 };
 
 let offline = false;
+let busy = false;
 const asked: string[] = [];
 vi.stubGlobal("fetch", async (url: string) => {
   asked.push(String(url));
@@ -86,11 +87,13 @@ vi.stubGlobal("fetch", async (url: string) => {
   if (at.pathname === "/v1/today/month")
     return new Response(
       JSON.stringify({
-        days: [
-          { date: "2026-11-20", task: 0, event: 2, calendar: 0 },
-          { date: "2026-11-21", task: 0, event: 1, calendar: 0 },
-          { date: "2026-11-23", task: 1, event: 0, calendar: 0 },
-        ],
+        days: busy
+          ? Array.from({ length: 10 }, (_, n) => ({ date: `2026-12-${String(n + 1).padStart(2, "0")}`, task: 1, event: 0, calendar: 0 }))
+          : [
+              { date: "2026-11-20", task: 0, event: 2, calendar: 0 },
+              { date: "2026-11-21", task: 0, event: 1, calendar: 0 },
+              { date: "2026-11-23", task: 1, event: 0, calendar: 0 },
+            ],
       }),
       { status: 200 },
     );
@@ -234,6 +237,37 @@ describe("a reply's calendar", () => {
     const headings = [...host.querySelectorAll("[data-day-heading]")].map((one) => one.textContent);
     expect(headings).toEqual([dayTitle("2026-11-20"), dayTitle("2026-11-21")]);
     expect(host.textContent).toContain("Swim");
+    // Only the span's own week is drawn, as on the phones.
+    expect(host.querySelectorAll("[data-day]")).toHaveLength(7);
+  });
+
+  it("lists the first seven days of a span with something on them, as the phones do", async () => {
+    busy = true;
+    await draw({ ...twoWeeks, period: { from: "2026-12-01", to: "2026-12-31" }, day: "2026-12-01", marked: [], span: true });
+    busy = false;
+    expect(host.querySelectorAll("[data-day-heading]")).toHaveLength(7);
+    expect(asked.filter((one) => one.includes("/v1/today/day"))).toHaveLength(7);
+  });
+
+  it("reads again when something is filed, so what a pill or a tick just changed shows", async () => {
+    const { ThreadsProvider } = await import("../src/components/shell/threads-context");
+    const base = { groups: [], invitations: [], loose: null, order: { sort: "newest" as const, ids: [] }, viewerId: null, ready: true, reload: () => {}, changed: null, turnOut: false };
+    const slice = { ...twoWeeks, period: { from: "2026-11-02", to: "2026-11-15" }, day: "2026-11-04" };
+    const at = (filed: { threadIds: string[]; at: number } | null) =>
+      act(async () =>
+        root.render(
+          <ThreadsProvider value={{ ...base, filed }}>
+            <CalendarSlice slice={slice} live={false} />
+          </ThreadsProvider>,
+        ),
+      );
+    await at(null);
+    await settle();
+    const months = () => asked.filter((one) => one.includes("/v1/today/month") && one.includes("2026-11-02")).length;
+    expect(months()).toBe(1);
+    await at({ threadIds: [], at: 5 });
+    await settle();
+    expect(months()).toBe(2);
   });
 
   it("reads nothing until it is on screen, and each period once", async () => {

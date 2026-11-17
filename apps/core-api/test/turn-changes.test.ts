@@ -142,3 +142,18 @@ describe("the turn's Undo puts back what it changed (T1.3)", () => {
     expect((t.attrs as { widgets?: unknown }).widgets ?? null).toBeNull();
   });
 });
+
+describe("a deleted row's earlier values", () => {
+  it("go when the row is purged, so the undo record keeps no words of it", async () => {
+    const { handlers } = await import("../src/jobs/handlers.js");
+    const me = await account();
+    const home = await thread(me, "Health");
+    const dentist = await row(me, home, "Dentist");
+    const { jobId, messageId } = await dump(me, "dentist is the orthodontist");
+    await tool(app, { tool: "edit_content", jobId, toolCallId: "c1", contentId: dentist, title: "Orthodontist" });
+    expect(await changes(messageId)).toHaveLength(1);
+    await sql`update content set deleted_at = now(), purge_after = now() - interval '1 second' where id = ${dentist}::uuid`.execute(db);
+    await handlers["content.purge"]!({}, { mailer: null as never }, null);
+    expect(await changes(messageId)).toEqual([]);
+  });
+});

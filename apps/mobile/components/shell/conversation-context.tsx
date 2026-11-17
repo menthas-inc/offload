@@ -1736,32 +1736,40 @@ export function ConversationProvider({
     [notify],
   );
 
+  const undoing = useRef(new Set<string>());
   /** 052. The reply's Undo. Early, the turn leaves on the press and comes
    *  back if the server refuses, as the toast's did. Late, the dump stays: the
    *  reply folds to what was undone, or asks first, or says Retry. */
   const undoReply = useCallback(
     async function again(turnId: string, confirmed = false): Promise<void> {
-      const turn = shownTurns.current.find((one) => one.from === "you" && one.turnId === turnId);
-      if (!turn) return;
-      const mark = (patch: Partial<Turn>) =>
-        setTurns((current) => current.map((one) => (one.from === "you" && one.turnId === turnId ? { ...one, ...patch } : one)));
-      setUndoable((current) => (current?.turnId === turnId ? null : current));
-      if (linePhase(turn, shownTurns.current, Date.now()) === "early") {
-        const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
-        if (!stayed) return mark({ undoFailed: true });
+      // A second press while the first is out sends nothing.
+      if (undoing.current.has(turnId)) return;
+      undoing.current.add(turnId);
+      try {
+        const turn = shownTurns.current.find((one) => one.from === "you" && one.turnId === turnId);
+        if (!turn) return;
+        const mark = (patch: Partial<Turn>) =>
+          setTurns((current) => current.map((one) => (one.from === "you" && one.turnId === turnId ? { ...one, ...patch } : one)));
+        setUndoable((current) => (current?.turnId === turnId ? null : current));
+        if (linePhase(turn, shownTurns.current, Date.now()) === "early") {
+          const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+          if (!stayed) return mark({ undoFailed: true });
+          setFiled({ threadIds: [], at: Date.now() });
+          const line = stayedForgotten(stayed);
+          if (line) notify(line);
+          return;
+        }
+        mark({ undoFailed: false, undoAsk: undefined });
+        const out = await askUndo(turnId, confirmed).catch(() => null);
+        if (out && !out.undone && out.confirm) return mark({ undoAsk: out.confirm });
+        if (!out?.undone) return mark({ undoFailed: true });
+        mark({ folded: changedLine(out.changed ?? []) });
         setFiled({ threadIds: [], at: Date.now() });
-        const line = stayedForgotten(stayed);
+        const line = stayedForgotten(out.stayed);
         if (line) notify(line);
-        return;
+      } finally {
+        undoing.current.delete(turnId);
       }
-      mark({ undoFailed: false, undoAsk: undefined });
-      const out = await askUndo(turnId, confirmed).catch(() => null);
-      if (out && !out.undone && out.confirm) return mark({ undoAsk: out.confirm });
-      if (!out?.undone) return mark({ undoFailed: true });
-      mark({ folded: changedLine(out.changed ?? []) });
-      setFiled({ threadIds: [], at: Date.now() });
-      const line = stayedForgotten(out.stayed);
-      if (line) notify(line);
     },
     [notify],
   );

@@ -19,7 +19,7 @@
 .alsoLink {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   margin: calc((var(--chip-h) - var(--tap-min)) / 2) 0;
   color: var(--text-accent);
   font-weight: var(--weight-medium);
@@ -72,7 +72,7 @@
 .source {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   margin: calc((20px - var(--tap-min)) / 2) 0;
   color: var(--text-tertiary);
   text-decoration: none;
@@ -114,7 +114,7 @@
 /* A late Undo: what the filing drew folds to one line. */
 .undone {
   margin: 0;
-  min-height: 44px;
+  min-height: var(--tap-min);
   display: flex;
   align-items: center;
   font: var(--weight-medium) var(--size-body-sm)/1.4 var(--font-core);
@@ -176,7 +176,7 @@
 .entryButton {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--tap-min);
   display: flex;
   align-items: flex-start;
   gap: var(--space-5);
@@ -207,7 +207,7 @@
 
 .entryTitle {
   display: block;
-  font: var(--weight-medium) 15px/1.35 var(--font-core);
+  font: var(--weight-medium) calc(15px * var(--type-scale))/1.35 var(--font-core);
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
@@ -221,7 +221,7 @@
 .entryMeta {
   display: block;
   margin-top: 2px;
-  font: var(--weight-regular) 12.5px/1.4 var(--font-core);
+  font: var(--weight-regular) calc(12.5px * var(--type-scale))/1.4 var(--font-core);
   color: var(--text-accent);
 }
 
@@ -244,14 +244,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  font: var(--weight-regular) 13.5px/1.35 var(--font-core);
+  font: var(--weight-regular) calc(13.5px * var(--type-scale))/1.35 var(--font-core);
   color: var(--text-secondary);
 }
 
 .directions {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   margin: calc((20px - var(--tap-min)) / 2) 0;
   font-weight: var(--weight-medium);
   color: var(--text-accent);

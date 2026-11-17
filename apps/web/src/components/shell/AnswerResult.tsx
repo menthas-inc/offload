@@ -14,7 +14,7 @@
 // the defence that does not depend on the model behaving is that the surfaces
 // it produces cannot destroy anything.
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { DEFAULT_THREAD_ICON, foundMeta } from "@offload/widgets";
 import { Icon } from "../Icon";
@@ -89,9 +89,12 @@ export function AnswerResult({
   marked,
   notes = [],
   eyebrow,
+  onOpen,
 }: {
   result: FoundResult;
   onToggle?: (row: FoundRow) => void;
+  /** 052. A reply's row opens its edit modal, as the phones open its sheet. */
+  onOpen?: (row: FoundRow) => void;
   shown?: number;
   /** 052. The thread's open count; not drawn at zero. Absent counts the rows. */
   count?: number;
@@ -173,7 +176,7 @@ export function AnswerResult({
               <Icon name={TYPE_ICON[row.type] ?? "text-quote"} size={16} />
             </span>
           )}
-          <span className={styles.body}>
+          <Body className={styles.body} onOpen={onOpen ? () => onOpen(row) : undefined}>
             <b className={styles.title}>{row.title}</b>
             {/* 2026-10-13. The date under the title, in the chip's words: eight
                 rows called Glass blowing class are told apart by nothing else. */}
@@ -182,7 +185,7 @@ export function AnswerResult({
                 {foundMeta(row, zone, today)}
               </span>
             ) : null}
-          </span>
+          </Body>
         </div>
       ))}
 
@@ -226,5 +229,16 @@ export function AnswerResult({
         </button>
       ) : null}
     </div>
+  );
+}
+
+/** A row's words: a button when the row opens, plain text otherwise. */
+function Body({ className, onOpen, children }: { className: string; onOpen: (() => void) | undefined; children: ReactNode }) {
+  return onOpen ? (
+    <button type="button" className={`${className} ${styles.open}`} onClick={onOpen}>
+      {children}
+    </button>
+  ) : (
+    <span className={className}>{children}</span>
   );
 }

@@ -4,6 +4,7 @@
 
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { gridFor } from "@offload/widgets";
 
 const calls: { path: string; init: RequestInit }[] = [];
 let answer: { status: number; data: unknown } = { status: 200, data: null };
@@ -155,7 +156,7 @@ describe("T5.2 a reply's parts (AC-2, AC-7, AC-8, AC-10, AC-12, AC-22)", () => {
     expect(reply.pillsOf(you("m1", { parts: three, question: { id: "q" } }))).toEqual([]);
     expect(reply.pillsOf(you("m1", { parts: three, state: "partial" }))).toEqual([]);
     expect(parts_).toMatch(/pillLabel\(pill\)/);
-    expect(parts_).toMatch(/minHeight: 44/);
+    expect(parts_).toMatch(/minHeight: TAP_MIN/);
   });
 
   it("draws sources as one quiet line: the link glyph, tertiary, no border, three then a count", () => {
@@ -188,11 +189,11 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
   });
 
   it("draws two weeks inside this week and next, and only the period's weeks", () => {
-    const two = reply.gridFor({ from: "2026-11-16", to: "2026-11-29" }, [], "2026-11-17");
+    const two = gridFor({ from: "2026-11-16", to: "2026-11-29" }, [], "2026-11-17");
     expect(two.weeks.map((w) => w.key)).toEqual(["2026-11-16", "2026-11-23"]);
-    const week = reply.gridFor({ from: "2026-11-16", to: "2026-11-22" }, [], "2026-11-17");
+    const week = gridFor({ from: "2026-11-16", to: "2026-11-22" }, [], "2026-11-17");
     expect(week.weeks.map((w) => w.key)).toEqual(["2026-11-16"]);
-    const month = reply.gridFor({ from: "2027-05-01", to: "2027-05-31" }, [], "2026-11-17");
+    const month = gridFor({ from: "2027-05-01", to: "2027-05-31" }, [], "2026-11-17");
     expect(month.weeks[0]!.days.some((d) => d.iso === "2027-05-01")).toBe(true);
     expect(month.weeks.at(-1)!.days.some((d) => d.iso === "2027-05-31")).toBe(true);
   });
@@ -231,7 +232,7 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
     expect(details.place).toEqual({ words: "Smile clinic", url: expect.stringContaining("51.5") });
     expect(details.thread).toEqual({ id: "th9", name: "Health", icon: null, hue: null });
     expect(details.calendar).toBeNull();
-    expect(slice).toContain("not on a calendar");
+    expect(slice).toContain("Not on a calendar");
     expect(slice).toMatch(/Directions/);
   });
 
@@ -242,6 +243,21 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
     };
     const details = reply.entryDetails({ kind: "event", id: "g1", item: theirs }, "2026-11-20", "UTC");
     expect(details).toMatchObject({ place: null, thread: null, calendar: null, theirs: true });
+  });
+
+  it("hides another member's event by whose it is, as the web does, and opens the person's own calendar event in full", () => {
+    const base = {
+      startsAt: "2026-11-20T09:00:00.000Z", endsAt: null, allDay: false, link: null, threadIcon: null, threadHue: null, authorName: null,
+      location: "Clinic", place: { lat: 51.5, lng: -0.1, approximate: false }, calendar: null,
+    };
+    const another = { ...base, id: "o1", source: "offload" as const, title: "Ana's dentist", mine: false, calendarName: null, threadId: "th1", threadName: "Family" };
+    expect(reply.entryDetails({ kind: "event", id: "o1", item: another }, "2026-11-20", "UTC")).toMatchObject({ place: null, thread: null, calendar: null, theirs: true });
+    const own = { ...base, id: "g2", source: "calendar" as const, title: "Gym", mine: true, calendarName: "Personal", threadId: null, threadName: null };
+    expect(reply.entryDetails({ kind: "event", id: "g2", item: own }, "2026-11-20", "UTC")).toMatchObject({
+      place: { words: "Clinic" },
+      calendar: { name: "Personal", colour: null },
+      theirs: false,
+    });
   });
 
   it("reads each month and day once a session, three at a time, and only once on screen", async () => {
@@ -262,6 +278,29 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
     for (const go of held) go({ status: 200, data: null });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(slice).toMatch(/onScreen\(/);
+  });
+
+  it("forgets every read when the session ends, so the next account on the phone asks again", async () => {
+    holding = true;
+    const first = reply.dayOnce("2026-12-03", false);
+    await Promise.resolve();
+    expect(calls.at(-1)!.path).toBe("/v1/today/day?date=2026-12-03");
+    const { ended } = await import("../lib/session-end");
+    await ended();
+    expect(reply.dayOnce("2026-12-03", false)).not.toBe(first);
+    for (const go of held) go({ status: 200, data: null });
+  });
+
+  it("reads again once something changed, and the slice asks with the last change it heard", async () => {
+    holding = true;
+    const first = reply.monthOnce("2026-10-05", "2026-10-18", 0);
+    expect(reply.monthOnce("2026-10-05", "2026-10-18", 0)).toBe(first);
+    expect(reply.monthOnce("2026-10-05", "2026-10-18", 5)).not.toBe(first);
+    for (const go of held) go({ status: 200, data: null });
+    expect(slice).toMatch(/const \{ filed \} = useConversation\(\)/);
+    expect(slice).toMatch(/useChanged\(\["thread", "today"\]/);
+    expect(slice).toMatch(/monthOnce\(from, to, fresh\)/);
+    expect(slice).toMatch(/dayOnce\(date, date < today, fresh\)/);
   });
 
   it("asks for a day gone by with past=1", async () => {
@@ -291,6 +330,13 @@ describe("T5.4 the undo line (AC-17, AC-19, AC-20, AC-21)", () => {
     expect(reply.linePhase(turn, [turn, next], start + 1_000)).toBe("retired");
   });
 
+  it("is not drawn for a turn that half answered or was cancelled, where Finish is the way on", () => {
+    for (const state of ["partial", "cancelled"] as const) {
+      const turn = you("m1", { parts: parts(), state });
+      expect(reply.linePhase(turn, [turn], start)).toBeNull();
+    }
+  });
+
   it("is not drawn for a turn that wrote nothing", () => {
     const turn = you("m1", { parts: parts({ summary: null }) });
     expect(reply.linePhase(turn, [turn], start)).toBeNull();
@@ -312,6 +358,33 @@ describe("T5.4 the undo line (AC-17, AC-19, AC-20, AC-21)", () => {
     expect(undo).toMatch(/changedLine\(/);
     expect(undo).toMatch(/undoFailed: true/);
     expect(undo).toMatch(/undoAsk: /);
+  });
+
+  it("gives Not on a calendar its own line, never part of the thread link", () => {
+    const slice_ = code("components/shell/CalendarSlice.tsx");
+    expect(slice_).not.toMatch(/", not on a calendar"/);
+    expect(slice_).toMatch(/!details\.theirs && !details\.calendar \? <Line glyph="calendar">Not on a calendar<\/Line> : null/);
+  });
+
+  it("draws the labels row after Also in and before the pills, as the web does", () => {
+    const parts_ = code("components/shell/ReplyParts.tsx");
+    const at = (needle: string) => parts_.indexOf(needle);
+    expect(at("<AlsoLine")).toBeLessThan(at("marks.length > 0"));
+    expect(at("marks.length > 0")).toBeLessThan(at("<Pills"));
+  });
+
+  it("asks a late Undo's calendar question with 019's Remove it and Not now, as the web does", () => {
+    const line = code("components/shell/UndoLine.tsx");
+    expect(line).toMatch(/\? \{ label: "Remove it", run: onConfirm \}/);
+    expect(line).toMatch(/Not now/);
+  });
+
+  it("sends one Undo however fast it is pressed twice", () => {
+    const context = code("components/shell/conversation-context.tsx");
+    const undo = context.slice(context.indexOf("const undoReply = useCallback("), context.indexOf("const declineUndo"));
+    // Marked before the first await, and let go when the answer is in.
+    expect(undo).toMatch(/undoing\.current\.has\(turnId\)\) return;\s+undoing\.current\.add\(turnId\);/);
+    expect(undo).toMatch(/finally \{\s+undoing\.current\.delete\(turnId\);/);
   });
 
   it("sends a late Undo's yes as confirmed=1", async () => {
@@ -346,6 +419,22 @@ describe("T5.5 pill taps (AC-12 to AC-15)", () => {
     expect(await dump.tapPill("t1", "calendar")).toEqual({ confirm: "Ana will get an invite", pendingId: "p1" });
     answer = { status: 409, data: null };
     expect(await dump.tapPill("t1", "calendar")).toBe("refused");
+  });
+
+  it("draws a pill in QuickReplies' chip shape, growing with the text and painted per platform", () => {
+    const parts_ = code("components/shell/ReplyParts.tsx");
+    const row = parts_.slice(parts_.indexOf("const left = pills.filter"));
+    expect(row).toMatch(/minHeight: TAP_MIN, marginVertical: CANCEL/);
+    expect(row).toMatch(/minHeight: CHIP_H/);
+    expect(row).toMatch(/px-space-5/);
+    expect(row).toMatch(/border-a-outline bg-a-c/);
+    expect(row).not.toMatch(/numberOfLines/);
+    expect(row).not.toMatch(/height: 30/);
+  });
+
+  it("drops a pill the server refuses, with no Retry that could only fail again", () => {
+    const parts_ = code("components/shell/ReplyParts.tsx");
+    expect(parts_).toMatch(/out === "refused"\) \{\s+shown\(kind, true\);\s+undoStore\.put\(at\(pill\), "That didn't go through"\);/);
   });
 
   it("opens the row's sheet at its date, the share sheet with the person, and the directions link", () => {
@@ -398,9 +487,7 @@ describe("T5.6 states and the change mark (AC-25)", () => {
 });
 
 describe("a moved entry on the calendar slice (AC-9)", () => {
-  it("says when it was, from the slice's previous dates", async () => {
-    const { wasLine } = await import("../lib/reply");
-    expect(wasLine({ occursAt: "2026-11-20T15:00:00Z" }, "Europe/London")).toBe("was Friday 20 November, 15:00");
-    expect(wasLine(undefined, "Europe/London")).toBeNull();
+  it("says when it was, from the slice's previous dates, in widgets' words", () => {
+    expect(code("components/shell/CalendarSlice.tsx")).toMatch(/was=\{wasLine\(slice\.previous\?\.\[entry\.id\], zone\)\}/);
   });
 });

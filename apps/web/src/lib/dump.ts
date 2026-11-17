@@ -812,7 +812,7 @@ export async function tapPill(
   turnId: string,
   kind: "calendar" | "remind",
   undo = false,
-): Promise<{ ok: true } | { confirm: string; pendingId: string } | false> {
+): Promise<{ ok: true } | { confirm: string; pendingId: string } | "refused" | false> {
   try {
     const response = await fetch(`${API}/v1/turns/${turnId}/pills`, {
       method: "POST",
@@ -820,6 +820,8 @@ export async function tapPill(
       headers: { "content-type": "application/json" },
       body: JSON.stringify(undo ? { kind, undo: true } : { kind }),
     });
+    // 404 or 409: no longer offered, or the calendar will not take it. Asking again cannot help.
+    if (response.status === 404 || response.status === 409) return "refused";
     if (!response.ok) return false;
     return ((await response.json().catch(() => null)) as { ok: true } | { confirm: string; pendingId: string } | null) ?? false;
   } catch {

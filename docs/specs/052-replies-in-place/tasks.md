@@ -181,5 +181,5 @@
   - the late Undo after waiting past eight seconds.
 
   Leave each phone as it was found.
-- [ ] **T6.3** `security-reviewer` on the diff: authorization, the new route, `turn_changes` and the egress rule.
+- [x] **T6.3** `security-reviewer` on the diff: authorization, the new route, `turn_changes` and the egress rule.
 - [ ] **T6.4** Update the specs if the build diverged (DEV-2), and confirm the privacy page needs no change.

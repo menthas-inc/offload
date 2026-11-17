@@ -17,6 +17,7 @@ import Link from "next/link";
 import {
   UNDO_MS,
   alsoLine,
+  calendarColour,
   directionsUrl,
   memoryKind,
   pillLabel,
@@ -87,6 +88,7 @@ export function ReplyParts({
   onUndo,
   onAsk,
   onToggle,
+  onOpen,
   onPill,
   onChanged,
 }: {
@@ -100,6 +102,7 @@ export function ReplyParts({
   onUndo: () => void;
   onAsk: (yes: boolean) => void;
   onToggle?: (row: FoundRow) => void;
+  onOpen?: (row: FoundRow) => void;
   /** True when the pill did its job and can go. */
   onPill: (pill: Pill) => Promise<boolean>;
   /** A row was ticked inside a calendar slice. */
@@ -129,7 +132,7 @@ export function ReplyParts({
     <div className={styles.parts}>
       {parts.slices.slice(0, MAX_SLICES).map((slice, at) => (
         <div key={at} data-part="slice">
-          <SliceView slice={slice} live={live} onToggle={onToggle} onChanged={onChanged} />
+          <SliceView slice={slice} live={live} onToggle={onToggle} onOpen={onOpen} onChanged={onChanged} />
         </div>
       ))}
 
@@ -176,8 +179,8 @@ export function ReplyParts({
                 }}
               >
                 <span className={`${composer.quickReplyPill} ${styles.pill}`}>
-                  {pill.kind === "calendar" && pill.calendar?.colour ? (
-                    <span className={styles.dot} style={{ background: pill.calendar.colour }} aria-hidden="true" />
+                  {pill.kind === "calendar" && calendarColour(pill.calendar?.colour) ? (
+                    <span className={styles.dot} style={{ background: calendarColour(pill.calendar?.colour)! }} aria-hidden="true" />
                   ) : (
                     <Icon name={PILL_ICON[pill.kind]} size={13} className={styles.pillGlyph} />
                   )}
@@ -218,11 +221,13 @@ function SliceView({
   slice,
   live,
   onToggle,
+  onOpen,
   onChanged,
 }: {
   slice: Slice;
   live: boolean;
   onToggle?: ((row: FoundRow) => void) | undefined;
+  onOpen?: ((row: FoundRow) => void) | undefined;
   onChanged?: (() => void) | undefined;
 }) {
   switch (slice.kind) {
@@ -234,6 +239,7 @@ function SliceView({
           marked={live ? new Set([...slice.marked, ...slice.notes.filter((n) => n.marked).map((n) => n.id)]) : undefined}
           notes={slice.notes}
           {...(onToggle ? { onToggle } : {})}
+          {...(onOpen ? { onOpen } : {})}
         />
       );
     case "newThread":
@@ -246,6 +252,7 @@ function SliceView({
           marked={live ? new Set([...slice.rows.map((r) => r.contentId), ...slice.notes.map((n) => n.id)]) : undefined}
           notes={slice.notes}
           {...(onToggle ? { onToggle } : {})}
+          {...(onOpen ? { onOpen } : {})}
         />
       );
     case "memories": {
@@ -254,7 +261,7 @@ function SliceView({
         <div className={answer.card}>
           <Link href="/memories" className={answer.head}>
             <Icon name={kind?.glyph ?? "cloudy"} size={16} />
-            <b className={answer.headName}>Memories, {kind?.name ?? slice.memoryKind}</b>
+            <b className={answer.headName}>{kind ? `Memories, ${kind.name}` : "Memories"}</b>
           </Link>
           <div className={styles.chips}>
             {slice.memories.map((memory) => (

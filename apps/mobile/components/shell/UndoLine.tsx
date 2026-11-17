@@ -154,7 +154,7 @@ export function TurnLine({
     folded !== undefined || phase === "retired"
       ? null
       : ask
-        ? { label: "Undo", run: onConfirm }
+        ? { label: "Remove it", run: onConfirm }
         : failed
           ? { label: "Retry", run: onUndo }
           : { label: "Undo", run: onUndo };

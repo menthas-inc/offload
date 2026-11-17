@@ -35,6 +35,7 @@ import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
 import { LabelMark } from "../labels/LabelMark";
 import { AnswerResult, Mark } from "./AnswerResult";
+import { CANCEL, CHIP_H, TAP_MIN } from "./QuickReplies";
 import { CalendarSlice } from "./CalendarSlice";
 import { useConversation, type Turn } from "./conversation-context";
 import { TurnLine, UndoAt } from "./UndoLine";
@@ -106,6 +107,8 @@ export function ReplyParts({ turn }: { turn: Turn }) {
         />
       ))}
 
+      <AlsoLine turn={turn} onOpen={openThread} />
+
       {/* 025. What the turn applied, three and then a count. */}
       {marks.length > 0 ? (
         <View className="flex-row flex-wrap items-center gap-space-2">
@@ -121,8 +124,6 @@ export function ReplyParts({ turn }: { turn: Turn }) {
           ) : null}
         </View>
       ) : null}
-
-      <AlsoLine turn={turn} onOpen={openThread} />
 
       <Pills
         turn={turn}
@@ -338,9 +339,13 @@ function Pills({ turn, pills, onDate }: { turn: Turn; pills: Pill[]; onDate: (ro
         onPress: async function back() {
           const undone = await tapPill(turnId, kind, true);
           if (undone === "ok") return shown(kind, false);
+          if (undone === "refused") return undoStore.put(at(pill), "Couldn't put that back");
           undoStore.put(at(pill), "Couldn't put that back", { label: "Retry", onPress: back });
         },
       });
+    } else if (out === "refused") {
+      shown(kind, true);
+      undoStore.put(at(pill), "That didn't go through");
     } else if (out && typeof out === "object") {
       // 019's pending-write confirm, drawn where the turn's proposals are.
       shown(kind, true);
@@ -361,14 +366,17 @@ function Pills({ turn, pills, onDate }: { turn: Turn; pills: Pill[]; onDate: (ro
               onPress={() => void tap(pill)}
               accessibilityRole="button"
               className="justify-center"
-              style={{ minHeight: 44 }}
+              // QuickReplies' chip: the 44 hit area, painting nothing, around a 30 pill.
+              style={{ minHeight: TAP_MIN, marginVertical: CANCEL }}
             >
               <View
-                className="flex-row items-center gap-space-2 rounded-pill border border-border-strong bg-surface-card px-space-4"
-                style={{ height: 30 }}
+                className={`flex-row items-center gap-space-2 rounded-pill border px-space-5 ${
+                  isAndroid ? "border-a-outline bg-a-c" : "border-border-strong bg-surface-card"
+                }`}
+                style={{ minHeight: CHIP_H }}
               >
                 <Glyph name={PILL_GLYPH[pill.kind]} size={13} color={COLOR.quiet} />
-                <Text className="font-core font-medium text-text-primary" style={{ fontSize: 13 }} numberOfLines={1}>
+                <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 13 }}>
                   {pillLabel(pill)}
                 </Text>
               </View>

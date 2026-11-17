@@ -205,6 +205,11 @@ describe("the other slices", () => {
     expect(host.textContent).toContain("Remembered");
   });
 
+  it("heads a kind it does not know as Memories, never its name in code", async () => {
+    await draw(reply(parts({ slices: [{ kind: "memories", memoryKind: "new_kind", memories: [{ id: "m1", text: "x", marked: false }] }] })));
+    expect(host.querySelector('a[href="/memories"]')!.textContent).toBe("Memories");
+  });
+
   it("reads Since removed for a slice with nothing left in it", async () => {
     await draw(reply(parts({ slices: [{ kind: "removed" }] })));
     expect(host.querySelector('[data-part="slice"]')!.textContent).toBe("Since removed");
@@ -225,6 +230,13 @@ describe("pills (T4.2, T4.5)", () => {
     await draw(reply(parts({ pills: [{ kind: "date", rowId: "c1" }, calendar, { kind: "remind", rowId: "c1" }] })));
     const pills = [...host.querySelectorAll('[data-part="pills"] button')];
     expect(pills.map((one) => one.textContent)).toEqual(["Add a date", "Add to Personal"]);
+  });
+
+  it("paints a calendar's colour only when it is a colour, never a value that loads", async () => {
+    await draw(reply(parts({ pills: [{ ...calendar, calendar: { ...calendar.calendar, colour: "url(https://x.example/p.png)" } }] })));
+    expect(host.innerHTML).not.toContain("x.example");
+    await draw(reply(parts({ pills: [calendar] })));
+    expect((host.querySelector('[data-part="pills"] [aria-hidden="true"]') as HTMLElement).style.background).toContain("rgb(121, 134, 203)");
   });
 
   it("hands a tap to the composer with the pill, and the pill goes once it worked", async () => {

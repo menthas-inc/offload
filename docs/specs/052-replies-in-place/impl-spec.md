@@ -214,7 +214,7 @@ alter table messages add column shown jsonb;  -- {span:{from,to}} | {on:date}, o
 | Field | `turn_changes` | the `reply` on a conversation page |
 |---|---|---|
 | Records per account | ~6 a day typical (a third of ~15 turns change one or two existing rows); 50 a day heavy. Two years: ~4,400 typical, ~36,000 heavy. Only the latest turn per conversation holds a non-null `previous`. | not stored, computed per read |
-| Fan-out | changes per turn: 1–3 typical; 30 heavy ("tick everything in Groceries") | per turn: ≤3 slices, ≤8 rows each, ≤2 pills; per page: 50 turns |
+| Fan-out | changes per turn: 1 to 3 typical; 30 heavy ("tick everything in Groceries") | per turn: ≤3 slices, ≤8 rows each, ≤2 pills; per page: 50 turns |
 | Growth | linear in turns; values bounded to one turn per conversation | none |
 | Read pattern | conversation page loads: by `message_id = any(50 ids)`; Undo: by `message_id` | the conversation sheet on the phones and the composer on the web, on open and on each turn's result; rows re-read when the conversation regains focus |
 | Write pattern | inside a tool call, at most the turn's tool count, bursty with a turn; plus one retiring update per dump, touching only rows still holding a value, through `turn_changes_live_idx` | none |
@@ -362,6 +362,7 @@ Where the build moved from the sections above. The code is the reference.
   - **The agent normalises a window's midnight** (`_moment`), so the same week written two ways is one read.
   - **The calendar pill's ten seconds stay:** eight on screen, two for transit.
   - **Known and accepted:** `?confirmed=1` is the person's own client saying yes to their own Undo, with no server record that the line was shown (security review, medium; the owner's call). An account that never dumps again keeps its last turn's values until deletion (`shortcut:` at the retire).
+  - **A purged row takes its earlier values with it.** `turn_changes.target_id` has no foreign key, so `content.purge` deletes the records of every content row, note, message and thread it destroys, by name. Without it a row the person deleted kept its old title in the record until their next dump, and the privacy page says what you delete is deleted.
 
 ## As built, clients (2026-11-17)
 
@@ -374,7 +375,7 @@ Where the build moved from the sections above. The code is the reference.
 - **Date and share pills.**
   - On the phones they push the thread page with `edit=when` or `share=<accountId>`, which opens the row sheet at its date or the share sheet with that person picked.
   - On the web, Add a date opens the row's edit modal as Today does (focus starts on the title). Share opens `ShareModal` with a `preselect`.
-- **The pill's own line** after a tap reads *Added* (from `summaryWords`) or *Reminder on*. *Reminder on*, *Since removed* and *not on a calendar* are client strings with no widgets function yet.
+- **The pill's own line** after a tap reads *Added* (from `summaryWords`) or *Reminder on*. *Reminder on*, *Since removed* and *Not on a calendar* are client strings with no widgets function yet.
 - **Lazy reads.**
   - On the phones they run on measure-at-layout, plus the sheet settling and a scroll ending, with at most three in flight.
   - On the web they use `IntersectionObserver`.
@@ -386,3 +387,15 @@ Where the build moved from the sections above. The code is the reference.
   - Both clients draw *was {day}, {time}* under a moved entry while the Undo holds the values.
 - **The memories slice** carries up to seven others of the kind, unmarked, after the turn's own.
 - **The calendar slice's to-do ticks** are display only on the phones (`shortcut:`); list slices tick.
+- **After the client reviews (2026-11-17):**
+  - **The phones forget a reply's reads at sign-out**, as the web does, so the next account on a shared phone never sees the last one's calendar.
+  - **A calendar slice reads again on a change.** Its reads are keyed by the last filing or the last change heard (048's `changed`, which includes coming back to the tab or the foreground), so the event a pill just wrote shows its calendar. Old keys stay until sign-out (`shortcut:`).
+  - **Shared in `@offload/widgets`:** `gridFor` (the web had drawn a week's span as two weeks), `wasLine`, and `calendarColour`, which passes a provider's colour into a style only when it is `#hex` or `rgb()`, so a value like `url(...)` never loads.
+  - **Another member's event** is hidden by `!mine` on both clients (019). The phones had hidden by source, which hid the person's own connected calendar and showed another member's place.
+  - **A span lists its first seven days** with entries on both clients.
+  - **A second Undo press while the first is out sends nothing**, on both clients and in both phases.
+  - **A refused pill** (404 or 409) goes, with *That didn't go through* and no Retry, since asking again cannot help.
+  - **Web reply rows open their edit modal** on tap, as the phones open the row sheet.
+  - **The phones' pill is QuickReplies' chip**: 30 inside 44, growing with the text, painted per platform.
+  - **One order and one word:** the labels row sits after *Also in* and before the pills on both clients, and a late Undo's calendar question is answered with 019's **Remove it** or **Not now**.
+  - **Accepted, open:** a late Undo's one confirm covers every shared calendar the turn wrote to, with the server's one generic line (security review, low; the same owner's call as `?confirmed=1`). The phones' `share` and `edit` thread params are honoured from any link; an unknown person ticks nothing and nothing is shared without a press (low). The calendar slice's own tick is display only on the phones.

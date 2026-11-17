@@ -186,9 +186,11 @@ export async function fetchMonth(from: string, to: string, past = false): Promis
   }
 }
 
-/** 052. A reply's calendar reads, once per key for the session: a
+/** 052. A reply's calendar reads, once per key until something changes: a
  *  conversation draws the same period again on every render and every reload
- *  of its tail. A read that failed is not kept, so the next look asks again. */
+ *  of its tail. shortcut: each change keys a new read and the old ones stay
+ *  until sign-out, a few dozen small promises a session; drop them per change
+ *  if a long session is seen to hold many. A read that failed is not kept, so the next look asks again. */
 const once = new Map<string, Promise<unknown>>();
 function cached<T>(key: string, read: () => Promise<T | null>): Promise<T | null> {
   const held = once.get(key) as Promise<T | null> | undefined;
@@ -200,8 +202,9 @@ function cached<T>(key: string, read: () => Promise<T | null>): Promise<T | null
   once.set(key, reading);
   return reading;
 }
-export const monthOnce = (from: string, to: string) => cached(`month:${from}|${to}`, () => fetchMonth(from, to, true));
-export const dayOnce = (date: string, past: boolean) => cached(`day:${date}`, () => fetchDay(date, past));
+/** `fresh` is when the reader last heard something changed: a new value reads again. */
+export const monthOnce = (from: string, to: string, fresh = 0) => cached(`month:${from}|${to}|${fresh}`, () => fetchMonth(from, to, true));
+export const dayOnce = (date: string, past: boolean, fresh = 0) => cached(`day:${date}|${past}|${fresh}`, () => fetchDay(date, past));
 /** At sign-out, with the rest of what the account left on this device. */
 export function forgetReplyReads(): void {
   once.clear();
