@@ -130,7 +130,7 @@ import { useThreadMap } from "../map/use-thread-map";
 import { barTools, type BarTool } from "../../lib/map-view";
 import { useSheetBack } from "../../lib/sheet-back";
 import { usePlateInset } from "../shell/plate-inset";
-import { movedCopy, redirectFor } from "../../lib/loose";
+import { redirectFor } from "../../lib/loose";
 
 const isAndroid = Platform.OS === "android";
 
@@ -486,32 +486,6 @@ export default function Thread() {
     );
   }
 
-  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
-   *  list for the week fold, so the box is no longer its own undo: the tick
-   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
-   *  Un-ticking and every other layout is the plain `tick`. Gallery open tiles
-   *  carry no tick control, so they never reach here open. */
-  function layoutTick(row: ContentRow): void {
-    if (isProvisional(row.id)) return;
-    if (row.doneAt !== null || threadLayout !== "todo") {
-      tick(row);
-      return;
-    }
-    void perform(
-      {
-        apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
-        revert: () => patchRow(row.id, { doneAt: null }),
-        write: () => completeContent(row.id, true),
-        unwrite: () => completeContent(row.id, false),
-        did: "Ticked off",
-        failed: "Couldn't tick that off",
-        place: placeOf(row.id, "check", "slot"),
-      },
-      toast,
-      writes,
-    );
-  }
-
   /** Archive, asking first in a shared thread. Putting back never asks. */
   function askArchive(row: ContentRow): void {
     const shared = thread ? thread.members.some((member) => !member.isYou) : null;
@@ -725,13 +699,13 @@ export default function Thread() {
   /** 020. Move, by hand, from the row's own sheet. The author's, like delete,
    *  and the picture goes with the row: the server adjusts its wraps in the
    *  same transaction. The row leaves this list at the press and comes back
-   *  if the server refuses; Undo is the same move back. */
+   *  if the server refuses. No Undo line: the person moves it back the way they
+   *  moved it (owner, 2026-11-17). */
   function move(row: ContentRow, threadId: string, threadName: string): void {
     setMoving(null);
     if (isProvisional(row.id) || !id) return;
     setViewing(null);
     const at = rows.findIndex((one) => one.id === row.id);
-    const home = id;
     void perform(
       {
         apply: () => {
@@ -743,12 +717,7 @@ export default function Thread() {
           if (thread) count({ active: thread.counts.active });
         },
         write: () => moveContent(row.id, threadId).then((moved) => moved !== null),
-        unwrite: () => moveContent(row.id, home).then((moved) => moved !== null),
-        // 028. Where it went, as every move between threads now says.
-        did: movedCopy(threadName),
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        place: placeOf(row.id, "arrow-up-right", "slot"),
       },
       toast,
       writes,
@@ -759,7 +728,8 @@ export default function Thread() {
    *
    *  The writes are priorities, computed by the list from the rows either
    *  side of the drop, through the endpoint a priority has always gone
-   *  through, which pins it. Undo writes every previous number back. */
+   *  through, which pins it. No Undo line: the drag is its own way back
+   *  (owner, 2026-11-17). */
   function reorder(writes_: ReorderWrite[], moved: string): void {
     // A row drawn at the press has no priority to write yet.
     if (writes_.some((write) => isProvisional(write.id))) return;
@@ -779,12 +749,7 @@ export default function Thread() {
         apply: () => set((write) => write.priority),
         revert: () => set((write) => write.previous),
         write: () => all((write) => write.priority),
-        unwrite: () => all((write) => write.previous),
-        did: "Moved",
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        // Under the row that was dragged, where it landed.
-        place: placeOf(moved, "arrow-up-right", "under"),
       },
       toast,
       writes,
@@ -1107,7 +1072,7 @@ export default function Thread() {
   const layoutHandlers: LayoutHandlers = {
     onEdit: setRenaming,
     onDelete: remove,
-    onToggle: layoutTick,
+    onToggle: tick,
     onOpenPhoto: openFileOf,
     // Todo list's "Add an item" opens the composer's quick add for a task, the
     // same raise the To do widget's add row uses (6.2).

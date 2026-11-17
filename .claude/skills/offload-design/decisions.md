@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-17 · A thread's ticks and moves draw no Undo line
+**Surface:** iOS, Android, web; the thread page (rows and notes)
+**Raised by:** the product owner: *obvious changes don't need an undo, user can figure out how to undo them.*
+
+**Was:** in a Todo list layout a tick took the row out to the week fold with a slot line, *Ticked off*; moving a row or a note to another thread drew a slot line, *Moved to {thread}*; dragging a row or a note within its list drew an under line, *Moved*. All three with Undo and the eight-second clock (043, handoff section 3).
+
+**Is:** none of them draws a line. The Todo list tick is the plain tick every other layout already had, unticked from the week fold. A move is undone by moving it back. A refused write still puts the thing back and its failure shows, as before. Today, Not in a thread and the conversation keep their lines.
+
+**Considered and not taken:** keeping the move's line, since a move to another thread takes the row off the page; the owner counted it obvious too.
+
+**Design system impact:** in `handoff/APPLY-2026-10-18-undo-in-place.md` section 3, drop the thread page's tick (Todo list), move-to-thread and reorder rows, for rows and notes. Kits that draw an Undo line for these on a thread page (`ui_kits/*` thread screens, `UndoInPlace.jsx`) should stop. No token or component change; `UndoLine` keeps its three forms.
+
 ### 2026-11-17 · Thread tiles lead with the name, and the glyph is large
 **Surface:** iOS, Android, web; the Threads grid's tile
 **Raised by:** the product owner: on Threads it is hard to tell which tile is which; the title and icon should be much larger. Off four options drawn in the session (A scaled up, B glyph as the picture, C name first, D the back glyph made legible); C was picked, then asked for larger still, holding up under a long line and more people.

@@ -5,6 +5,8 @@
 **Depends on:** the optimistic write of 2026-09 (`@offload/widgets` `optimistic.ts`: the write drawn at the press, the eight-second Undo, Retry), and every feature whose rows offer an Undo: 005, 009, 025, 027, 028, 038, 040, 042.
 **Amends:** every spec that says an Undo is offered **in a toast**. From here an Undo, and the failure that replaces it, is drawn where the change is. The window, the write, the commit and Retry are unchanged; only where the words are drawn moves. The specs that say so are not rewritten line by line: this one supersedes their "Undo toast" wherever it appears, and the toast keeps only what section 4 lists.
 
+**Amended 2026-11-17 (owner):** *obvious changes don't need an undo.* On a thread page (web, iOS, Android) ticking a to-do and moving a row or a note, to another thread or by dragging it within its list, draw no Undo line. The tick in a Todo list layout is the plain tick, as in every other layout, and the ticked row is unticked from the week fold. A refused write still puts the thing back and says so. Everything else in section 3 is unchanged, and so is the conversation's Undo, Today and Not in a thread.
+
 ## Why
 
 The floating toast sat over whatever was under it: the composer, the last rows of a list, the next card. It covered the thing it was offering to take back, and on a phone it covered the field it was telling you about. Several changes in a row replaced each other's Undo, so only the last could be taken back.

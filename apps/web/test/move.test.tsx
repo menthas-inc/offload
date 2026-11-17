@@ -3,7 +3,7 @@
 // 028 T4.5. Move on the web: the edit modal carries it for every row that can
 // move, in any thread (AC-33), opening the move sheet, whose list comes from
 // /v1/threads and so never holds the default thread (AC-11); and a note's
-// author moves a note from its editor, *Moved to Lisbon trip* with Undo, and
+// author moves a note from its editor (no Undo line since 2026-11-17), and
 // *That's already in Lisbon trip* on a duplicate (AC-32).
 
 import { act, useState } from "react";
@@ -154,15 +154,12 @@ async function moveTheNote() {
 }
 
 describe("028 a note's Move (AC-32)", () => {
-  it("moves it, says where, and Undo moves it back", async () => {
+  it("moves it with no Undo line: the note is in the thread it went to", async () => {
     await moveTheNote();
     expect(calls.filter((c) => c.path === "/v1/notes/n1/move").map((c) => c.body)).toEqual([{ threadId: "t1" }]);
     expect(document.body.textContent).not.toContain("Ana's shoe size");
-    expect(document.body.textContent).toContain("Moved to Lisbon trip");
-    await act(async () => button("Undo")!.click());
-    await settle();
-    expect(calls.filter((c) => c.path === "/v1/notes/n1/move").map((c) => c.body)).toEqual([{ threadId: "t1" }, { threadId: "t0" }]);
-    expect(document.body.textContent).toContain("Ana's shoe size");
+    expect(document.body.textContent).not.toContain("Moved to Lisbon trip");
+    expect(button("Undo")).toBeUndefined();
   });
 
   it("says when the thread already holds it", async () => {
