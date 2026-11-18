@@ -135,7 +135,7 @@
   font: var(--text-body-sm-role);
   color: var(--text-secondary);
 }
-.fold > span {
+.foldLabel {
   margin-right: auto;
 }
 
