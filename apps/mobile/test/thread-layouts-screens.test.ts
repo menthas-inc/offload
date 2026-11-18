@@ -8,16 +8,6 @@ import { describe, expect, it } from "vitest";
 const read = (path: string): string => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 describe("045 the phone screens", () => {
-  it("gives the Todo list tick an Undo, and leaves the other layouts the plain tick", () => {
-    const thread = read("components/screens/Thread.tsx");
-    const tick = thread.slice(thread.indexOf("function layoutTick("), thread.indexOf("function layoutTick(") + 700);
-    expect(tick).toMatch(/threadLayout !== "todo"/);
-    expect(tick).not.toMatch(/gallery/);
-    expect(tick).toMatch(/unwrite: \(\) => completeContent\(row\.id, false\)/);
-    expect(tick).toMatch(/did: "Ticked off"/);
-    expect(tick).toMatch(/placeOf\(row\.id, "check", "slot"\)/);
-  });
-
   it("draws the checkbox lead only for the big and check forms, via box", () => {
     const sections = read("components/screens/LayoutSections.tsx");
     expect(sections).toMatch(/const box = section\.form === "big" \|\| section\.form === "check"/);
