@@ -103,12 +103,15 @@ describe("where a turn's Undo is drawn (2026-10-18)", () => {
   // A word with a control: the composer's own announcements are status too.
   const offered = (host: HTMLElement) => [...host.querySelectorAll("[role=status]")].filter((one) => one.querySelector("button"));
 
-  it("says where a filed dump went in a line under the composer, not in the toast", async () => {
-    const host = await answered();
+  // 052 AC-21: the reply carries the Undo, so a dump filed here draws no plate line.
+  it("draws no plate line for a dump filed in the conversation: its reply's own line carries Undo", async () => {
+    const parts = { slices: [], also: [], pills: [], summary: { kind: "new", count: 1 }, resultAt: new Date().toISOString() };
+    const host = await answered({ ...filed, parts });
     const lines = offered(host);
     expect(lines).toHaveLength(1);
-    expect(lines[0]!.textContent).toBe("Saved to HealthUndo");
-    expect(after(field(host), lines[0]!)).toBe(true);
+    expect(lines[0]!.textContent).toBe("AddedUndo");
+    expect(after(lines[0]!, field(host))).toBe(true);
+    expect(document.body.textContent).not.toContain("Saved to");
   });
 
   it("draws a line whose place is not on screen under the composer, and not one that is", async () => {

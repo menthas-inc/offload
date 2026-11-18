@@ -65,6 +65,7 @@ export function ShareSheet({
   viewerId,
   onClose,
   onChanged,
+  preselect,
 }: {
   open: boolean;
   threadId: string;
@@ -73,6 +74,9 @@ export function ShareSheet({
   onClose: () => void;
   /** A share made, a member taken out, a share withdrawn: the thread reloads. */
   onChanged: () => void;
+  /** 052. A reply's Share with {name}: that connection, picked on opening.
+   *  Nothing is sent until Share is pressed. */
+  preselect?: string | null | undefined;
 }) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
@@ -98,12 +102,12 @@ export function ShareSheet({
 
   useEffect(() => {
     if (!open) return;
-    setPicked(new Set());
+    setPicked(new Set(preselect ? [preselect] : []));
     setQuery("");
     setLine(null);
     setSheet(null);
     void load();
-  }, [open, load]);
+  }, [open, load, preselect]);
 
   const others = useMemo(() => (sheet?.members ?? []).filter((m) => m.accountId !== viewerId), [sheet, viewerId]);
   const shownConnections = useMemo(() => {

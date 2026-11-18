@@ -12,6 +12,7 @@ import { sql, type ExpressionBuilder, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
+import { memoryEvent } from "../memories/calendar.js";
 import { locateCalendar, refreshPlace, resolvePlace } from "../places/resolve.js";
 import { agePlaces } from "../places/age.js";
 import { backfillMaps } from "../places/backfill.js";
@@ -377,11 +378,17 @@ const contentPurge: Handler = async () => {
 
     /** One batch from one table. True when it was full, so more may be due. */
     const batch = async (table: "content" | "notes" | "messages", when: typeof due): Promise<boolean> => {
-      const result = await sql`
-        delete from ${sql.table(table)}
-        where id in (select id from ${sql.table(table)} where ${when} limit ${PURGE_BATCH})
+      // 052. `turn_changes.target_id` is polymorphic and has no foreign key,
+      // so a purged row's earlier values go with it here, by name.
+      const result = await sql<{ id: string }>`
+        with gone as (
+          delete from ${sql.table(table)}
+          where id in (select id from ${sql.table(table)} where ${when} limit ${PURGE_BATCH})
+          returning id
+        ), records as (delete from turn_changes where target_id in (select id from gone))
+        select id from gone
       `.execute(trx);
-      return Number(result.numAffectedRows ?? 0) >= PURGE_BATCH;
+      return result.rows.length >= PURGE_BATCH;
     };
 
     // Content first. `derived_from_message_id` is on delete set null, so the
@@ -422,7 +429,9 @@ const contentPurge: Handler = async () => {
         await deleteNotesForThread(thread.id, trx);
       }
       if (deadThreads.length > 0) {
-        await trx.deleteFrom("threads").where("id", "in", deadThreads.map((thread) => thread.id)).execute();
+        const ids = deadThreads.map((thread) => thread.id);
+        await trx.deleteFrom("turn_changes").where("target_id", "in", ids).execute();
+        await trx.deleteFrom("threads").where("id", "in", ids).execute();
       }
       more = more || deadThreads.length >= PURGE_BATCH;
     }
@@ -1253,6 +1262,7 @@ export const handlers: Record<string, Handler> = {
   "maps.backfill": mapsBackfill,
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
+  "memory.event": (payload) => memoryEvent(payload as { noteId?: unknown; accountId?: unknown; action?: unknown; on?: unknown }),
   "blob.daily": blobDaily,
   "people.daily": peopleDaily,
   "analytics.ship": analyticsShip,

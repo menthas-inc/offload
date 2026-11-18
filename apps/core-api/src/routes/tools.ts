@@ -74,11 +74,14 @@ import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import { tickIn } from "../threads/tick.js";
+import { CONTENT_EDITED, contentNow, recordChange } from "../dumps/turn-changes.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, pdfForRow, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
 import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
 import { forget, remember } from "../memories/store.js";
+import { rememberDay } from "../memories/birthdays.js";
+import { dayOnCalendar, type DayCalendar } from "../memories/calendar.js";
 import { askedToForget, askedToRemember, groundedIn, ruleGrounded } from "../memories/ground.js";
 import { flat } from "../memories/flat.js";
 
@@ -159,8 +162,17 @@ const body = z.discriminatedUnion("tool", [
     text: z.string().max(400).nullish(),
     kind: z.enum(["people", "things", "about", "rules", "patterns"]).nullish(),
     memoryId: z.string().uuid().nullish(),
+    /** 051. A day that comes round every year, as `MM-DD`, and the few words
+     *  of the sentence that name whose it is. */
+    on: z.string().regex(/^\d{2}-\d{2}$/).nullish(),
+    name: z.string().max(60).nullish(),
+    /** 051. Their words for a calendar, or "any" for one they did not name. */
+    calendar: z.string().max(120).nullish(),
     /** Set by the worker, never the model: the turn has read a web page. */
     afterLookup: z.boolean().optional(),
+    /** Set by the worker, never the model: the turn has read another
+     *  member's note or row. */
+    afterMembers: z.boolean().optional(),
   }),
   z.strictObject({
     tool: z.literal("create_thread"),
@@ -655,7 +667,13 @@ const result = z.union([
   /** The row found its event: written by nobody here, so nothing to say. */
   z.object({ ok: z.literal(true), alreadyOn: z.literal(true) }),
   /** 038. What the memory tool did. */
-  z.object({ ok: z.literal(true), remembered: z.object({ id: z.string() }) }),
+  z.object({
+    ok: z.literal(true),
+    remembered: z.object({ id: z.string() }),
+    /** 051. What became of a remembered day on a calendar: nothing to say
+     *  unless it is `noCalendar` they asked for, `waiting`, or `refused`. */
+    calendar: z.enum(["written", "asked", "waiting", "noCalendar", "refused"]).nullable().optional(),
+  }),
   z.object({ ok: z.literal(true), forgot: z.object({ id: z.string() }) }),
   z.object({
     ok: z.literal(false),
@@ -794,7 +812,7 @@ type Outcome =
   | { ok: true; asked: true }
   | { ok: true; noCalendar: true }
   | { ok: true; alreadyOn: true }
-  | { ok: true; remembered: { id: string } }
+  | { ok: true; remembered: { id: string }; calendar?: DayCalendar }
   | { ok: true; forgot: { id: string } }
   | {
       ok: false;
@@ -978,6 +996,15 @@ async function memoryTool(
       return gone.ok ? { ok: true, forgot: { id: gone.id } } : gone;
     }
     if (!call.text || !call.kind) return { ok: false, error: "empty" };
+    // 051. A day that comes round every year, asked for or not, under its own
+    // gate. Another member's words in the turn are enough to refuse it: with
+    // no ask to anchor it, a day from their note is otherwise indistinguishable.
+    if (call.on) {
+      // Fails closed: a worker that does not say is a turn that may have.
+      if (call.afterMembers !== false) return { ok: false, error: "untrusted_turn" };
+      const kept = await rememberDay(trx, { accountId: turn.accountId, messageId: turn.messageId, said, text: call.text, kind: call.kind, on: call.on, name: call.name });
+      return kept.ok ? { ok: true, remembered: { id: kept.id } } : kept;
+    }
     // Asked for in so many words, and the words their own: a rule, which
     // every later turn follows, to every word of it.
     if (!askedToRemember(said) || !groundedIn(call.text, said)) return { ok: false, error: "not_their_words" };
@@ -1051,7 +1078,7 @@ function parseDates(
 /** The series a calendar is told about: the stored rule, parsed and
  *  re-serialised once more rather than concatenated as it lies in the column,
  *  which the check constraint bounds more loosely than the grammar does. */
-function seriesFor(stored: string | null): string[] | null {
+export function seriesFor(stored: string | null): string[] | null {
   if (!stored) return null;
   const parsed = parseRule(stored);
   return parsed.ok ? [`RRULE:${formatRule(parsed.rule)}`] : null;
@@ -1243,7 +1270,9 @@ async function existing(
   scopeThreadId: string | null,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
-    await editThread(accountId, call.threadId, { name: call.name }, trx);
+    const { previous } = await editThread(accountId, call.threadId, { name: call.name }, trx);
+    // 052. The name as it was, for the turn's Undo.
+    await recordChange(trx, { messageId, accountId, kind: "thread", targetId: call.threadId, tool: call.tool, previous: { name: previous.name } });
     return { ok: true, done: true };
   }
 
@@ -1269,6 +1298,12 @@ async function existing(
     // Co-owned, like the name. `readPreference` drops anything it does not
     // recognise, so a widget kind the model invented is ignored rather than
     // stored and rendered as nothing later.
+    // 052. The widgets as they were, for the turn's Undo, read before the write.
+    const held = await trx.selectFrom("threads").select("attrs").where("id", "=", call.threadId).executeTakeFirst();
+    if (held) {
+      const widgets = (held.attrs as { widgets?: unknown } | null)?.widgets ?? null;
+      await recordChange(trx, { messageId, accountId, kind: "thread", targetId: call.threadId, tool: call.tool, previous: { widgets } });
+    }
     await setPreference(accountId, call.threadId, {
       ...(call.widgets === undefined ? {} : { widgets: call.widgets }),
     });
@@ -1635,6 +1670,7 @@ async function existing(
   if (!ref) return { ok: false, error: "unknown_content" };
 
   if (call.tool === "complete_content") {
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, ["done_at", "due_at", "occurs_at"]) });
     await tickIn(trx, accountId, ref.id, call.done);
     await touchThread(ref.threadId, trx);
     await noteThread(messageId, ref.threadId, true, trx);
@@ -1644,6 +1680,7 @@ async function existing(
   if (call.tool === "archive_content") {
     // The person's archive, step for step: the count, `put_back` on a row
     // put back so the hourly pass leaves it, and the share proposal re-checked.
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, ["archived_at"]) });
     await setArchivedIn(trx as Transaction<Database>, accountId, ref.id, call.archived);
     await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };
@@ -1657,6 +1694,10 @@ async function existing(
   if (ref.authorId !== accountId && !unowned(ref)) return { ok: false, error: "not_yours" };
 
   if (call.tool === "move_content") {
+    // `moveContent` runs outside this transaction, so the record goes first; a
+    // move that then fails leaves a value equal to the current one, and putting
+    // it back changes nothing.
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: { thread_id: ref.threadId } });
     try {
       await moveContent(accountId, ref.id, call.threadId);
     } catch (error) {
@@ -1719,6 +1760,10 @@ async function existing(
   // kept for this turn's Undo.
   const placeChange = await placeEdit(trx, call, ref.id, messageId);
   if (placeChange && "error" in placeChange) return { ok: false, error: placeChange.error };
+
+  // 052. The columns this can change, as they were, for the turn's Undo. The
+  // place is 030's `place_prior`, kept as it is.
+  await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, CONTENT_EDITED) });
 
   await trx
     .updateTable("content")
@@ -1948,6 +1993,9 @@ export async function toolRoutes(app: App): Promise<void> {
             })
             .returning(["id", "name"])
             .executeTakeFirstOrThrow();
+
+          // 052. The turn that made it, so its reply shows the thread's inside.
+          await recordChange(trx, { messageId, accountId, kind: "thread", targetId: thread.id, tool: "create_thread", previous: {} });
 
           await trx
             .insertInto("thread_members")
@@ -2219,6 +2267,19 @@ export async function toolRoutes(app: App): Promise<void> {
         };
         })
       );
+
+      // 051. A day the turn remembered goes on a calendar once it is
+      // committed, so the write's own connection sees the memory, and
+      // Google is never called from inside the transaction.
+      if (call.tool === "memory" && call.on && messageId && outcome.ok && "remembered" in outcome) {
+        const calendar = await dayOnCalendar({ accountId, messageId, noteId: outcome.remembered.id, calendar: call.calendar, name: call.name, sawApps }).catch(
+          (error: unknown) => {
+            console.log(JSON.stringify({ level: "warn", msg: "memory calendar failed", error: error instanceof Error ? error.name : "unknown" }));
+            return null;
+          },
+        );
+        return reply.send({ ...outcome, calendar });
+      }
 
       return reply.send(outcome);
     }

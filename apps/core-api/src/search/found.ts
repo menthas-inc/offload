@@ -59,10 +59,48 @@ export async function foundFor(
   const byMessage = new Map<string, FoundResult[]>();
   if (messageIds.length === 0) return byMessage;
 
+  const pairs = await db
+    .selectFrom("message_content")
+    .select(["message_id", "content_id", "ord", "truncated"])
+    .where("message_id", "in", messageIds)
+    .orderBy("message_id")
+    .orderBy("ord")
+    .execute();
+  const rows = await rowsByIds(pairs.map((pair) => pair.content_id), accountId);
+
+  for (const pair of pairs) {
+    const row = rows.get(pair.content_id);
+    if (!row) continue;
+    const results = byMessage.get(pair.message_id) ?? [];
+    // Grouped by thread, in the order the reads returned them. One read was one
+    // result, and the grouping is what the answer draws: a card per thread with
+    // its own header, never one blended list.
+    let result = results.find((r) => r.threadId === row.threadId);
+    if (!result) {
+      result = {
+        threadId: row.threadId,
+        threadName: row.threadName, threadIcon: row.threadIcon, threadHue: row.threadHue,
+        truncated: pair.truncated,
+        rows: [],
+      };
+      results.push(result);
+    }
+    result.rows.push(row);
+    byMessage.set(pair.message_id, results);
+  }
+
+  return byMessage;
+}
+
+export type FoundRow = FoundResult["rows"][number];
+
+/** Rows by id, as an answer draws them, read through `readable_content` so a
+ *  row the viewer can no longer read is simply absent. 052's slices use it as
+ *  answers do: ids are stored, rows are resolved. */
+export async function rowsByIds(ids: string[], accountId: string): Promise<Map<string, FoundRow>> {
+  const out = new Map<string, FoundRow>();
+  if (ids.length === 0) return out;
   const rows = await sql<{
-    message_id: string;
-    ord: number;
-    truncated: boolean;
     id: string;
     thread_id: string;
     thread_name: string | null;
@@ -86,7 +124,7 @@ export async function foundFor(
     blob_clean_at: Date | null;
     blob_unreadable_at: Date | null;
   }>`
-    select mc.message_id::text as message_id, mc.ord as ord, mc.truncated as truncated,
+    select
            c.id::text as id, c.thread_id::text as thread_id,
            -- 028. The default thread is never named: the card says Not in a thread.
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.name end as thread_name,
@@ -98,8 +136,7 @@ export async function foundFor(
            p.id::text as blob_id, p.kind as blob_kind, p.width as blob_width, p.height as blob_height,
            p.pages as blob_pages, p.renditions_at as blob_renditions_at, p.clean_at as blob_clean_at,
            p.unreadable_at as blob_unreadable_at
-    from message_content mc
-    join readable_content c on c.id = mc.content_id
+    from readable_content c
     join threads t on t.id = c.thread_id
       and t.deleted_at is null
     -- 020. The row's photo, so an answer draws the picture where a thread
@@ -113,31 +150,14 @@ export async function foundFor(
       order by cb.created_at asc
       limit 1
     ) p on true
-    -- Bound as one array parameter. An earlier version built this list by
-    -- interpolating the ids into the string, and one caller passes a route
-    -- param straight in, which is untrusted input reaching a query (SEC-1).
-    where mc.message_id = any(${messageIds}::uuid[])
+    -- Bound as one array parameter (SEC-1).
+    where c.id = any(${ids}::uuid[])
       and c.viewer_account_id = ${accountId}::uuid
       and c.deleted_at is null
-    order by mc.message_id, mc.ord
   `.execute(db);
 
   for (const row of rows.rows) {
-    const results = byMessage.get(row.message_id) ?? [];
-    // Grouped by thread, in the order the reads returned them. One read was one
-    // result, and the grouping is what the answer draws: a card per thread with
-    // its own header, never one blended list.
-    let result = results.find((r) => r.threadId === row.thread_id);
-    if (!result) {
-      result = {
-        threadId: row.thread_id,
-        threadName: row.thread_name, threadIcon: row.thread_icon, threadHue: row.thread_hue,
-        truncated: row.truncated,
-        rows: [],
-      };
-      results.push(result);
-    }
-    result.rows.push({
+    out.set(row.id, {
       contentId: row.id,
       threadId: row.thread_id,
       threadName: row.thread_name, threadIcon: row.thread_icon, threadHue: row.thread_hue,
@@ -163,8 +183,6 @@ export async function foundFor(
           })
         : null,
     });
-    byMessage.set(row.message_id, results);
   }
-
-  return byMessage;
+  return out;
 }

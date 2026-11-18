@@ -2,20 +2,34 @@
 
 // The design system's UndoLine (2026-10-18): the way back drawn where the
 // change is. `slot` in the place a removed thing left, `under` a thing that
-// changed, `plate` above the composer. A refusal is the same line with
-// circle-alert, its clause and Retry, no rule, and is not red, as with Toast.
+// changed, `plate` above the composer, and since 052 `turn`, at the foot of a
+// reply, which is not in the store: it lasts until the next dump, not eight
+// seconds. A refusal is the same line with circle-alert, its clause and
+// Retry, no rule, and is not red, as with Toast.
 
 import { UNDO_MS, type UndoEntry } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { undoStore, useReturned, useUndoEntry } from "../../lib/undo";
 import styles from "../../app/(shell)/undo.module.css";
 
-export function UndoLine({ entry, radius }: { entry: UndoEntry; radius?: string | undefined }) {
+export function UndoLine({
+  entry,
+  radius,
+  form,
+  clock = true,
+}: {
+  entry: UndoEntry;
+  radius?: string | undefined;
+  /** 052. The reply's own line, in place of the entry's form. */
+  form?: "turn";
+  /** 052. The turn's line keeps Undo past its eight seconds, without the rule. */
+  clock?: boolean;
+}) {
   const left = Math.max(0, UNDO_MS - (Date.now() - entry.startedAt));
   const action = entry.action;
   return (
     <div
-      className={`${styles.line} ${styles[entry.form]}`}
+      className={`${styles.line} ${styles[form ?? entry.form]}`}
       role={entry.failed ? "alert" : "status"}
       style={radius ? ({ "--undo-radius": radius } as React.CSSProperties) : undefined}
     >
@@ -33,11 +47,12 @@ export function UndoLine({ entry, radius }: { entry: UndoEntry; radius?: string 
           {action.label}
         </button>
       ) : null}
-      {entry.failed ? null : (
+      {entry.failed || !clock ? null : (
         // Started where the window is now, so a line drawn late shows the time left.
         <span
           className={styles.clock}
           aria-hidden="true"
+          data-clock
           style={
             { animationDuration: `${UNDO_MS}ms`, animationDelay: `${left - UNDO_MS}ms`, "--undo-window": `${UNDO_MS}ms` } as React.CSSProperties
           }

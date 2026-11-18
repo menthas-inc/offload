@@ -12,15 +12,18 @@
 // from every thread the asker is in, including text somebody else wrote, and
 // the surfaces it produces cannot destroy anything.
 
+import { useEffect, type ReactNode } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
 import { foundMeta } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
-import type { FoundResult, FoundRow } from "../../lib/dump";
+import type { FoundResult, FoundRow, SliceNote } from "../../lib/dump";
 import { foundFoot, foundHead } from "../../lib/loose";
+import { MARK_MS, headCount } from "../../lib/reply";
 
 /** This surface's default, passed in rather than reached for.
  *
@@ -46,45 +49,38 @@ const TYPE_ICON: Record<string, string> = {
   note: "text-quote",
 };
 
-export function AnswerResults({
-  found,
-  onToggle,
-  onOpenThread,
-  shown = ROWS_SHOWN,
-}: {
-  found: FoundResult[];
-  /** Absent draws the rows untickable, which is right for a fact. */
-  onToggle?: ((row: FoundRow) => void) | undefined;
-  /** 028. The name is null for what is not in a thread, which opens the
-   *  full list rather than a thread. */
-  onOpenThread?: ((threadId: string, threadName: string | null) => void) | undefined;
-  /** Rows drawn before the tail. Defaults to this surface's number. */
-  shown?: number;
-}) {
-  if (found.length === 0) return null;
-  return (
-    <View className="mt-space-4 gap-space-4 self-stretch">
-      {found.map((result) => (
-        <Result
-          key={result.threadId}
-          result={result}
-          onToggle={onToggle}
-          onOpenThread={onOpenThread}
-          shown={shown}
-        />
-      ))}
-    </View>
-  );
-}
-
-function Result({
+/** 052. One list slice of a reply: the card 013 drew for an answer, with the
+ *  thread's open count, the turn's rows marked and its notes under Notes. */
+export function AnswerResult({
   result,
   onToggle,
   onOpenThread,
-  shown,
+  onOpenRow,
+  shown = ROWS_SHOWN,
+  count,
+  marked = [],
+  markFor = 0,
+  notes = [],
+  previous = {},
+  head,
 }: {
   result: FoundResult;
-  shown: number;
+  /** Rows drawn before the tail. Defaults to this surface's number. */
+  shown?: number;
+  /** The thread's open rows, for the header; none is drawn at zero. */
+  count: number;
+  /** The rows this turn wrote, which take the change mark. */
+  marked?: readonly string[];
+  /** How long the change mark has left: zero on anything not live. */
+  markFor?: number;
+  /** The notes the turn wrote, in offload's voice. */
+  notes?: readonly SliceNote[];
+  /** An edited row's dates before the turn. */
+  previous?: Readonly<Record<string, { dueAt?: string | null; occursAt?: string | null }>>;
+  /** A header in place of the thread's: a new thread's. */
+  head?: ReactNode;
+  /** Opens the row's sheet. */
+  onOpenRow?: ((row: FoundRow) => void) | undefined;
   // `| undefined` explicitly: `exactOptionalPropertyTypes` treats an omitted
   // prop and one passed as undefined as different things, and this is passed
   // through from a parent that may not have it.
@@ -114,6 +110,7 @@ function Result({
       {/* The thread names the rows from a header inside the card rather than a
           chip above it: one link out per result, and the count has somewhere
           honest to sit. */}
+      {head ?? (
       <Pressable
         onPress={() => onOpenThread?.(result.threadId, result.threadName)}
         accessibilityRole="button"
@@ -130,17 +127,19 @@ function Result({
           {foundHead(result.threadName)}
         </Text>
         <Text className="ml-auto font-core text-text-accent" style={{ fontSize: 12 }}>
-          {result.rows.length}
+          {headCount(count)}
         </Text>
       </Pressable>
+      )}
 
       {drawn.map((row, index) => (
         <View
           key={row.contentId}
           className={`flex-row items-start gap-space-5 px-space-5 py-space-4 ${
-            index === drawn.length - 1 ? "" : "border-b border-border-hairline"
+            index === drawn.length - 1 && notes.length === 0 ? "" : "border-b border-border-hairline"
           }`}
         >
+          {marked.includes(row.contentId) ? <Mark left={markFor} /> : null}
           {onToggle && row.type === "task" ? (
             <Pressable
               onPress={() => onToggle(row)}
@@ -189,7 +188,12 @@ function Result({
             </View>
           )}
 
-          <View className="flex-1">
+          <Pressable
+            className="flex-1"
+            onPress={onOpenRow ? () => onOpenRow(row) : undefined}
+            disabled={!onOpenRow}
+            accessibilityRole={onOpenRow ? "button" : undefined}
+          >
             {/* Never opacity. A finished row keeps its place, takes tertiary ink
                 and a strike, and the tick has already said it. Dimming on a warm
                 page reads as a rendering fault and takes the meta line under the
@@ -209,9 +213,32 @@ function Result({
                 {foundMeta(row, zone, today)}
               </Text>
             ) : null}
-          </View>
+            {/* 052. Where an edited row was, while its Undo still holds it. */}
+            {previous[row.contentId] && foundMeta({ ...row, ...previous[row.contentId] }, zone, today) ? (
+              <Text className="font-core text-text-accent" style={{ fontSize: 12.5, lineHeight: 17.5 }}>
+                was {foundMeta({ ...row, ...previous[row.contentId] }, zone, today)}
+              </Text>
+            ) : null}
+          </Pressable>
         </View>
       ))}
+
+      {/* 052. What the turn wrote about the thread, in offload's voice. */}
+      {notes.length > 0 ? (
+        <View className="pb-space-3">
+          <Text className="px-space-5 pt-space-4 pb-space-2 font-core font-medium text-text-tertiary" style={{ fontSize: 12 }}>
+            Notes
+          </Text>
+          {notes.map((note) => (
+            <View key={note.id} className="px-space-5 py-space-2">
+              {note.marked ? <Mark left={markFor} /> : null}
+              <Text className="font-quiet text-text-primary" style={{ fontSize: 15, lineHeight: 22 }}>
+                {note.text}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {/* One tail or the other, never both. A read that hit its page has no rest
           to expand into, because what was not read was not sent. */}
@@ -237,4 +264,19 @@ function Result({
       ) : null}
     </View>
   );
+}
+
+/** 052. The change mark: `--surface-accent-soft` settling to transparent over
+ *  `--duration-mark`, behind what arrived. Played once, when a turn's result
+ *  arrives live; reduced motion draws nothing rather than a shorter flash. */
+export function Mark({ left }: { left: number }) {
+  const still = useReducedMotion();
+  const veil = useSharedValue(left / MARK_MS);
+  useEffect(() => {
+    veil.value = withTiming(0, { duration: left });
+    // Once, from the time it has left.
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: veil.value }));
+  if (still || left <= 0) return null;
+  return <Animated.View pointerEvents="none" className="absolute inset-0 bg-surface-accent-soft" style={style} />;
 }

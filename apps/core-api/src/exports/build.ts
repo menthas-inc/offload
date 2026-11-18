@@ -219,6 +219,41 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
         .orderBy("m.id")
         .execute();
       const messageIds = messages.map((message) => message.id);
+      // 052. What a turn changed, on the account's own messages, while its
+      // Undo still holds the values (OFF-1: theirs to take).
+      const turnChanges =
+        messageIds.length === 0
+          ? []
+          : await trx
+              .selectFrom("turn_changes")
+              .select(["message_id", "target_id", "tool", "previous"])
+              .where("account_id", "=", accountId)
+              .where("message_id", "in", messageIds)
+              // Only what the person can still read: a row or a thread they
+              // have left keeps its earlier words out of their copy.
+              .where((eb) =>
+                eb.or([
+                  eb.and([
+                    eb("target_kind", "=", "content"),
+                    eb.exists(
+                      eb.selectFrom("readable_content as c").select("c.id").whereRef("c.id", "=", "turn_changes.target_id").where("c.viewer_account_id", "=", accountId),
+                    ),
+                  ]),
+                  eb.and([
+                    eb("target_kind", "=", "thread"),
+                    eb.exists(
+                      eb
+                        .selectFrom("thread_members as m")
+                        .select("m.thread_id")
+                        .whereRef("m.thread_id", "=", "turn_changes.target_id")
+                        .where("m.account_id", "=", accountId)
+                        .where("m.state", "=", "accepted"),
+                    ),
+                  ]),
+                ]),
+              )
+              .orderBy("created_at")
+              .execute();
 
       // Blobs by the two ways one is readable: on a readable row, or on the
       // account's own message. Never by the blob's own account column alone.
@@ -344,6 +379,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
       const rowFilesOf = group(onRows, (blob) => blob.content_id);
       const notesOf = group(threadNotes, (note) => note.subject_id);
       const messagesOf = group(messages, (message) => message.conversation_id);
+      const changedOf = group(turnChanges, (change) => change.message_id);
       const messageFilesOf = group(onMessages, (blob) => blob.message_id);
       // Gone when the column is empty; a name that was never set is not gone.
       const author = (row: { account_id: string | null; display_name: string | null }): string | null =>
@@ -401,6 +437,9 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               transcript: message.transcript,
               at: message.created_at.toISOString(),
               files: (messageFilesOf.get(message.id) ?? []).flatMap(fileOf).map(strip),
+              ...(changedOf.has(message.id)
+                ? { changed: changedOf.get(message.id)!.map((change) => ({ target: change.target_id, tool: change.tool, previous: change.previous })) }
+                : {}),
             })),
           }))
           .filter((conversation) => conversation.messages.length > 0),

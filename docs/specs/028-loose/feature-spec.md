@@ -177,7 +177,7 @@ The thread named *Miscellaneous* on every account stays the default thread, and 
 **Moving**
 
 - **AC-31.** Moving a row or a note is refused unless the caller authored it (or its author has left) and is an accepted member of the destination, on every route and every surface.
-- **AC-32.** A note's author can move it, on the phones and the web; it arrives showing no labels and keeps its origin and untrusted mark; Undo returns it to its thread showing its labels.
+- **AC-32.** A note's author can move it, on the phones and the web; it arrives showing no labels and keeps its origin and untrusted mark; moved back, it shows its labels again. *Amended 2026-11-17 (owner): a note moved from inside a thread draws no Undo line; it is moved back the way it was moved.*
 - **AC-33.** The web's edit modal carries Move for every row that can move, in any thread.
 
 **Isolation and privacy**

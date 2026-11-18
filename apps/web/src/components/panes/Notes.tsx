@@ -225,7 +225,7 @@ export function useNoteActions({ threadId, notes, members, onNotes, writes }: Pi
   }
 
   /** 028. To another thread, by its author, as a row moves. It leaves this
-   *  list at the press; Undo is the same move back. A thread that already
+   *  list at the press, with no Undo line (owner, 2026-11-17). A thread that already
    *  holds the same words refuses it, and says so. */
   function move(note: Note, to: { id: string; name: string }): void {
     const at = notes.findIndex((one) => one.id === note.id);
@@ -242,14 +242,10 @@ export function useNoteActions({ threadId, notes, members, onNotes, writes }: Pi
           duplicate = !result.ok && result.duplicate;
           return result.ok;
         },
-        unwrite: async () => (await moveNote(note.id, threadId)).ok,
-        did: `Moved to ${to.name}`,
         // Read once the write is refused, so it can name the duplicate.
         get failed() {
           return duplicate ? `That's already in ${to.name}` : "Couldn't move that";
         },
-        unfailed: "Couldn't put that back",
-        place: { id: note.id, icon: "arrow-up-right", form: "slot" },
       },
       toast,
       writes,
@@ -454,11 +450,7 @@ export function Notes({
         apply: () => set((write) => write.priority),
         revert: () => set((write) => write.previous),
         write: () => all((write) => write.priority),
-        unwrite: () => all((write) => write.previous),
-        did: "Moved",
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,

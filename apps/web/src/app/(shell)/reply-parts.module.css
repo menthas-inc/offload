@@ -1,0 +1,264 @@
+/* 052. A turn's reply beside its words: slices, the Also line, pills, the
+   source line and the undo line, at the composer's width, below the bubble.
+   Every paint is an existing alias; no new token. */
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  align-self: stretch;
+}
+
+.also {
+  margin: 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.alsoLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  margin: calc((var(--chip-h) - var(--tap-min)) / 2) 0;
+  color: var(--text-accent);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.labels {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.more {
+  font: var(--weight-regular) var(--size-caption)/1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+/* A pill: QuickReplies' value paint with a leading glyph. */
+.pill {
+  gap: 6px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.pillGlyph {
+  color: var(--text-secondary);
+}
+
+/* A calendar's own colour, ringed by a hairline so a pale one still reads. */
+.dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 1px var(--border-hairline);
+}
+
+/* The source line: quiet, no border, under the pills. */
+.sources {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: var(--weight-regular) var(--size-caption)/1.2 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  margin: calc((20px - var(--tap-min)) / 2) 0;
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.source:hover {
+  text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  flex-flow: row wrap;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.memory {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--chip-h);
+  padding: var(--space-2) var(--space-5);
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font: var(--weight-medium) var(--size-label)/1.3 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.removed {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  font: var(--weight-regular) var(--size-body-sm)/1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* A late Undo: what the filing drew folds to one line. */
+.undone {
+  margin: 0;
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  font: var(--weight-medium) var(--size-body-sm)/1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.ask {
+  align-self: stretch;
+}
+
+/* ------------------------------------------------------------ the calendar */
+
+.calendar {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+}
+
+.dayHeading {
+  margin: 0;
+  padding: var(--space-5) var(--space-5) var(--space-2);
+  font: var(--weight-medium) var(--size-caption)/1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.nothing {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  font: var(--weight-regular) var(--size-body-sm)/1.4 var(--font-quiet);
+  color: var(--text-secondary);
+}
+
+.entry {
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.entry:last-child {
+  box-shadow: none;
+}
+
+.entryRow {
+  display: flex;
+  align-items: flex-start;
+  padding-left: var(--space-5);
+}
+
+/* The whole entry is the control that opens it: 44 tall at least, and the
+   title wraps rather than being cut, at any text size. */
+.entryButton {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5) var(--space-4) 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.entryRow > .entryButton:not(:first-child) {
+  padding-left: var(--space-5);
+}
+
+.entryTime {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font: var(--weight-regular) var(--size-label)/1.55 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.entryText {
+  flex: 1;
+  min-width: 0;
+}
+
+.entryTitle {
+  display: block;
+  font: var(--weight-medium) calc(15px * var(--type-scale))/1.35 var(--font-core);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.entryDone {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.entryMeta {
+  display: block;
+  margin-top: 2px;
+  font: var(--weight-regular) calc(12.5px * var(--type-scale))/1.4 var(--font-core);
+  color: var(--text-accent);
+}
+
+.entryChevron {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--text-tertiary);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-5) var(--space-5) calc(var(--space-5) + 44px + var(--space-5));
+  animation: detailsIn var(--duration-base) var(--ease-entrance) both;
+}
+
+.detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font: var(--weight-regular) calc(13.5px * var(--type-scale))/1.35 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.directions {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  margin: calc((20px - var(--tap-min)) / 2) 0;
+  font-weight: var(--weight-medium);
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+@keyframes detailsIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}

@@ -27,7 +27,7 @@ import json
 import re
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
 import structlog
@@ -332,6 +332,11 @@ class Outcome:
     #: expands in place, and a read that hit its page has no rest to expand
     #: into, so the tail is the thread instead.
     found: list[dict] = field(default_factory=list)
+    #: 052. The windows of the agenda reads that returned, as the model sent
+    #: them, and the dates the web answered as a structured field. What the
+    #: reply draws as a calendar comes from these and never from the sentence.
+    agenda: list[tuple[str, str]] = field(default_factory=list)
+    dates: list[str] = field(default_factory=list)
     #: Why the turn spoke, as the model named it in `say`. Checked against the
     #: record by `_hold_to_the_reason` before the outcome leaves the loop.
     because: str | None = None
@@ -964,7 +969,20 @@ async def plan(
             if ctx.looking_at is not None and ctx.looking_at_notes is not None
             else None
         ),
+        members_on_screen=bool(ctx.looking_at_notes and ctx.looking_at_notes.members),
     )
+
+
+def _carries_members(body: object) -> bool:
+    """051. A tool result with another member's words in it: their notes on a
+    thread, or a row of theirs from a read."""
+    if not isinstance(body, dict):
+        return False
+    if body.get("notesFromMembers"):
+        return True
+    result = body.get("result")
+    rows = result.get("rows", []) if isinstance(result, dict) else body.get("rows", [])
+    return any(isinstance(row, dict) and row.get("yours") is False for row in rows or [])
 
 
 def _cache_so_far(messages: list[dict]) -> list[dict]:
@@ -1001,6 +1019,7 @@ async def _run(
     answering: bool = False,
     asks_to_find_out: bool = False,
     about_the_world: bool = False,
+    members_on_screen: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
@@ -1031,6 +1050,9 @@ async def _run(
     # 038. Whether this turn has read the web, which the Core API needs to
     # refuse a memory and cannot see for itself: the reader runs here.
     read_web = False
+    # 051. And whether it has read another member's words: their notes on
+    # screen, or a result carrying their notes or their rows.
+    read_members = members_on_screen
 
     # The same on every call of the turn: effort is part of what the cache
     # matches, so changing it mid-turn would re-pay the prefix.
@@ -1274,8 +1296,10 @@ async def _run(
             sent = args.model_dump()
             if block.name == "memory":
                 # 038. Set here, never by the model: the turn has read the web,
-                # so the Core API refuses the memory.
-                sent = {**sent, "after_lookup": read_web}
+                # so the Core API refuses the memory. 051: likewise another
+                # member's words, which a birthday nobody asked to remember
+                # could otherwise have been taken from.
+                sent = {**sent, "after_lookup": read_web, "after_members": read_members}
             body = await call_tool(block.name, block.id, sent)
             if (
                 notes_carried is not None
@@ -1287,6 +1311,17 @@ async def _run(
                 body = {k: v for k, v in body.items() if k not in _NOTE_KEYS}
             if block.name == "look_up":
                 read_web = True
+                found = isinstance(body, dict) and body.get("found")
+                fields = body.get("fields") if found else None
+                day = fields.get("date") if isinstance(fields, dict) else None
+                if isinstance(day, str) and _DAY.match(day[:10]):
+                    outcome.dates.append(day[:10])
+            if block.name in DAY_READS and isinstance(body, dict) and body.get("ok"):
+                window = (_moment(sent.get("from_iso")), _moment(sent.get("to_iso")))
+                if window not in outcome.agenda:
+                    outcome.agenda.append(window)
+            if _carries_members(body):
+                read_members = True
 
             # A read that returned rows. Collected here rather than parsed out
             # of the reply: 005 settled that the links come from the ids and
@@ -2124,3 +2159,38 @@ def build_answer_blocks(ctx: AnswerContext, facts: dict | None = None) -> list[d
         }
     )
     return blocks
+
+
+_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+#: 052. The reads of a span of days, whose window the reply draws as a calendar.
+DAY_READS = frozenset({"list_agenda", "find_events"})
+def _moment(value: object) -> str:
+    """A window's end as one spelling: a midnight is the bare date, so the same
+    week read as `2026-11-16` and as `2026-11-16T00:00:00` is one read."""
+    text = str(value or "")
+    return text[:10] if len(text) == 10 or text[10:16] in ("T00:00", " 00:00") else text
+
+
+#: The longest span a reply draws as one calendar, as the Core API bounds it.
+_SHOWN_DAYS = 62
+
+
+def shown_from(outcome: "Outcome") -> dict | None:
+    """052. What an answer showed beside its words: one agenda read's window,
+    one day as `on` and longer as `span`, or one date the web answered. An
+    end at midnight is exclusive, as the agenda reads it. Anything else, or
+    more than one of either, shows nothing."""
+    if len(outcome.agenda) == 1 and not outcome.dates:
+        start, end = outcome.agenda[0]
+        first, last = start[:10], end[:10]
+        if not (_DAY.match(first) and _DAY.match(last)):
+            return None
+        if last > first and (len(end) == 10 or end[11:16] == "00:00"):
+            last = (date.fromisoformat(last) - timedelta(days=1)).isoformat()
+        days = (date.fromisoformat(last) - date.fromisoformat(first)).days
+        if last < first or days > _SHOWN_DAYS:
+            return None
+        return {"on": first} if first == last else {"span": {"from": first, "to": last}}
+    if len(outcome.dates) == 1 and not outcome.agenda:
+        return {"on": outcome.dates[0]}
+    return None

@@ -2,7 +2,7 @@
 //
 // 048 W4. A dump sent from another device appears in the conversation open on
 // this tab, and its answer follows it there: step lines, the writing
-// indicator and Done. The turn belongs to the device that sent it, so this tab
+// indicator and what it did. The turn belongs to the device that sent it, so this tab
 // draws no Stop, Finish, Try again or Undo for it, and its own composer is
 // untouched. A conversation not on screen is left alone.
 
@@ -161,7 +161,8 @@ describe("a dump from another device", () => {
     expect(buttons()).not.toContain("Stop");
   });
 
-  it("draws its answer and Done, offers no Undo, and tells the screens what it changed", async () => {
+  // 052: what the turn did is the reply's undo line, here without its Undo.
+  it("draws its answer and what it did, offers no Undo, and tells the screens what it changed", async () => {
     await hear();
     await answer(streams[0]!, "done", {
       state: "answered",
@@ -170,10 +171,11 @@ describe("a dump from another device", () => {
       changed: ["th2"],
       sources: [],
       found: [],
+      parts: { slices: [], also: [], pills: [], summary: { kind: "new", count: 2 }, resultAt: new Date().toISOString() },
     });
     await settle();
     expect(host.textContent).toContain("Added to Groceries.");
-    expect(host.textContent).toContain("Done");
+    expect(host.querySelector('[data-part="undo"]')!.textContent).toBe("2 new");
     expect(buttons()).not.toContain("Undo");
     expect(filed).toEqual([["th2"]]);
   });

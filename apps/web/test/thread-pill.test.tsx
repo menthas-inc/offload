@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 //
-// 027 T3.2, AC-26. The thread pill is one component: the turn footer draws it
-// at 30, Today at 24, a tap opens the thread, and inside a row it is a control
-// of its own rather than part of the row's title.
+// 027 T3.2, AC-26. The thread pill is one component: Today draws it at 24, a
+// tap opens the thread, and inside a row it is a control of its own rather
+// than part of the row's title.
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -16,7 +16,6 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const { TurnFooter } = await import("../src/components/shell/TurnFooter");
 const { ThreadPill } = await import("../src/components/shell/ThreadPill");
 const { ContentRowView } = await import("../src/components/panes/ContentRowView");
 type Row = import("../src/lib/threads").ContentRow;
@@ -78,11 +77,11 @@ const handlers = {
 };
 
 describe("027 AC-26 the thread pill", () => {
-  it("is what the turn footer draws, at 30, opening the thread", async () => {
-    const host = await render(<TurnFooter refs={[{ id: "t1", name: "Flat", icon: "house", hue: 2 }]} />);
+  // 052 retired the turn footer that drew it at 30; Today's 24 is what is left.
+  it("opens the thread, wearing the thread's own icon", async () => {
+    const host = await render(<ThreadPill id="t1" name="Flat" icon="house" hue={2} size={24} />);
     const pill = host.querySelector('a[href="/threads/t1"]')!;
     expect(pill).not.toBeNull();
-    expect(pill.getAttribute("data-size")).toBe("30");
     expect(pill.textContent).toBe("Flat");
     // 037. The thread's own icon, on its hue, in place of the lasso.
     const mark = pill.firstElementChild as HTMLElement;

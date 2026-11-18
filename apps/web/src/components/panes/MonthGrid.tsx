@@ -51,15 +51,23 @@ export function MonthGrid({
   title,
   heading = false,
   unit = "month",
+  still = false,
+  aside,
 }: {
   grid: Month;
-  selected: string;
+  /** Null when no day is picked: a reply's span lists every day. */
+  selected: string | null;
   /** Which way the last move went: forward brings the grid up from below, back
    *  down from above. */
   went: 1 | -1;
   onPick: (iso: string) => void;
-  onStep: (by: 1 | -1) => void;
-  onToday: () => void;
+  onStep?: (by: 1 | -1) => void;
+  onToday?: () => void;
+  /** 052. A reply's calendar: only the period the turn is about, so no arrows
+   *  and no Today. */
+  still?: boolean;
+  /** 052. Beside the name: how far away the period is, "in 19 weeks". */
+  aside?: string | null | undefined;
   /** A day that is drawn but does not open. */
   closed?: (iso: string) => boolean;
   /** No month before this one, or after it. */
@@ -155,10 +163,12 @@ export function MonthGrid({
 
   return (
     <>
-      <div className={styles.railMonth}>
-        <button type="button" className={styles.railStep} aria-label={`Previous ${unit}`} disabled={first} onClick={() => onStep(-1)}>
-          <Icon name="chevron-left" size={16} />
-        </button>
+      <div className={styles.railMonth} data-still={still || undefined}>
+        {still ? null : (
+          <button type="button" className={styles.railStep} aria-label={`Previous ${unit}`} disabled={first} onClick={() => onStep?.(-1)}>
+            <Icon name="chevron-left" size={16} />
+          </button>
+        )}
 
         {/* **The arrows are the ends and everything else is between them.**
             Today is always drawn rather than only when you have wandered:
@@ -170,14 +180,19 @@ export function MonthGrid({
           ) : (
             <span className={styles.railMonthName}>{name}</span>
           )}
-          <button type="button" className={styles.railToday} onClick={onToday}>
-            Today
-          </button>
+          {aside ? <span className={styles.railAside}>{aside}</span> : null}
+          {still ? null : (
+            <button type="button" className={styles.railToday} onClick={onToday}>
+              Today
+            </button>
+          )}
         </span>
 
-        <button type="button" className={styles.railStep} aria-label={`Next ${unit}`} disabled={last} onClick={() => onStep(1)}>
-          <Icon name="chevron-right" size={16} />
-        </button>
+        {still ? null : (
+          <button type="button" className={styles.railStep} aria-label={`Next ${unit}`} disabled={last} onClick={() => onStep?.(1)}>
+            <Icon name="chevron-right" size={16} />
+          </button>
+        )}
       </div>
 
       {/* The week stepper keeps its shared row and slides it (the FLIP above);

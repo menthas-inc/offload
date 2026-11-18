@@ -54,8 +54,11 @@ export function RowEditSheet({
   onMove,
   onOpenPhoto,
   onRemoveAction,
+  at,
 }: {
   row: ContentRow | null;
+  /** 052. Opened at its date field, from a reply's Add a date. */
+  at?: "when" | null | undefined;
   onClose: () => void;
   /** 2026-11-02. The attachment's tile opens it: the viewer, or the PDF. */
   onOpenPhoto?: ((row: ContentRow) => void) | undefined;
@@ -84,7 +87,7 @@ export function RowEditSheet({
   const [removed, setRemoved] = useState<string[]>([]);
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : NOTHING));
   const [remind, setRemind] = useState(row ? remindOf(row, row.author.isYou) : false);
-  const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
+  const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(at ?? null);
   const [choice, setChoice] = useState<LabelChoice | null>(null);
   const [custom, setCustom] = useState<CustomAsk | null>(null);
   const insets = useSafeAreaInsets();
@@ -142,7 +145,7 @@ export function RowEditSheet({
         sheetStyle={{ maxHeight: windowHeight - insets.top - 12 }}
         className="px-gutter-screen"
         accessibilityLabel="Edit"
-        onOpen={() => titleField.current?.focus()}
+        onOpen={() => (at ? undefined : titleField.current?.focus())}
       >
         {/* Bounded and scrolling, because at a large text size on a small
             phone the fields and the pills together outgrow the sheet, and a

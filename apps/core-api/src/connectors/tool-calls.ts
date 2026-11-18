@@ -244,7 +244,7 @@ export async function writeThroughTool(
   /** `confirm`: put it to the person whatever the outward test says. Set by
    *  the tool endpoint for a turn that has read a calendar, because what it
    *  read is text other people wrote (security review 2026-09-22, M11). */
-  options: { confirm?: boolean } = {}
+  options: { confirm?: boolean; noteId?: string | null } = {}
 ): Promise<ToolWriteOutcome> {
   const target = await targetFor(calendarId, accountId);
   if (!target) return { kind: "refused", reason: "unknown_calendar" };
@@ -296,7 +296,10 @@ export async function writeThroughTool(
       }
       throw error;
     }
-    if (done.sourceRef && write.action === "create") await remember(contentId, target.externalId, done.sourceRef);
+    if (done.sourceRef && write.action === "create") {
+      await remember(contentId, target.externalId, done.sourceRef);
+      await rememberOnMemory(accountId, options.noteId ?? null, done.sourceRef, messageId);
+    }
     const rows = await follow(accountId, write, messageId);
     // A change or a removal files no row, so this is the turn's record of
     // having done it, and what its Undo reads. Kept the way an agreed proposal
@@ -327,6 +330,7 @@ export async function writeThroughTool(
       account_id: accountId,
       calendar_id: calendarId,
       content_id: contentId,
+      note_id: options.noteId ?? null,
       action: write.action,
       scope: write.action === "create" ? null : write.scope,
       // **Stored as JSON, so the Dates in it come back as strings.** A
@@ -419,6 +423,7 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   // brings the event in on the next sync; nothing is filed into a thread.
   if (done.sourceRef && write.action === "create") {
     await remember(pending.content_id, target.externalId, done.sourceRef);
+    await rememberOnMemory(accountId, pending.note_id, done.sourceRef, pending.message_id);
   }
 
   // 2026-10-13. The proposals this one stood for: the same calendar and the
@@ -649,6 +654,22 @@ async function remember(contentId: string | null, calendarExternalId: string, so
     })
     .where("id", "=", contentId)
     .where("source_ref", "is", null)
+    .execute();
+}
+
+/** 051. A memory that went on the calendar remembers its event, once: the
+ *  series' master, which is what a forget deletes and an edit moves. */
+async function rememberOnMemory(accountId: string, noteId: string | null, sourceRef: string, messageId: string | null): Promise<void> {
+  if (!noteId) return;
+  // The message whose turn put it on, which that turn's Undo reads: not the
+  // one the memory came from, which may be days older.
+  await db
+    .updateTable("notes")
+    .set({ event_ref: sourceRef, attrs: sql`attrs || jsonb_build_object('event_message', ${messageId}::text)`, updated_at: new Date() })
+    .where("id", "=", noteId)
+    .where("account_id", "=", accountId)
+    .where("scope", "=", "account")
+    .where("event_ref", "is", null)
     .execute();
 }
 

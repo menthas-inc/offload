@@ -28,14 +28,15 @@ export async function todayRoutes(app: App): Promise<void> {
     "/v1/today/day",
     {
       schema: {
-        querystring: z.object({ date: z.string().max(10) }),
+        // 052. `past`: a reply's calendar, which may show a day gone by.
+        querystring: z.object({ date: z.string().max(10), past: z.literal("1").optional() }),
         response: { 200: dayResponse, 400: badRequest, 401: unauthenticated },
       },
     },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
-      const day = await readDay(accountId, request.query.date);
+      const day = await readDay(accountId, request.query.date, new Date(), { past: request.query.past === "1" });
       return day === "bad_date" ? reply.status(400).send({ error: "bad_date" as const }) : reply.send(day);
     },
   );
@@ -45,14 +46,15 @@ export async function todayRoutes(app: App): Promise<void> {
     "/v1/today/month",
     {
       schema: {
-        querystring: z.object({ from: z.string().max(10), to: z.string().max(10) }),
+        // 052. `past`: a reply's grid, which may show days gone by.
+        querystring: z.object({ from: z.string().max(10), to: z.string().max(10), past: z.literal("1").optional() }),
         response: { 200: monthResponse, 400: badRequest, 401: unauthenticated },
       },
     },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
-      const month = await readMonth(accountId, request.query.from, request.query.to);
+      const month = await readMonth(accountId, request.query.from, request.query.to, new Date(), { past: request.query.past === "1" });
       return month === "bad_window" ? reply.status(400).send({ error: "bad_window" as const }) : reply.send(month);
     },
   );

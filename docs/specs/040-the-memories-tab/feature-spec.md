@@ -301,3 +301,8 @@ What is kept grows by an embedding and two numbers on each memory's own row. The
 - **The map stays in 040,** as the owner asked, as the fourth PR.
 - **Relevance stays** (owner), stated as a quality choice.
 - **No near-duplicate refusal by distance yet;** see Out of scope.
+
+## Amended 2026-11-17 by 051
+
+- **The origin line** of a memory from the person's own message reads *You told offload this*, asked or not: a birthday is now kept without being asked, so "You asked offload to remember this" stopped being always true.
+- **Forgetting a memory with a calendar event** deletes the event once the Undo has closed; the toast stays *Memory forgotten*. **Changing its words** is re-dated by the next memory pass, which moves the event to a new day, or lets it go and leaves it on the calendar when no day is left.

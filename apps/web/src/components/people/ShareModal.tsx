@@ -53,12 +53,15 @@ export function ShareModal({
   threadId,
   threadName,
   viewerId,
+  preselect,
   onClose,
   onChanged,
 }: {
   threadId: string;
   threadName: string;
   viewerId: string | null;
+  /** 052. A reply's Share with: that connection ticked, nothing sent until Share. */
+  preselect?: string;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -66,7 +69,7 @@ export function ShareModal({
   const [step, setStep] = useState<"list" | "new">("list");
   const [sheet, setSheet] = useState<ShareSheet | null>(null);
   const [failed, setFailed] = useState(false);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [picked, setPicked] = useState<Set<string>>(new Set(preselect ? [preselect] : []));
   const [query, setQuery] = useState("");
   const [sending, setSending] = useState(false);
   const [line, setLine] = useState<string | null>(null);

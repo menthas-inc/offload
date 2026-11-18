@@ -297,7 +297,7 @@ export async function syncConnection(connectionId: string, full = false): Promis
       }
     }
 
-    if (remembered.size > 0) await letGo(connection.account_id, calendar.id, calendar.external_id, gone);
+    if (remembered.size > 0 || gone.refs.length > 0 || gone.series.size > 0) await letGo(connection.account_id, calendar.id, calendar.external_id, gone);
 
     await db
       .updateTable("connector_calendars")
@@ -424,7 +424,7 @@ async function followChange(accountId: string, calendarId: string, mapped: Mappe
  *  series. A row that only found its event stays, off its day. A row carrying a photo is not destroyed with an appointment: it
  *  stops being an event and goes loose, photo and all. The account's own rows
  *  only, as the calendar is. Never failing the pass: the copy is right by now. */
-async function letGo(accountId: string, calendarId: string, calendarExternalId: string, gone: Gone): Promise<void> {
+export async function letGo(accountId: string, calendarId: string, calendarExternalId: string, gone: Gone): Promise<void> {
   const refs = [...gone.refs];
   for (const series of gone.series) {
     const left = await db
@@ -437,6 +437,14 @@ async function letGo(accountId: string, calendarId: string, calendarExternalId: 
     if (!left) refs.push(sourceRefFor(calendarExternalId, series));
   }
   if (refs.length === 0) return;
+  // 051. A memory whose event went lets it go and stays as it was: deleted
+  // on the calendar is not forgotten in offload.
+  await db
+    .updateTable("notes")
+    .set({ event_ref: null, attrs: sql`attrs - 'event_found'` })
+    .where("account_id", "=", accountId)
+    .where("event_ref", "in", refs)
+    .execute();
   const rows = await db
     .selectFrom("content")
     .select(["id", "title", "thread_id", "occurs_at"])

@@ -118,6 +118,8 @@ export interface AgendaRow extends ContentRow {
   /** 037. Null with the name. */
   threadIcon: string | null;
   threadHue: number | null;
+  /** 052. The calendar the row is on, by its own name and colour. */
+  calendar?: { name: string; colour: string | null } | null;
 }
 
 export interface TodayEvent {
@@ -137,6 +139,12 @@ export interface TodayEvent {
   threadHue: number | null;
   /** An offload event another member filed. */
   authorName: string | null;
+  /** 052. An offload event's own words for where it is, and the place 030
+   *  resolved them to. */
+  location?: string | null;
+  place?: { lat: number | null; lng: number | null; approximate: boolean } | null;
+  /** 052. The calendar an offload event is on, when it is one of this account's. */
+  calendar?: { name: string; colour: string | null } | null;
 }
 
 export interface Day {
@@ -153,10 +161,11 @@ export interface Day {
   threadLabels: { id: string; name: string; colour: number }[];
 }
 
-/** One day, or null when it did not load. */
-export async function fetchDay(date: string): Promise<Day | null> {
+/** One day, or null when it did not load. `past` reads a day gone by, for a
+ *  reply's calendar (052). */
+export async function fetchDay(date: string, past = false): Promise<Day | null> {
   try {
-    const response = await fetch(`${API}/v1/today/day?date=${encodeURIComponent(date)}`, send);
+    const response = await fetch(`${API}/v1/today/day?date=${encodeURIComponent(date)}${past ? "&past=1" : ""}`, send);
     if (!response.ok) return null;
     return (await response.json()) as Day;
   } catch {
@@ -166,14 +175,39 @@ export async function fetchDay(date: string): Promise<Day | null> {
 
 /** 2026-10-18. What each day in a window holds, for Today's month; null
  *  when it did not load, so the grid draws without dots. */
-export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
+export async function fetchMonth(from: string, to: string, past = false): Promise<MonthCount[] | null> {
   try {
-    const response = await fetch(`${API}/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, send);
+    // 052. `past`: a reply's grid, which may show days gone by.
+    const response = await fetch(`${API}/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${past ? "&past=1" : ""}`, send);
     if (!response.ok) return null;
     return ((await response.json()) as { days: MonthCount[] }).days;
   } catch {
     return null;
   }
+}
+
+/** 052. A reply's calendar reads, once per key until something changes: a
+ *  conversation draws the same period again on every render and every reload
+ *  of its tail. shortcut: each change keys a new read and the old ones stay
+ *  until sign-out, a few dozen small promises a session; drop them per change
+ *  if a long session is seen to hold many. A read that failed is not kept, so the next look asks again. */
+const once = new Map<string, Promise<unknown>>();
+function cached<T>(key: string, read: () => Promise<T | null>): Promise<T | null> {
+  const held = once.get(key) as Promise<T | null> | undefined;
+  if (held) return held;
+  const reading = read().then((got) => {
+    if (got === null) once.delete(key);
+    return got;
+  });
+  once.set(key, reading);
+  return reading;
+}
+/** `fresh` is when the reader last heard something changed: a new value reads again. */
+export const monthOnce = (from: string, to: string, fresh = 0) => cached(`month:${from}|${to}|${fresh}`, () => fetchMonth(from, to, true));
+export const dayOnce = (date: string, past: boolean, fresh = 0) => cached(`day:${date}|${past}|${fresh}`, () => fetchDay(date, past));
+/** At sign-out, with the rest of what the account left on this device. */
+export function forgetReplyReads(): void {
+  once.clear();
 }
 
 /** Google's own link to an event, and only that: https on Google's calendar
