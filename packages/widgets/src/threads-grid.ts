@@ -1,15 +1,8 @@
-// 2026-10-29. My threads as a grid, the rules both clients draw it by: where a
-// tile's back glyph sits, how a move lands, and the words. Design handoff
+// 2026-10-29. My threads as a grid, the rules both clients draw it by: how a
+// move lands, and the words. Design handoff
 // `APPLY-2026-10-29-threads-grid.md`.
 
 export type ThreadSort = "newest" | "mine";
-
-/** Where the tile's back glyph sits, as a percent of the tile, and its turn in
- *  degrees. The glyph is 190% of the tile, so each tile shows a different part
- *  of it; the same thread always shows the same part. */
-export function backGlyph(seed: number): { left: number; top: number; turn: number } {
-  return { left: -(25 + (seed % 55)), top: -(20 + ((seed >>> 5) % 60)), turn: ((seed >>> 2) % 4) * 90 };
-}
 
 /** The list with one thread taken out and put at `to`, clamped to the ends. */
 export function moveThread(ids: readonly string[], id: string, to: number): string[] {

@@ -955,6 +955,9 @@ export interface NotesTable {
   origin: "stated" | "learned" | "answered";
   /** 038. An answered memory's calendar, by id, never its name. */
   calendar_id: ColumnType<string | null, string | null | undefined, string | null>;
+  /** 051. The calendar event a memory became, `<calendar external id>:<event
+   *  id>` as `content.source_ref`. Only on a memory; the check holds it. */
+  event_ref: ColumnType<string | null, string | null | undefined, string | null>;
   /** 040. A memory's own embedding (halfvec(1024)) and its place on the map.
    *  Null on every thread note; the check holds it. */
   embedding: ColumnType<string | null, string | null | undefined, string | null>;
@@ -1138,6 +1141,8 @@ export interface ConnectorPendingWritesTable {
   message_id: string | null;
   /** 019. The row a confirmed create marks as on the calendar. */
   content_id: string | null;
+  /** 051. The memory a confirmed create marks as on the calendar. */
+  note_id: ColumnType<string | null, string | null | undefined, string | null>;
   expires_at: Timestamp;
   created_at: Timestamp;
   confirmed_at: Timestamp | null;

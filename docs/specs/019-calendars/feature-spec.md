@@ -196,3 +196,8 @@ Material's own checkbox and switch in a low container group, and a Material bott
 - **Search over a calendar's events.** Held outside threads they are outside 013's index. Whether they earn their own index is a question for when somebody misses one.
 - **Two calendars with the same 24 characters** make two chips read alike; the write still goes to the one tapped. Noted, not handled.
 - **Google's verification** for the added scope, as for 012's: it gates reaching people past the test-user cap, not building.
+
+## Amended 2026-11-17 by 051, the owner
+
+- **AC-11 and AC-12.** A calendar write can hang off a memory as well as a row. A birthday's memory goes on the calendar it names, else the primary approved writable calendar, with no question; a name that settles on none asks *Remembered "<name>". Which calendar?*, which never joins a row's question. No thread picks it and no tap makes a pick.
+- **The delete after a forget is not confirmed.** Forgetting a memory deletes the event offload wrote for it once the forget's Undo has closed, on a shared calendar too, with no go-ahead (OFF-6's allowlist, `docs/tech/decisions.md`). An event offload only found is let go, never deleted.

@@ -5,6 +5,9 @@
 
 import { memoriesToDate } from "../notifications/labels.js";
 import { sql } from "kysely";
+import { carryEvent } from "./birthdays.js";
+import { flat } from "./flat.js";
+import { daysIn } from "./dates.js";
 import type { Executor } from "../threads/access.js";
 import type { MemoryClass } from "../schema.js";
 import { touchesSensitive } from "./sensitive.js";
@@ -162,6 +165,20 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   let active = held.length;
 
   const out: PassApplied = { added: 0, superseded: 0, folded: 0, ignored: 0 };
+  // 051. The days held, by name, so a birthday is not learned a second time.
+  const heldDays = (
+    await trx
+      .selectFrom("reminder_labels as l")
+      .innerJoin("notes as n", "n.id", "l.note_id")
+      .select(["l.yearly_on as on", "l.name"])
+      .where("n.account_id", "=", accountId)
+      .where("n.scope", "=", "account")
+      .where("n.deleted_at", "is", null)
+      .where("n.superseded_at", "is", null)
+      .where("l.yearly_on", "is not", null)
+      .where("l.name", "is not", null)
+      .execute()
+  ).map((row) => ({ on: row.on!, name: row.name! }));
 
   /** A citation it was shown, as the source columns a memory carries. */
   const source = (cites: string): { messageId: string | null; fromNote: string | null; at: Date } | null => {
@@ -200,7 +217,7 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
       )
       .returning("id")
       .executeTakeFirst();
-    return row !== undefined;
+    return row?.id;
   };
 
   // Set aside by an earlier entry of this same plan: not there to touch again.
@@ -221,6 +238,11 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     const words = shaped(entry.text, entry.kind);
     const from = source(entry.cites);
     if (!words.ok || !from || touchesSensitive(words.text) || said.has(words.text.toLowerCase()) || learned >= LEARNED_MEMORY_CAP || active >= MEMORY_CAP) {
+      out.ignored += 1;
+      continue;
+    }
+    // 051. A birthday a memory already holds, under another wording.
+    if (heldDays.some((day) => daysIn(words.text).includes(day.on) && flat(day.name).split(" ").filter((word) => word.length > 1).every((word) => flat(words.text).split(" ").includes(word)))) {
       out.ignored += 1;
       continue;
     }
@@ -258,7 +280,11 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     await retire([old.id]);
     said.delete(old.text.trim().toLowerCase());
     // The person's own stays theirs: counted as theirs, and never retired or folded as offload's.
-    if (await write(kind!, words.text, from!, theirs ? "stated" : "learned")) {
+    const replacedBy = await write(kind!, words.text, from!, theirs ? "stated" : "learned");
+    if (replacedBy) {
+      // 051. Its calendar event goes with it; the new words' day, once the
+      // pass dates them, moves it if it changed.
+      await carryEvent(trx, { accountId, from: [old.id], to: replacedBy, on: null });
       said.add(words.text.toLowerCase());
       out.superseded += 1;
     } else {
@@ -284,7 +310,9 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     await retire(olds.map((old) => old!.id));
     for (const old of olds) said.delete(old!.text.trim().toLowerCase());
     const attrs = (typeof first.attrs === "string" ? JSON.parse(first.attrs) : first.attrs) as { from_note?: string } | null;
-    if (await write(kind, words.text, { messageId: first.derived_from_message_id, fromNote: attrs?.from_note ?? null })) {
+    const foldedInto = await write(kind, words.text, { messageId: first.derived_from_message_id, fromNote: attrs?.from_note ?? null });
+    if (foldedInto) {
+      await carryEvent(trx, { accountId, from: olds.map((old) => old!.id), to: foldedInto, on: null });
       said.add(words.text.toLowerCase());
       learned -= olds.length - 1;
       active -= olds.length - 1;

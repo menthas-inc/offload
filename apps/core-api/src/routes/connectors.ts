@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
 import { db } from "../db.js";
+import { unlinkCalendars } from "../memories/calendar.js";
 import { env } from "../env.js";
 import {
   consentUrl,
@@ -406,6 +407,8 @@ export async function connectorRoutes(app: App): Promise<void> {
         if (!selected) {
           await tx.deleteFrom("thread_calendars").where("calendar_id", "=", calendar.id).execute();
           await tx.deleteFrom("connector_events").where("calendar_id", "=", calendar.id).execute();
+          const external = await tx.selectFrom("connector_calendars").select("external_id").where("id", "=", calendar.id).executeTakeFirstOrThrow();
+          await unlinkCalendars(tx, accountId, [external.external_id]);
         }
       });
 
@@ -446,6 +449,9 @@ export async function connectorRoutes(app: App): Promise<void> {
         .executeTakeFirst();
       if (!connection) return reply.status(404).send({ error: "not_found" as const });
 
+      // 051. Memories on its calendars let their events go first.
+      const calendars = await db.selectFrom("connector_calendars").select("external_id").where("connection_id", "=", connection.id).execute();
+      await unlinkCalendars(db, accountId, calendars.map((c) => c.external_id));
       // The grant goes back to Google, not only out of our table.
       await revokeAndForget(connection.id);
       return reply.send({ ok: true as const });

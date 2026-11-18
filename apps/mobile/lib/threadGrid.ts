@@ -40,3 +40,15 @@ export const cellOrigin = (index: number, m: GridMetrics): { x: number; y: numbe
   x: (index % m.columns) * (m.side + m.gap),
   y: Math.floor(index / m.columns) * (m.side + m.gap),
 });
+
+/** 2026-11-17. What a tile of `side` points holds at a text scale: its glyph's
+ *  size, and whether the thread's line fits under two lines of name. The name
+ *  (title-1, 28 a line) is never what gives way; the line goes whole, then the
+ *  glyph shrinks from 54 toward 30. The scale is capped where the tile caps it. */
+export function tileFit(side: number, fontScale: number): { glyph: number; meta: boolean } {
+  const scale = Math.min(fontScale, 1.3);
+  const inner = side - 2 * 14;
+  const name = 2 * 28 * scale;
+  const glyph = Math.max(30, Math.min(54, Math.round(side * 0.335), Math.floor(inner - name)));
+  return { glyph, meta: name + 4 + 16 * scale <= inner - glyph };
+}

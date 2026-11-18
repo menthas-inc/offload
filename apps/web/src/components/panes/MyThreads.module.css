@@ -98,13 +98,14 @@
   gap: var(--space-6);
 }
 
-@container (max-width: 520px) {
+/* A tile has to hold two lines of name, its line and the glyph. */
+@container (max-width: 760px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@container (max-width: 300px) {
+@container (max-width: 420px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }

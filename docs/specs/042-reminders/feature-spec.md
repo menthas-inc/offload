@@ -342,3 +342,9 @@ A survey of what is known about when people want reminding, by type, on 2026-10-
 - **Batch what is not urgent.** Notifications batched three times a day lowered stress and raised wellbeing against both hourly batching and none at all (Fitz et al. 2019, randomised, 237 people) [moderate]. Hence the two sends.
 
 Sources: [Graus et al. 2016](https://www.erichorvitz.com/Cortana-reminders_UM_2016.pdf), [Steiner et al. 2018](https://www.ajmc.com/view/optimizing-number-and-timing-of-appointment-reminders-a-randomized-trial), [Esteban et al. 2026](https://sciety.org/articles/activity/10.64898/2026.08.17.26360609), [Tungare and Pérez-Quiñones](https://arxiv.org/pdf/0809.3447), [Cadena and Schoar](https://www.nber.org/papers/w17020), [Karlan et al.](https://img.nber.org/papers/w16205), [Gillitzer and Sinning](https://docs.iza.org/dp11599.pdf), [Fitz et al. 2019](https://scholars.duke.edu/publication/1402953), [Schengen visa window](https://www.mzv.sk/en/web/ankara-en/visa-and-services/schengen-visa), [Moonpig](https://www.moonpig.com/au/faq/).
+
+## Amended 2026-11-17 by 051, the owner
+
+- **A memory's date can come from the turn.** AC-4's memory pass is no longer the only writer of a memory's date: a birthday the turn remembers is labelled there and then, `occasion` and `days`, with its short name, and the pass reads it again only once its words change.
+- **"A birthday still never reaches a calendar"** (line 9) ends: 051 puts one on.
+- **Today on the day.** A memory's reminder on its own day is not drawn while the memory's event is on a calendar Today reads; Your day draws the event. Earlier windows are unchanged.

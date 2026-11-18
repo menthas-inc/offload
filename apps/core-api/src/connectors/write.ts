@@ -414,6 +414,13 @@ export async function undoWrite(target: CalendarTarget, sourceRef: string): Prom
     .where("account_id", "=", target.accountId)
     .where("source_ref", "=", sourceRef)
     .execute();
+  // 051. And a memory forgets it the same way.
+  await db
+    .updateTable("notes")
+    .set({ event_ref: null, attrs: sql`attrs - 'event_found' - 'event_message'`, updated_at: now })
+    .where("account_id", "=", target.accountId)
+    .where("event_ref", "=", sourceRef)
+    .execute();
 
   return true;
 }

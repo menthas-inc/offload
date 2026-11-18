@@ -11,6 +11,8 @@
 // this product cannot break.
 
 import { answerMemory, restoreForgotten, undoAnswered } from "../memories/store.js";
+import { undoCorrections } from "../memories/birthdays.js";
+import { nextOccurrence } from "../memories/calendar.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -563,7 +565,36 @@ export async function threadsForAll(
   for (const id of await confirmedFor(messageIds, accountId)) {
     if (!out.has(id)) out.set(id, []);
   }
+  // 051. So is a birthday the turn remembered.
+  for (const id of await daysFiled(messageIds, accountId)) {
+    if (!out.has(id)) out.set(id, []);
+  }
   return out;
+}
+
+/** 051. The messages whose turn remembered a day that comes round every year:
+ *  filed, with no thread, so the footer draws Done and no pill. */
+async function daysFiled(messageIds: string[], accountId: string): Promise<Set<string>> {
+  if (messageIds.length === 0) return new Set();
+  // The turn that wrote the memory, one that remembered it again
+  // (`day_message`), and one whose tap or ask put it on a calendar
+  // (`event_message`), so a reload draws the Done the press did.
+  const ids = messageIds.map((id) => sql<string>`${id}::text`);
+  const rows = await db
+    .selectFrom("notes")
+    .select([
+      sql<string | null>`derived_from_message_id::text`.as("made"),
+      sql<string | null>`attrs ->> 'day_message'`.as("again"),
+      sql<string | null>`attrs ->> 'event_message'`.as("linked"),
+    ])
+    .where("account_id", "=", accountId)
+    .where("scope", "=", "account")
+    .where("deleted_at", "is", null)
+    .where(sql<boolean>`attrs ? 'day'`)
+    .where(sql<boolean>`(derived_from_message_id::text in (${sql.join(ids)}) or attrs ->> 'day_message' in (${sql.join(ids)}) or attrs ->> 'event_message' in (${sql.join(ids)}))`)
+    .execute();
+  const wanted = new Set(messageIds);
+  return new Set(rows.flatMap((row) => [row.made, row.again, row.linked]).filter((id): id is string => id !== null && wanted.has(id)));
 }
 
 /** What each of a page of turns read, for the chip under it, in one query,
@@ -666,6 +697,8 @@ export async function threadsFor(
   // removal files no row, and without this the control went and nothing said
   // the thing had happened, on the press or after a reload.
   if (!any) any = (await confirmedFor([messageId], accountId)).has(messageId);
+  // 051. A birthday the turn remembered is filed, with no thread to name.
+  if (!any) any = (await daysFiled([messageId], accountId)).has(messageId);
   return { landed, changed: [...changed], filed: any };
 }
 
@@ -2197,6 +2230,12 @@ export async function undoTurn(
       accountId,
       live.map((row) => row.id),
     );
+    // 051. A corrected birthday: the one it replaced comes back, with its event.
+    await undoCorrections(
+      trx,
+      accountId,
+      live.map((row) => row.id),
+    );
 
     // 018. The asking turn's questions close with what they were about; an
     // answer's turn puts the previous value back and the question stays
@@ -2290,6 +2329,16 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
     .$if(since !== undefined, (qb) => qb.where("updated_at", "<=", sql<Date>`${since}::timestamptz`))
     .execute();
 
+  // 051. The same for a memory that found its event: it only forgets it.
+  await db
+    .updateTable("notes")
+    .set({ event_ref: null, attrs: sql`attrs - 'event_found'` })
+    .where("account_id", "=", accountId)
+    .where("scope", "=", "account")
+    .where(sql<string>`attrs ->> 'event_message'`, "in", (eb) => eb.selectFrom("messages").select(sql<string>`id::text`.as("id")).where("turn_id", "=", turnId))
+    .where(sql<boolean>`attrs ? 'event_found'`)
+    .execute();
+
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2312,8 +2361,32 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
     .where("content.source_ref", "is not", null)
     .execute();
 
-  for (const row of [...filed, ...answered]) {
-    if (!row.sourceRef) continue;
+  // 051. A memory this turn remembered and put on a calendar, and one a
+  // tapped answer in this turn put on one.
+  const remembered = await db
+    .selectFrom("notes")
+    .innerJoin("messages", (join) => join.on(sql<string>`messages.id::text`, "=", sql<string>`notes.attrs ->> 'event_message'`))
+    .select(["notes.event_ref as sourceRef"])
+    .where("messages.turn_id", "=", turnId)
+    .where("notes.account_id", "=", accountId)
+    .where("notes.scope", "=", "account")
+    .where("notes.event_ref", "is not", null)
+    .execute();
+  const answeredMemories = await db
+    .selectFrom("questions")
+    .innerJoin("notes", "notes.id", "questions.target_note_id")
+    .select(["notes.event_ref as sourceRef"])
+    .where("questions.answer_turn_id", "=", turnId)
+    .where("questions.account_id", "=", accountId)
+    .where("questions.field", "=", "calendar")
+    .where("notes.event_ref", "is not", null)
+    .execute();
+
+  // One event can be found both ways (an answer's memory names its message), and is undone once.
+  const undone = new Set<string>();
+  for (const row of [...filed, ...answered, ...remembered, ...answeredMemories]) {
+    if (!row.sourceRef || undone.has(row.sourceRef)) continue;
+    undone.add(row.sourceRef);
     // `source_ref` is `<calendar external id>:<event id>`, so the calendar it
     // belongs to is the prefix.
     const externalId = row.sourceRef.split(":")[0];
@@ -2534,7 +2607,7 @@ export async function answerCalendarQuestion(
   const settled = await db.transaction().execute(async (trx) => {
     const question = await trx
       .selectFrom("questions")
-      .select(["id", "conversation_id", "message_id", "target_content_id", "previous_value", "state"])
+      .select(["id", "conversation_id", "message_id", "target_content_id", "target_note_id", "previous_value", "state"])
       .where("id", "=", input.questionId)
       .where("account_id", "=", accountId)
       .forUpdate()
@@ -2566,6 +2639,20 @@ export async function answerCalendarQuestion(
           .where("id", "=", question.target_content_id)
           .where("deleted_at", "is", null)
           .forUpdate()
+          .executeTakeFirst()
+      : undefined;
+    // 051. A memory going on a calendar: no thread, so no pick and no
+    // membership, only that it is still theirs, unlinked, with a name and a day.
+    const memory = question.target_note_id
+      ? await trx
+          .selectFrom("notes as n")
+          .innerJoin("reminder_labels as l", "l.note_id", "n.id")
+          .select(["n.id", "n.event_ref", "l.name", "l.yearly_on"])
+          .where("n.id", "=", question.target_note_id)
+          .where("n.account_id", "=", accountId)
+          .where("n.scope", "=", "account")
+          .where("n.deleted_at", "is", null)
+          .forUpdate("n")
           .executeTakeFirst()
       : undefined;
     // Still in the thread. Somebody who left between the ask and the tap
@@ -2637,9 +2724,10 @@ export async function answerCalendarQuestion(
     await adoptZone(accountId, input.timeZone ?? null, trx);
 
     const writable = calendar && (calendar.accessRole === "owner" || calendar.accessRole === "writer");
-    if (!row || !stillMember || !calendar || !writable || !stillPicked || row.source_ref || !row.occurs_at) {
+    const memoryOk = memory && !memory.event_ref && memory.name && memory.yearly_on ? { id: memory.id, name: memory.name, on: memory.yearly_on } : null;
+    if (question.target_note_id ? !memoryOk || !calendar || !writable : !row || !stillMember || !calendar || !writable || !stillPicked || row.source_ref || !row.occurs_at) {
       await closeQuestion(trx, question.id, accountId, message.id);
-      return { question, message, turnId, row: null as null, siblings: [], calendarId, picksOnAnswer };
+      return { question, message, turnId, row: null as null, memory: null, siblings: [], calendarId, picksOnAnswer };
     }
 
     await trx
@@ -2657,7 +2745,7 @@ export async function answerCalendarQuestion(
     if (typeof person === "string" && person.trim()) {
       await answerMemory(trx, { accountId, name: person, calendarId, answeredIn: message.id });
     }
-    if (picksOnAnswer) {
+    if (picksOnAnswer && row) {
       await trx
         .insertInto("thread_calendars")
         .values({ thread_id: row.thread_id, calendar_id: calendarId, account_id: accountId })
@@ -2670,7 +2758,7 @@ export async function answerCalendarQuestion(
       .where("id", "=", question.conversation_id)
       .execute();
 
-    return { question, message, turnId, row, siblings, calendarId, picksOnAnswer };
+    return { question, message, turnId, row: row ?? null, memory: memoryOk, siblings, calendarId, picksOnAnswer };
   });
   if (!settled) return null;
 
@@ -2707,6 +2795,20 @@ export async function answerCalendarQuestion(
       waiting,
     }));
 
+  if (settled.memory) {
+    // As a row's: the question opens again and the tap's words go with it, so
+    // the chips come back with the failure line.
+    const reopenForMemory = () =>
+      db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable("questions")
+          .set({ state: "open", settled_at: null, answered_option: null, answered_message_id: null, answer_turn_id: null })
+          .where("id", "=", settled.question.id)
+          .execute();
+        if (!input.typed) await trx.updateTable("messages").set({ deleted_at: sql`now()` }).where("id", "=", settled.message.id).execute();
+      });
+    return answerForMemory(accountId, settled.memory, settled.calendarId, settled.message.id, envelopeFor, reopenForMemory);
+  }
   if (!settled.row) return { envelope: await envelopeFor(null), applied: false, failed: false };
   const row = settled.row;
 
@@ -2810,6 +2912,39 @@ export async function answerCalendarQuestion(
     applied: true,
     failed: false,
   };
+}
+
+/** 051. The tap on a memory's question: its yearly event on the calendar
+ *  chosen, the memory remembering it. No thread is named and none is picked.
+ *  A write that did not go through opens the question again, as a row's does. */
+async function answerForMemory<E>(
+  accountId: string,
+  memory: { id: string; name: string; on: string },
+  calendarId: string,
+  messageId: string,
+  envelopeFor: (waiting: Waiting | null, wrote?: boolean) => Promise<E>,
+  reopen: () => Promise<unknown>,
+): Promise<{ envelope: E; applied: boolean; failed: boolean }> {
+  const day = nextOccurrence(memory.on);
+  const write: WriteAction = {
+    action: "create",
+    draft: { title: memory.name, startsAt: day, endsAt: new Date(day.getTime() + 86_400_000), allDay: true, location: null, attendees: [], recurrence: ["RRULE:FREQ=YEARLY"] },
+  };
+  let outcome: Awaited<ReturnType<typeof writeThroughTool>>;
+  try {
+    outcome = await writeThroughTool(accountId, calendarId, write, messageId, null, { noteId: memory.id });
+  } catch (error) {
+    console.warn(JSON.stringify({ at: "calendar.answer", outcome: "failed", memory: true, error_type: error instanceof Error ? error.name : typeof error }));
+    await reopen();
+    return { envelope: await envelopeFor(null), applied: false, failed: true };
+  }
+  if (outcome.kind === "refused") {
+    console.warn(JSON.stringify({ at: "calendar.answer", outcome: "refused", memory: true, reason: outcome.reason }));
+    await reopen();
+    return { envelope: await envelopeFor(null), applied: false, failed: true };
+  }
+  if (outcome.kind === "written") return { envelope: await envelopeFor(null, true), applied: true, failed: false };
+  return { envelope: await envelopeFor({ id: outcome.pendingId, because: outcome.line, kind: "calendar" }), applied: true, failed: false };
 }
 
 /** An option's stored value in the field's wire form. */

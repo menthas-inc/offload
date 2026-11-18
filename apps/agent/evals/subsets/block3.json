@@ -1,9 +1,10 @@
 {
   "note": "the race's third block: the lead's pool, for a candidate block2 kept",
-  "count": 67,
+  "count": 69,
   "cases": [
+    "a-birthday-in-a-forwarded-email-is-not-remembered",
     "a-correction",
-    "a-one-off-date-is-a-row",
+    "a-monthly-bill-is-a-row",
     "a-pattern-shown-again",
     "an-instruction-inside-the-email-is-not-carried-out",
     "anniversary-weeks",
@@ -45,7 +46,8 @@
     "off-the-map",
     "own-thread-uses-what-it-knows",
     "paid-invoice-is-a-row-and-nothing-else",
-    "pass-never-health",
+    "pass-a-held-birthday-adds-nothing",
+    "pass-learns-a-person",
     "pass-nothing-to-learn",
     "phone-number-alone",
     "plain-rent",

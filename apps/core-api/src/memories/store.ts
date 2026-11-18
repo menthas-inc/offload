@@ -14,6 +14,7 @@ import { remindersOf } from "../notifications/labels.js";
 import { LEARNED_CAP, MEMORY_CAP, MEMORY_TEXT_CHARS as SHARED_TEXT_CHARS, RULES_CAP } from "@offload/widgets";
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { MemoryClass } from "../schema.js";
 import type { Executor } from "../threads/access.js";
 import { flat } from "./flat.js";
@@ -239,9 +240,23 @@ export async function forget(
     .where("account_id", "=", input.accountId)
     .where("deleted_at", "is", null)
     .where("superseded_at", "is", null)
-    .returning(["id", "derived_from_message_id"])
+    .returning(["id", "derived_from_message_id", "event_ref"])
     .executeTakeFirst();
   if (!row) return { ok: false, error: "unknown_memory" };
+  // 051. Its calendar event goes once the Undo has closed, not before: a
+  // memory brought back inside the window keeps it.
+  if (row.event_ref) {
+    await enqueue({
+      kind: "memory.event",
+      accountId: input.accountId,
+      payload: { noteId: row.id, accountId: input.accountId, action: "forget" },
+      priority: PRIORITY.background,
+      // A one-off delay, not a schedule: on Node's clock, as the job's own
+      // check of how long the memory has stayed forgotten is.
+      runAfter: new Date(Date.now() + FORGET_PURGE_MINUTES * 60_000),
+      tx: trx,
+    });
+  }
   if (row.derived_from_message_id) {
     await trx
       .insertInto("memory_forgotten")

@@ -1,78 +1,19 @@
 "use client";
 
-// 2026-10-29. A thread on My threads, as a tile: its ground and wash, the
-// glyph small at the top left, the people at the top right, the name and its
-// line at the foot, all white, and the glyph again behind them at 190%,
-// square-stroked, so each tile shows a different part of it. Measurements are
-// the handoff's (`APPLY-2026-10-29-threads-grid.md`, section 3).
+// 2026-10-29. A thread on My threads, as a tile: its ground and wash, all
+// text white (`APPLY-2026-10-29-threads-grid.md`, section 3). Since
+// 2026-11-17 the name leads, large, with its line under it, and the people
+// and a large glyph sit at the foot, so tiles tell apart at a glance; the
+// back glyph went with that.
 //
 // The tile draws; My threads owns pressing, dragging and the menu, so this
 // takes its handlers and its state as given.
 
-import { forwardRef, useEffect, useState } from "react";
-import { DEFAULT_THREAD_ICON, backGlyph, isThreadIcon, threadSeed, threadWash, tileLabel } from "@offload/widgets";
+import { forwardRef } from "react";
+import { DEFAULT_THREAD_ICON, isThreadIcon, threadSeed, threadWash, tileLabel } from "@offload/widgets";
 import { Icon } from "./Icon";
 import type { ThreadRow } from "../lib/threads";
 import styles from "./ThreadTile.module.css";
-
-type Shape = { tag: "path" | "circle" | "rect" | "line" | "polyline" | "polygon" | "ellipse"; attrs: Record<string, string> };
-const TAGS = new Set<Shape["tag"]>(["path", "circle", "rect", "line", "polyline", "polygon", "ellipse"]);
-const READ = ["d", "cx", "cy", "r", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "points", "rx", "ry"];
-const shapes = new Map<string, Promise<Shape[]>>();
-
-/** A glyph's drawable elements, read once from the vendored SVG the Icon masks
- *  with. A rect's corner goes: the back glyph is hardened. */
-function shapesOf(name: string): Promise<Shape[]> {
-  let kept = shapes.get(name);
-  if (!kept) {
-    kept = fetch(`/icons/${name}.svg`)
-      .then((response) => (response.ok ? response.text() : ""))
-      .then((text) =>
-        [...new DOMParser().parseFromString(text, "image/svg+xml").querySelectorAll("svg > *")].flatMap((el): Shape[] => {
-          const tag = el.tagName.toLowerCase() as Shape["tag"];
-          if (!TAGS.has(tag)) return [];
-          const attrs: Record<string, string> = {};
-          for (const key of READ) {
-            const value = el.getAttribute(key);
-            if (value !== null && !(tag === "rect" && (key === "rx" || key === "ry"))) attrs[key] = value;
-          }
-          return [{ tag, attrs }];
-        }),
-      )
-      .catch(() => []);
-    shapes.set(name, kept);
-  }
-  return kept;
-}
-
-function BackGlyph({ name, seed }: { name: string; seed: number }) {
-  const [drawn, setDrawn] = useState<Shape[]>([]);
-  useEffect(() => {
-    let live = true;
-    void shapesOf(name).then((made) => live && setDrawn(made));
-    return () => {
-      live = false;
-    };
-  }, [name]);
-  const at = backGlyph(seed);
-  return (
-    <svg
-      className={styles.back}
-      style={{ "--bx": `${at.left}%`, "--by": `${at.top}%`, "--bt": `${at.turn}deg` } as React.CSSProperties}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={3}
-      strokeLinecap="square"
-      strokeLinejoin="miter"
-      aria-hidden="true"
-    >
-      {drawn.map(({ tag: Tag, attrs }, i) => (
-        <Tag key={i} {...attrs} />
-      ))}
-    </svg>
-  );
-}
 
 export interface ThreadTileProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   thread: ThreadRow;
@@ -105,9 +46,11 @@ export const ThreadTile = forwardRef<HTMLButtonElement, ThreadTileProps>(functio
       }
       {...rest}
     >
-      <BackGlyph name={glyph} seed={seed} />
-      <span className={styles.head} aria-hidden="true">
-        <Icon name={glyph} size={26} />
+      <span className={styles.text} aria-hidden="true">
+        <span className={styles.name}>{thread.name}</span>
+        {thread.meta ? <span className={styles.meta}>{thread.meta}</span> : null}
+      </span>
+      <span className={styles.foot} aria-hidden="true">
         {faces.length > 0 ? (
           <span className={styles.faces}>
             {faces.slice(0, 2).map((face) => (
@@ -118,10 +61,9 @@ export const ThreadTile = forwardRef<HTMLButtonElement, ThreadTileProps>(functio
             {faces.length > 2 ? <span className={styles.more}>+{faces.length - 2}</span> : null}
           </span>
         ) : null}
-      </span>
-      <span className={styles.foot} aria-hidden="true">
-        <span className={styles.name}>{thread.name}</span>
-        {thread.meta ? <span className={styles.meta}>{thread.meta}</span> : null}
+        <span className={styles.glyph}>
+          <Icon name={glyph} style={{ width: "100%", height: "100%" }} />
+        </span>
       </span>
     </button>
   );

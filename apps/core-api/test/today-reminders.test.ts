@@ -225,9 +225,11 @@ describe("dismiss: this reminder, not the thing", () => {
   it("is swept by the purge once its day is a week past, and not before", async () => {
     const me = await account();
     const t = await thread([me]);
-    const form = await row(me, t, "Submit the form", { day: "2026-11-04" });
-    await labelled(me, { contentId: form }, { kind: "deadline", lead: "days" });
-    await dismissReminder(me, { of: "content", id: form, day: "2026-11-04", window: "short" }, NOW);
+    // The purge reads the real clock, so the kept row's day is today: a fixed
+    // day here went stale a week after it (2026-11-11).
+    const today = new Date().toISOString().slice(0, 10);
+    const form = await row(me, t, "Submit the form", { day: today });
+    await db.insertInto("reminder_dismissals").values({ account_id: me, content_id: form, occurrence: today, window_name: "short" } as never).execute();
     const past = await row(me, t, "Last year's form", { day: "2026-01-04" });
     await db.insertInto("reminder_dismissals").values({ account_id: me, content_id: past, occurrence: "2026-01-04", window_name: "day" } as never).execute();
     await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
@@ -278,5 +280,20 @@ describe("the routes", () => {
     expect((await post("/v1/today/reminders/undismiss", body)).statusCode).toBe(200);
     expect((await app.inject({ method: "GET", url: "/v1/today/reminders", headers: { cookie } })).json().rows.map((r: { id: string }) => r.id)).toEqual([form]);
     expect((await app.inject({ method: "GET", url: "/v1/today/reminders/dismiss", headers: { cookie } })).statusCode).toBe(404);
+  });
+});
+
+describe("051 a memory on a calendar", () => {
+  it("is not drawn on its day, since Your day draws the event; earlier windows still are", async () => {
+    const me = await account();
+    const meera = await memory(me, "Meera's birthday is 2 November.");
+    await labelled(me, { noteId: meera }, { kind: "occasion", lead: "days", yearly_on: "11-02", name: "Meera's birthday" });
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).toContain(meera);
+    await db.updateTable("notes").set({ event_ref: "cal:evt" }).where("id", "=", meera).execute();
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).not.toContain(meera);
+    const week = await memory(me, "Ana's birthday is 6 November.");
+    await labelled(me, { noteId: week }, { kind: "occasion", lead: "days", yearly_on: "11-06", name: "Ana's birthday" });
+    await db.updateTable("notes").set({ event_ref: "cal:evt2" }).where("id", "=", week).execute();
+    expect((await todayReminders(me, NOW)).others.map((r) => r.id)).toContain(week);
   });
 });
