@@ -40,6 +40,12 @@ export const todayEvent = z.object({
   threadIcon: z.string().nullable(),
   threadHue: z.number().nullable(),
   authorName: z.string().nullable(),
+  /** 052. An offload event's own words for where it is, and the place they
+   *  resolved to, for a reply's details and their Directions. */
+  location: z.string().nullable().optional(),
+  place: z.object({ lat: z.number().nullable(), lng: z.number().nullable(), approximate: z.boolean() }).nullable().optional(),
+  /** 052. The calendar an offload event is on, when it is one of this account's. */
+  calendar: z.object({ name: z.string(), colour: z.string().nullable() }).nullable().optional(),
 });
 export type TodayEvent = z.infer<typeof todayEvent>;
 
@@ -97,11 +103,13 @@ export function isDay(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && utcDay(new Date(`${value}T12:00:00Z`)) === value;
 }
 
-/** The day read, or `bad_date` for a day outside today to a year ahead. */
-export async function readDay(accountId: string, date: string, now = new Date()): Promise<DayResponse | "bad_date"> {
+/** The day read, or `bad_date` for a day outside today to a year ahead. A
+ *  reply (052) may read a day up to a year back: what a past turn wrote. */
+export async function readDay(accountId: string, date: string, now = new Date(), opts: { past?: boolean } = {}): Promise<DayResponse | "bad_date"> {
   const zone = await zoneOf(accountId);
   const today = dayIn(now, zone);
-  if (!isDay(date) || date < today || date > addUtcDays(today, DAYS_AHEAD)) return "bad_date";
+  const earliest = opts.past ? addUtcDays(today, -DAYS_AHEAD) : today;
+  if (!isDay(date) || date < earliest || date > addUtcDays(today, DAYS_AHEAD)) return "bad_date";
   const isToday = date === today;
 
   const start = instantIn(`${date}T00:00`, zone) ?? new Date(`${date}T00:00:00Z`);
@@ -144,6 +152,18 @@ export async function readDay(accountId: string, date: string, now = new Date())
     shapeRows(timed.slice(0, TIMED_CAP), accountId),
     shapeRows(rest.slice(0, REST_CAP), accountId),
   ]);
+
+  // 052. The calendar each row and offload event is on, by its own name.
+  const refs = new Map<string, string>();
+  for (const row of rows) if (row.source_ref) refs.set(row.id, row.source_ref);
+  for (const event of events) if (event.sourceRef) refs.set(event.id, event.sourceRef);
+  const calendars = await calendarsOf(accountId, [...refs.values()]);
+  const calendarOf = (id: string) => calendars.get(refs.get(id)?.split(":")[0] ?? "") ?? null;
+  for (const row of [...lateRows, ...timedRows, ...restRows]) row.calendar = calendarOf(row.id);
+  for (const event of events) {
+    if (event.source === "offload") event.calendar = calendarOf(event.id);
+    delete event.sourceRef;
+  }
 
   return {
     date,
@@ -244,7 +264,22 @@ function eventOn(row: AgendaRaw, date: string, zone: string | null): boolean {
 /** The day's events: the account's own ticked calendars, never a calendar
  *  another member picked for a thread, and every `event` row the account
  *  reads. An event offload wrote to a calendar is drawn once, as the row. */
-async function eventsOn(accountId: string, date: string, start: Date, end: Date, zone: string | null): Promise<TodayEvent[]> {
+/** 052. This account's calendars by external id, for the refs given. */
+async function calendarsOf(accountId: string, sourceRefs: string[]): Promise<Map<string, { name: string; colour: string | null }>> {
+  const ids = [...new Set(sourceRefs.map((ref) => ref.split(":")[0]).filter((id): id is string => !!id))];
+  if (ids.length === 0) return new Map();
+  const found = await db
+    .selectFrom("connector_calendars as c")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select(["c.external_id as externalId", "c.summary as name", "c.colour as colour"])
+    .where("n.account_id", "=", accountId)
+    .where("n.deleted_at", "is", null)
+    .where("c.external_id", "in", ids)
+    .execute();
+  return new Map(found.map((one) => [one.externalId, { name: one.name, colour: one.colour }]));
+}
+
+async function eventsOn(accountId: string, date: string, start: Date, end: Date, zone: string | null): Promise<(TodayEvent & { sourceRef?: string | null })[]> {
   const wideFrom = new Date(start.getTime() - 86400_000);
   const wideTo = new Date(end.getTime() + 86400_000);
 
@@ -262,7 +297,7 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       .execute() as Promise<AgendaRaw[]>,
   ]);
 
-  const out: TodayEvent[] = [];
+  const out: (TodayEvent & { sourceRef?: string | null })[] = [];
   const written = new Set<string>();
 
   for (const row of offloadRows) {
@@ -292,6 +327,9 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       threadIcon: row.threadIcon,
       threadHue: row.threadHue,
       authorName: mine ? null : row.authorName,
+      location: row.location,
+      place: row.place_id ? { lat: row.placeLat, lng: row.placeLng, approximate: row.placeApproximate === true } : null,
+      sourceRef: row.source_ref,
     });
   }
 
@@ -359,11 +397,19 @@ function ruleDays(row: AgendaRaw, anchor: string, first: string, last: string): 
  *  a shared thread must not be able to make another's month slow. A day
  *  before today or past the calendar copy's edge carries nothing, since it
  *  does not open. `bad_window` for anything that is not a short window. */
-export async function readMonth(accountId: string, from: string, to: string, now = new Date()): Promise<MonthResponse | "bad_window"> {
+export async function readMonth(
+  accountId: string,
+  from: string,
+  to: string,
+  now = new Date(),
+  /** 052. A reply's grid may show days gone by, up to a year back. */
+  opts: { past?: boolean } = {},
+): Promise<MonthResponse | "bad_window"> {
   if (!isDay(from) || !isDay(to) || to < from || to > addUtcDays(from, MONTH_DAYS)) return "bad_window";
   const zone = await zoneOf(accountId);
   const today = dayIn(now, zone);
-  const first = from < today ? today : from;
+  const earliest = opts.past ? addUtcDays(today, -DAYS_AHEAD) : today;
+  const first = from < earliest ? earliest : from;
   const edge = addUtcDays(today, DAYS_AHEAD);
   const last = to > edge ? edge : to;
   if (first > last) return { days: [] };

@@ -521,6 +521,8 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
       // 016. Empty on a turn that read nothing, which is nearly every turn.
       sources: [],
       labels: [],
+      // 052. The reply's parts: an answer that read nothing draws no slice.
+      parts: { slices: [], also: [], pills: [], summary: null, resultAt: expect.any(String) },
     });
     expect(step.do === "answered" ? step.replyId : null).not.toBe(messageId);
   });

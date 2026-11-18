@@ -45,6 +45,7 @@ from offload_agent.harness.plan import (
     judge_answer,
     plan,
     plan_answer,
+    shown_from,
 )
 from offload_agent.heartbeat import heartbeats
 from offload_agent.link_place import KINDS as LINK_PLACE_KINDS
@@ -2538,6 +2539,9 @@ async def _handle_answer(
                 # when it is read, so a row ticked or deleted later is never
                 # stale in an old answer. Three, the turn-result route's cap.
                 "found": outcome.found[:3],
+                # 052. A day or a span the answer showed, which the reply draws
+                # as a calendar: from the read's own window, never the sentence.
+                **({"shown": shown} if (shown := shown_from(outcome)) else {}),
                 **({"questions": _questions_wire(outcome)} if outcome.questions else {}),
             },
         )

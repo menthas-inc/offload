@@ -591,3 +591,4 @@ export {
 } from "./search.js";
 export type { SearchAnswer, SearchRow, SearchState } from "./search.js";
 export { actionKind, isActionUrl, labelOk, shownDestination, type ActionKind } from "./actions.js";
+export { alsoLine, calendarColour, changedLine, gridFor, periodLabel, pillLabel, sourceLine, summaryWords, wasLine, type Pill, type PillKind, type ReplySummary, type SummaryKind } from "./reply.js";

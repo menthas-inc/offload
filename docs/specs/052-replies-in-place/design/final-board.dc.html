@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Replies in place, revised</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/offload/styles.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;margin:0;cursor:pointer;text-align:left}
+.bd{width:420px;min-height:5200px;background:var(--surface-page);font-family:var(--font-core);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.bh{box-sizing:border-box;padding:28px 20px 20px}
+.bh h1{margin:0;font:600 26px/1.2 var(--font-core);letter-spacing:-0.015em}
+.bh p{margin:6px 0 0;font:400 13px/1.45 var(--font-core);color:var(--text-secondary)}
+.cell{box-sizing:border-box;padding:14px 20px 12px;background:var(--surface-plate);border-top:1px solid var(--border-hairline);display:flex;flex-direction:column;gap:10px}
+.tag{font:500 12px/1 var(--font-core);color:var(--text-tertiary)}
+.you{margin:0;align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:16px 16px 4px 16px;background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:400 15px/1.45 var(--font-core)}
+.off{margin:0;align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--ink-50);font:400 16px/1.5 var(--font-quiet)}
+.off .em{font-weight:500}
+.i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.hit{position:relative}
+.hit::after{content:"";position:absolute;left:0;right:0;top:-7px;bottom:-7px}
+.card{background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;overflow:hidden;flex:0 0 auto}
+.ch{display:flex;width:100%;box-sizing:border-box;align-items:center;gap:8px;min-height:44px;padding:0 14px;background:var(--surface-accent-soft);color:var(--text-accent);box-shadow:inset 0 -1px 0 var(--border-hairline);font:500 13.5px/1.2 var(--font-core)}
+.ch .n{margin-left:auto;font:400 12px/1 var(--font-core)}
+.ch .ey{display:block;font:500 12px/1.2 var(--font-core);margin-bottom:2px}
+.ch .nm{display:block;font:600 16px/1.25 var(--font-core);color:var(--text-primary)}
+.tic{width:36px;height:36px;border-radius:10px;background:var(--surface-raised);color:var(--text-accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.r{display:flex;align-items:center;gap:12px;padding:6px 14px;min-height:44px;box-sizing:border-box;box-shadow:inset 0 -1px 0 var(--border-hairline);font:500 15px/1.35 var(--font-core)}
+.r:last-child{box-shadow:none}
+.r.new{background:var(--surface-accent-soft)}
+.r .nt{font:400 15px/1.45 var(--font-quiet)}
+.tx{flex:1;min-width:0}
+.rm{display:block;font:400 12.5px/1.4 var(--font-core);color:var(--text-secondary);margin-top:2px}
+.rm .w{color:var(--text-accent)}
+.tk{position:relative;width:21px;height:21px;border-radius:6px;border:1.5px solid var(--border-strong);box-sizing:border-box;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.tk::after{content:"";position:absolute;inset:-12px}
+.tk.on{background:var(--moss-600);border-color:var(--moss-600);color:var(--text-on-solid)}
+.st{color:var(--text-tertiary);text-decoration:line-through;text-decoration-thickness:1px}
+.sec{padding:10px 14px 4px;font:500 12px/1 var(--font-core);color:var(--text-tertiary)}
+.tf{display:flex;align-items:center;min-height:44px;font:500 12.5px/1.2 var(--font-core);color:var(--text-accent)}
+.tf .u{margin-left:auto;min-height:44px;padding:0 2px;font:500 13px/1 var(--font-core);color:var(--text-primary)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;padding:7px 0}
+.ac{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;background:var(--surface-card);border:1px solid var(--border-strong);font:500 13px/1 var(--font-core);color:var(--text-primary);box-sizing:border-box;white-space:nowrap}
+.ac .i{width:13px;height:13px;color:var(--text-secondary)}
+.pv{width:10px;height:10px;border-radius:999px;box-shadow:0 0 0 1px var(--border-hairline);flex:0 0 auto;display:inline-block}
+.calh{display:flex;align-items:center;gap:4px;min-height:44px;padding:0 4px;box-shadow:inset 0 -1px 0 var(--border-hairline);font:600 13.5px/1.2 var(--font-core)}
+.calh .ar{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex:0 0 auto}
+.calh .mn{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px}
+.calh .away{font:400 12.5px/1 var(--font-core);color:var(--text-secondary)}
+.calh .td{min-height:44px;padding:0 8px;font:500 12.5px/1 var(--font-core);color:var(--text-accent)}
+.mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:4px 6px 6px;background:var(--surface-sunken)}
+.wd{font:400 12px/1 var(--font-core);color:var(--text-tertiary);text-align:center;padding:6px 0 4px}
+.md{min-height:44px;border-radius:8px;border:1px solid transparent;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:400 13px/1 var(--font-core);color:var(--text-tertiary)}
+.md.has{background:var(--surface-raised);border-color:var(--border-lift);box-shadow:var(--shadow-1);color:var(--text-primary);font-weight:600}
+.md.today{border-color:var(--border-focus);color:var(--text-primary);font-weight:600}
+.md.on{background:var(--surface-attention);border-color:var(--surface-attention);color:var(--text-on-solid);font-weight:600;box-shadow:none}
+.dots{display:flex;gap:3px;height:5px}
+.dt{width:5px;height:5px;border-radius:999px;background:currentColor;display:block}
+.dt.ev{color:var(--text-primary)}
+.dt.task{color:var(--text-attention)}
+.md.on .dt{color:var(--text-on-solid)}
+.er{display:flex;width:100%;align-items:flex-start;gap:12px;padding:10px 14px;min-height:44px;box-sizing:border-box;box-shadow:inset 0 -1px 0 var(--border-hairline);font:500 15px/1.35 var(--font-core)}
+.er.new{background:var(--surface-accent-soft)}
+.er .tm{flex:0 0 auto;width:44px;font:400 13px/1.55 var(--font-core);color:var(--text-secondary)}
+.er .cv{flex:0 0 auto;color:var(--text-tertiary);margin-top:3px}
+.det{display:flex;flex-direction:column;gap:6px;padding:10px 14px 8px 70px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.dl{display:flex;align-items:center;gap:8px;font:400 13.5px/1.35 var(--font-core);color:var(--text-secondary)}
+.dl .w{color:var(--text-accent)}
+.src{position:relative;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 2px;font:400 12px/1 var(--font-core);white-space:nowrap;color:var(--text-tertiary);text-decoration:none;margin-top:-4px}
+.src .i{width:12px;height:12px}
+.src::after{content:"";position:absolute;left:0;right:0;top:-12px;bottom:-12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 12px}
+.mc{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--border-strong);font:500 13px/1 var(--font-core);color:var(--text-secondary);box-sizing:border-box}
+.mc.new{background:var(--surface-accent-soft);color:var(--text-accent)}
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px}
+.gt{border-radius:10px;padding:6px}
+.gt.on{background:var(--state-selected)}
+.gt .th{height:58px;border-radius:8px;background:var(--surface-sunken);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary)}
+.gt b{display:block;font:500 13px/1.3 var(--font-core);margin-top:6px}
+.gt small{display:block;font:400 12px/1.3 var(--font-core);color:var(--text-secondary)}
+.qr{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;padding:7px 0 0}
+.qv{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--surface-card);border:1px solid var(--border-strong);font:500 13px/1 var(--font-core);color:var(--text-primary);box-sizing:border-box}
+.qx{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+</style>
+</helmet>
+<div class="bd">
+<header class="bh"><h1>C, revised</h1><p>A slice of where it landed, the new part marked. Calendars are the built grid, with the day's entries in full beneath; tap one and its details open in place. Pills under a reply add what the dump left out.</p></header>
+
+<section class="cell"><div class="tag">1 · Add</div>
+<p class="you">milk, eggs, basil and olive oil</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Groceries<span class="n">6 left</span></button>
+<div class="r"><span class="tk"></span>Coffee beans</div>
+<div class="r"><span class="tk"></span>Bin bags</div>
+<div class="r new"><span class="tk"></span>Milk</div>
+<div class="r new"><span class="tk"></span>Eggs</div>
+<div class="r new"><span class="tk"></span>Basil</div>
+<div class="r new"><span class="tk"></span>Olive oil</div>
+</div>
+<div class="acts"><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Share with Meera</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Remind me</button></div>
+<div class="tf">4 new<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">2 · Add, mixed</div>
+<p class="you">Dentist Friday at 3, and oak brackets 30cm matte black</p>
+<div class="card">
+<div class="calh"><button class="ar" aria-label="Earlier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span class="mn">16 to 29 November</span><button class="td">Today</button><button class="ar" aria-label="Later"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span class="md">16<span class="dots"></span></span><span class="md today">17<span class="dots"></span></span><span class="md has">18<span class="dots"><i class="dt ev"></i></span></span><span class="md">19<span class="dots"></span></span><span class="md on">20<span class="dots"><i class="dt"></i><i class="dt"></i></span></span><span class="md has">21<span class="dots"><i class="dt ev"></i></span></span><span class="md">22<span class="dots"></span></span>
+<span class="md">23<span class="dots"></span></span><span class="md">24<span class="dots"></span></span><span class="md">25<span class="dots"></span></span><span class="md">26<span class="dots"></span></span><span class="md">27<span class="dots"></span></span><span class="md">28<span class="dots"></span></span><span class="md">29<span class="dots"></span></span>
+</div>
+<div class="sec">Friday 20</div>
+<button class="er new" onClick="{{t.dentist}}" aria-expanded="{{o.dentist}}"><span class="tm">3pm</span><span class="tx">Dentist<span class="rm"><span class="w">Health</span></span></span><svg class="i cv" viewBox="0 0 24 24" aria-hidden="true"><path d="{{cv.dentist}}"/></svg></button>
+<sc-if value="{{o.dentist}}" hint-placeholder-val="{{ false }}">
+<div class="det"><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Friday 20 November, 3pm to 4pm</span><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>In Health, not on a calendar</span></div>
+</sc-if>
+<div class="r"><span class="tm" style="width:44px;font:400 13px/1 var(--font-core);color:var(--text-secondary)">due</span><span class="tk"></span><span class="tx">Pay rent</span></div>
+</div>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Bookshelf<span class="n">2 left</span></button>
+<div class="r"><span class="tk"></span>Walnut shelves, 90cm</div>
+<div class="r new"><span class="tk"></span>Oak brackets, 30cm matte black</div>
+</div>
+<div class="acts"><button class="ac hit"><span class="pv" style="background:#7986CB"></span>Add Dentist to Personal</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Remind me the day before</button></div>
+<div class="tf">2 filed<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">3 · Calendar, looked up</div>
+<p class="you">Dinner with Meera on Mother's day at 7</p>
+<div class="card">
+<div class="calh"><button class="ar" aria-label="Earlier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span class="mn">May 2027<span class="away">in 25 weeks</span></span><button class="td">Today</button><button class="ar" aria-label="Later"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span></span><span></span><span></span><span></span><span></span><span class="md">1</span><span class="md">2</span>
+<span class="md">3</span><span class="md">4</span><span class="md">5</span><span class="md">6</span><span class="md">7</span><span class="md">8</span><span class="md on">9<span class="dots"><i class="dt"></i></span></span>
+<span class="md">10</span><span class="md">11</span><span class="md">12</span><span class="md">13</span><span class="md has">14<span class="dots"><i class="dt ev"></i></span></span><span class="md">15</span><span class="md">16</span>
+<span class="md">17</span><span class="md">18</span><span class="md">19</span><span class="md">20</span><span class="md">21</span><span class="md">22</span><span class="md">23</span>
+<span class="md">24</span><span class="md">25</span><span class="md">26</span><span class="md">27</span><span class="md">28</span><span class="md">29</span><span class="md">30</span>
+<span class="md">31</span>
+</div>
+<div class="sec">Sunday 9, Mother's day</div>
+<div class="er new"><span class="tm">7pm</span><span class="tx">Dinner with Meera<span class="rm"><span class="w">Family</span> · <span class="pv" style="background:#E67C73;vertical-align:-1px"></span> Home</span></span></div>
+</div>
+<div class="acts"><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Remind me the day before</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Add a place</button></div>
+<a class="src hit" href="#src" style="align-self:flex-start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>timeanddate.com</a>
+<div class="tf">Added<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">4 · New thread</div>
+<p class="you">Porto with Ana in March, flights around €200 each</p>
+<div class="card">
+<button class="ch" style="min-height:60px"><span class="tic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span><span><span class="ey">New thread</span><span class="nm">Porto weekend</span></span></button>
+<div class="sec">Notes</div>
+<div class="r new"><span class="nt">March, with Ana</span></div>
+<div class="r new"><span class="nt">Flights around €200 each</span></div>
+</div>
+<div class="acts"><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>Add dates</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Share with Ana</button></div>
+<div class="tf">Started<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">5 · Update</div>
+<p class="you">Move the dentist to Monday at 10</p>
+<div class="card">
+<div class="calh"><button class="ar" aria-label="Earlier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span class="mn">16 to 29 November</span><button class="td">Today</button><button class="ar" aria-label="Later"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span class="md">16<span class="dots"></span></span><span class="md today">17<span class="dots"></span></span><span class="md has">18<span class="dots"><i class="dt ev"></i></span></span><span class="md">19<span class="dots"></span></span><span class="md has">20<span class="dots"><i class="dt task"></i></span></span><span class="md has">21<span class="dots"><i class="dt ev"></i></span></span><span class="md">22<span class="dots"></span></span>
+<span class="md on">23<span class="dots"><i class="dt"></i></span></span><span class="md">24<span class="dots"></span></span><span class="md">25<span class="dots"></span></span><span class="md">26<span class="dots"></span></span><span class="md">27<span class="dots"></span></span><span class="md">28<span class="dots"></span></span><span class="md">29<span class="dots"></span></span>
+</div>
+<div class="sec">Monday 23</div>
+<div class="er new"><span class="tm">10am</span><span class="tx">Dentist<span class="rm">was Friday 20, 3pm · <span class="w">Health</span></span></span></div>
+</div>
+<div class="tf">Moved<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">6 · Complete</div>
+<p class="you">Got the milk and basil</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Groceries<span class="n">4 left</span></button>
+<div class="r"><span class="tk"></span>Coffee beans</div>
+<div class="r"><span class="tk"></span>Bin bags</div>
+<div class="r"><span class="tk"></span>Eggs</div>
+<div class="r"><span class="tk"></span>Olive oil</div>
+<div class="r new"><span class="tk on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px"><path d="M20 6 9 17l-5-5"/></svg></span><span class="st">Milk</span></div>
+<div class="r new"><span class="tk on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px"><path d="M20 6 9 17l-5-5"/></svg></span><span class="st">Basil</span></div>
+</div>
+<div class="tf">2 ticked<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">7 · Memory</div>
+<p class="you">Remember Meera is allergic to cashews</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></svg>Memories, People<span class="n">3</span></button>
+<div class="chips"><span class="mc">Meera is your wife</span><span class="mc">Ana lives in Lisbon</span><span class="mc new">Meera is allergic to cashews</span></div>
+</div>
+<div class="tf">Remembered<button class="u">Undo</button></div>
+</section>
+
+<section class="cell"><div class="tag">8 · Ask a thread</div>
+<p class="you">What's left for Lisbon?</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Lisbon trip<span class="n">3 left</span></button>
+<div class="r"><span class="tk"></span><span class="tx">Book the airport transfer<span class="rm">you, added 6 Aug</span></span></div>
+<div class="r"><span class="tk"></span><span class="tx">Pay Ana €214 for the flights<span class="rm">Ana, due Thursday</span></span></div>
+<div class="r"><span class="tk"></span><span class="tx">Check in online<span class="rm">opens Friday</span></span></div>
+</div>
+</section>
+
+<section class="cell"><div class="tag">9 · Ask the calendar</div>
+<p class="you">What's on this week?</p>
+<p class="off">Three this week.</p>
+<div class="card">
+<div class="calh"><button class="ar" aria-label="Earlier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span class="mn">This week</span><button class="td">Today</button><button class="ar" aria-label="Later"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span class="md">16<span class="dots"></span></span><span class="md today">17<span class="dots"></span></span><span class="md has">18<span class="dots"><i class="dt ev"></i></span></span><span class="md">19<span class="dots"></span></span><span class="md has">20<span class="dots"><i class="dt task"></i></span></span><span class="md has">21<span class="dots"><i class="dt ev"></i></span></span><span class="md">22<span class="dots"></span></span>
+</div>
+<div class="sec">Wednesday 18</div>
+<button class="er" onClick="{{t.club}}" aria-expanded="{{o.club}}"><span class="tm">7pm</span><span class="tx">Book club</span><svg class="i cv" viewBox="0 0 24 24" aria-hidden="true"><path d="{{cv.club}}"/></svg></button>
+<sc-if value="{{o.club}}" hint-placeholder-val="{{ false }}">
+<div class="det"><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Wednesday 18 November, 7pm to 9pm</span><span class="dl"><span class="pv" style="background:#7986CB"></span>Personal</span></div>
+</sc-if>
+<div class="sec">Friday 20</div>
+<div class="r"><span class="tm" style="width:44px;font:400 13px/1 var(--font-core);color:var(--text-secondary)">due</span><span class="tk"></span><span class="tx">Pay rent<span class="rm"><span class="w">Flat admin</span></span></span></div>
+<div class="sec">Saturday 21</div>
+<button class="er" onClick="{{t.bbq}}" aria-expanded="{{o.bbq}}"><span class="tm">1pm</span><span class="tx">Ana's 40th birthday bbq at Victoria Park</span><svg class="i cv" viewBox="0 0 24 24" aria-hidden="true"><path d="{{cv.bbq}}"/></svg></button>
+<sc-if value="{{o.bbq}}" hint-placeholder-val="{{ true }}">
+<div class="det"><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Saturday 21 November, 1pm to 5pm</span><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Victoria Park</span><span class="dl"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg><span class="w">Ana's bbq</span></span><span class="dl"><span class="pv" style="background:#E67C73"></span>Home</span>
+<div class="acts"><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Directions</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Remind me</button></div></div>
+</sc-if>
+</div>
+</section>
+
+<section class="cell"><div class="tag">10 · Search</div>
+<p class="you">Where's the sofa link Ana sent?</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Flat<span class="n">12</span></button>
+<div class="gal">
+<div class="gt"><div class="th"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div><b>Rug, 160 x 230</b><small>you, 28 Oct</small></div>
+<a class="gt on" href="#open" style="color:inherit;text-decoration:none"><div class="th"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div><b>Linen sofa, 3 seat</b><small>Ana, 3 Nov</small></a>
+<div class="gt"><div class="th"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div><b>Floor lamp</b><small>you, 9 Nov</small></div>
+</div>
+</div>
+</section>
+
+<section class="cell"><div class="tag">11 · The web</div>
+<p class="you">When do the clocks go forward?</p>
+<p class="off">Sunday <span class="em">28 March</span>, at 1am.</p>
+<div class="card">
+<div class="calh"><button class="ar" aria-label="Earlier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span class="mn">{{monthName}}<span class="away">{{monthNote}}</span></span><button class="td" onClick="{{toggleMonth}}">{{todayLabel}}</button><button class="ar" aria-label="Later"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>
+<sc-if value="{{mar}}" hint-placeholder-val="{{ true }}">
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span class="md">1</span><span class="md">2</span><span class="md">3</span><span class="md">4</span><span class="md">5</span><span class="md">6</span><span class="md">7</span>
+<span class="md">8</span><span class="md">9</span><span class="md">10</span><span class="md">11</span><span class="md">12</span><span class="md">13</span><span class="md">14</span>
+<span class="md">15</span><span class="md">16</span><span class="md">17</span><span class="md">18</span><span class="md">19</span><span class="md">20</span><span class="md">21</span>
+<span class="md">22</span><span class="md">23</span><span class="md">24</span><span class="md">25</span><span class="md">26</span><span class="md">27</span><span class="md on">28</span>
+<span class="md">29</span><span class="md">30</span><span class="md">31</span>
+</div>
+</sc-if>
+<sc-if value="{{nov}}" hint-placeholder-val="{{ false }}">
+<div class="mg">
+<span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+<span></span><span></span><span></span><span></span><span></span><span></span><span class="md">1</span>
+<span class="md">2</span><span class="md">3</span><span class="md">4</span><span class="md">5</span><span class="md">6</span><span class="md">7</span><span class="md">8</span>
+<span class="md">9</span><span class="md">10</span><span class="md">11</span><span class="md">12</span><span class="md">13</span><span class="md">14</span><span class="md">15</span>
+<span class="md">16</span><span class="md today">17</span><span class="md has">18<span class="dots"><i class="dt ev"></i></span></span><span class="md">19</span><span class="md has">20<span class="dots"><i class="dt task"></i></span></span><span class="md has">21<span class="dots"><i class="dt ev"></i></span></span><span class="md">22</span>
+<span class="md">23</span><span class="md">24</span><span class="md">25</span><span class="md">26</span><span class="md">27</span><span class="md">28</span><span class="md">29</span>
+<span class="md">30</span>
+</div>
+</sc-if>
+</div>
+<div class="acts"><button class="ac hit"><span class="pv" style="background:#7986CB"></span>Add to Personal</button><button class="ac hit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Remind me the day before</button></div>
+<a class="src hit" href="#src" style="align-self:flex-start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>timeanddate.com</a>
+</section>
+
+<section class="cell"><div class="tag">12 · Asking back</div>
+<p class="you">Renew passport</p>
+<div class="card">
+<button class="ch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><circle cx="5" cy="16" r="2"/></svg>Admin<span class="n">2 left</span></button>
+<div class="r"><span class="tk"></span><span class="tx">Car insurance</span><span style="font:400 12.5px/1 var(--font-core);color:var(--text-secondary)">2 Dec</span></div>
+<div class="r new"><span class="tk"></span><span class="tx">Renew passport</span></div>
+</div>
+<div class="tf">Added<button class="u">Undo</button></div>
+<div class="off">By when?
+<div class="qr"><button class="qv hit">This week</button><button class="qv hit">End of November</button></div>
+<button class="qx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>Not that</button></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":420,"height":5200}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const open = s.open || { bbq: true };
+const o = {}, t = {}, cv = {};
+['dentist', 'club', 'bbq'].forEach((k) => {
+o[k] = !!open[k];
+cv[k] = open[k] ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6';
+t[k] = () => this.setState({ open: Object.assign({}, open, { [k]: !open[k] }) });
+});
+const nov = !!s.nov;
+return {
+o, t, cv, nov, mar: !nov,
+toggleMonth: () => this.setState({ nov: !nov }),
+monthName: nov ? 'November 2026' : 'March 2027',
+monthNote: nov ? '' : 'in 19 weeks',
+todayLabel: nov ? 'Back' : 'Today'
+};
+}
+}
+</script>
+</body>
+</html>

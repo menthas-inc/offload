@@ -6,7 +6,7 @@
 // answer by asking for it. The stream is an optimisation over polling, and the
 // fallback is what makes it safe to be one.
 
-import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf } from "@offload/widgets";
+import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf, type Pill, type ReplySummary } from "@offload/widgets";
 import { reach } from "./threads";
 import { timeZoneHeader } from "./time-zone";
 
@@ -100,6 +100,57 @@ export interface FoundRow {
   } | null;
 }
 
+/** 052. A thread a slice names, as the reader may see it now. Null name for
+ *  the default thread, headed Not in a thread. */
+export interface SliceThread {
+  id: string;
+  name: string | null;
+  icon: string | null;
+  hue: number | null;
+}
+
+export interface SliceNote {
+  id: string;
+  text: string;
+  marked: boolean;
+}
+
+/** 052. One place a turn wrote to or read from. Ids resolved as the reader,
+ *  now; the words are `@offload/widgets`'s. */
+export type Slice =
+  | {
+      kind: "list";
+      thread: SliceThread;
+      openCount: number;
+      rows: FoundRow[];
+      marked: string[];
+      notes: SliceNote[];
+      previous: Record<string, { dueAt?: string | null; occursAt?: string | null }>;
+      truncated: boolean;
+    }
+  | { kind: "newThread"; thread: SliceThread; rows: FoundRow[]; notes: SliceNote[] }
+  | { kind: "memories"; memoryKind: string; memories: SliceNote[] }
+  | {
+      kind: "calendar";
+      period: { from: string; to: string };
+      day: string;
+      marked: string[];
+      span: boolean;
+      /** 052. A moved row's dates before the turn, while its Undo holds them. */
+      previous?: Record<string, { dueAt?: string | null; occursAt?: string | null }>;
+    }
+  | { kind: "removed" };
+
+/** 052. A turn's reply beside its words, on the person's message. */
+export interface Parts {
+  slices: Slice[];
+  also: SliceThread[];
+  pills: Pill[];
+  summary: ReplySummary | null;
+  /** When the turn's result arrived, by the server's clock. */
+  resultAt: string | null;
+}
+
 /** 016. Where a fact in a turn came from. Two fields, and the omissions are the
  *  point: a provider's citation also carries the page's title and a quoted
  *  excerpt, and both are written by whoever owns the page. */
@@ -150,6 +201,8 @@ export interface Answer {
    *  Only ever on a read of the message; the stream carries the transcript
    *  as its own event. */
   voice?: VoiceOnWire | null;
+  /** 052. The turn's reply: slices, pills, summary. Null until it settles. */
+  parts?: Parts | null;
 }
 
 /** The day's model budget is spent (security review 2026-09-22, M6). The
@@ -471,6 +524,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
     photos?: PhotoOnWire[];
+    parts?: Parts | null;
   } | null;
   if (!body) return null;
   return {
@@ -485,6 +539,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     waiting: body.waiting ?? null,
     found: body.found ?? [],
     voice: body.voice ?? null,
+    parts: body.parts ?? null,
     // 041. The message's files as the server has them now.
     ...(body.photos ? { photos: body.photos } : {}),
   };
@@ -619,6 +674,8 @@ export interface TailMessage {
   sources: Source[];
   /** 025. On the person's message: what the turn applied. */
   labels: { id: string; name: string; colour: number }[];
+  /** 052. On the person's message: the turn's reply beside its words. */
+  parts?: Parts;
 }
 
 /** 018. Answer a question by option. Null when the server refused it: the
@@ -726,13 +783,50 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
 /** False when the Undo did not land; otherwise the words of any memories it
  *  could not put back for want of room, usually none. */
 export async function undoTurn(turnId: string): Promise<false | string[]> {
-  const response = await reach(`${API}/v1/turns/${turnId}/undo`, {
+  const body = await undoAnswer(turnId);
+  return !!body && body.undone && (body.stayed ?? []);
+}
+
+/** 052. What an Undo answered. The server decides early or late by its own
+ *  clock; late keeps the dump, names what changed since in `changed`, and
+ *  answers `confirm` without doing anything when a calendar others see would
+ *  lose an event. `confirmed` is the person's yes to that line. */
+export interface UndoAnswer {
+  undone: boolean;
+  stayed?: string[];
+  changed?: string[];
+  confirm?: string;
+}
+export async function undoAnswer(turnId: string, confirmed = false): Promise<UndoAnswer | false> {
+  const response = await reach(`${API}/v1/turns/${turnId}/undo${confirmed ? "?confirmed=1" : ""}`, {
     method: "POST",
     credentials: "include",
   });
-  if (!response) return false;
-  const body = (await response.json()) as { undone: boolean; stayed?: string[] };
-  return body.undone && (body.stayed ?? []);
+  if (!response?.ok) return false;
+  return ((await response.json().catch(() => null)) as UndoAnswer | null) ?? false;
+}
+
+/** 052. A reply's pill tapped: the turn and the kind, nothing else, since the
+ *  server works the target out again. False when it did not go through. */
+export async function tapPill(
+  turnId: string,
+  kind: "calendar" | "remind",
+  undo = false,
+): Promise<{ ok: true } | { confirm: string; pendingId: string } | "refused" | false> {
+  try {
+    const response = await fetch(`${API}/v1/turns/${turnId}/pills`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(undo ? { kind, undo: true } : { kind }),
+    });
+    // 404 or 409: no longer offered, or the calendar will not take it. Asking again cannot help.
+    if (response.status === 404 || response.status === 409) return "refused";
+    if (!response.ok) return false;
+    return ((await response.json().catch(() => null)) as { ok: true } | { confirm: string; pendingId: string } | null) ?? false;
+  } catch {
+    return false;
+  }
 }
 
 /** Finish a turn that stopped partway.

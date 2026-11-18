@@ -45,6 +45,7 @@ import {
   resumeDump,
   sendDump,
   undoTurn,
+  undoReply as askUndo,
   uploadPhoto,
   uploadVoice,
   refuseFile,
@@ -59,15 +60,17 @@ import {
   type MessageState,
   type PhotoOnWire,
   type QuestionOnWire,
+  type Reply,
   type Source,
   type TouchedThread,
   type WaitingOn,
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, reloadFloor, stayedForgotten, takeFiles, touches, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, changedLine, isPdf, labelQuery, reloadFloor, stayedForgotten, takeFiles, touches, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
 import type { ChangeKind, Changes, Place } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
+import { linePhase, withRowDone } from "../../lib/reply";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
 import { mentionQuery, withMention } from "../people/MentionList";
@@ -162,6 +165,19 @@ export interface Turn {
   elsewhere?: boolean;
   /** 048. What offload is doing on an elsewhere turn, which has no `working`. */
   step?: string | null;
+  /** 052. On the message that was sent: the turn's reply, its slices, pills
+   *  and what it did. Null until it settles. */
+  parts?: Reply | null;
+  /** 052. When the result arrived on this phone, live: the change mark plays
+   *  from it once, and the undo line's clock starts at it. Never from a load. */
+  arrivedAt?: number;
+  /** 052. A late Undo landed: the dump stays and its reply folds to this. */
+  folded?: string;
+  /** 052. A late Undo that would take an event off a calendar others see
+   *  asks first: the outward line, until it is answered. */
+  undoAsk?: string | undefined;
+  /** 052. The reply's Undo was refused or did not land: the line says Retry. */
+  undoFailed?: boolean;
 }
 
 /** A `+`'s write that has left the composer and not yet settled.
@@ -394,6 +410,13 @@ export interface Conversation {
   answerOpen: (turnId: string, option: number) => Promise<"answered" | "gone" | "failed">;
   /** Tick a row from inside an answer. The only write an answer can do. */
   tickFound: (turnId: string, row: FoundRow) => Promise<void>;
+  /** 052. The reply's Undo, by the turn. Early it takes the turn back, late
+   *  it keeps the dump; `confirmed` is the yes to a late one that asked. */
+  undoReply: (turnId: string, confirmed?: boolean) => Promise<void>;
+  /** 052. Not now, to a late Undo that asked first. */
+  declineUndo: (messageId: string) => void;
+  /** 052. A calendar pill that asks first: 019's pending-write confirm. */
+  pillConfirm: (messageId: string, asked: { confirm: string; pendingId: string }) => void;
   /** What the turn wrote to, so an open thread can catch up on its own.
    *  048: `elsewhere` when the turn was sent from another device, which marks
    *  the thread here too but plays no prism pulse. */
@@ -449,6 +472,8 @@ function turnsOfTail(tail: TailMessage[]): Turn[] {
     sources: message.sources ?? [],
     labels: message.labels ?? [],
     did: turnDid(message),
+    // 052. As the server resolves it now, so a reopened reply is never stale.
+    parts: message.parts ?? null,
   }));
 }
 
@@ -575,6 +600,8 @@ export function ConversationProvider({
                     r.contentId === row.contentId ? { ...r, done } : r,
                   ),
                 })),
+                // 052. Or in a reply's slice, which is where answers draw now.
+                parts: turn.parts ? withRowDone(turn.parts, row.contentId, done) : null,
               }
             : turn,
         ),
@@ -892,6 +919,9 @@ export function ConversationProvider({
                   sources: answer.sources,
                   labels: answer.labels ?? [],
                   question: answer.question ?? null,
+                  // 052. The reply's parts, marked as arriving now.
+                  parts: answer.parts ?? null,
+                  arrivedAt: Date.now(),
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
@@ -1706,6 +1736,54 @@ export function ConversationProvider({
     [notify],
   );
 
+  const undoing = useRef(new Set<string>());
+  /** 052. The reply's Undo. Early, the turn leaves on the press and comes
+   *  back if the server refuses, as the toast's did. Late, the dump stays: the
+   *  reply folds to what was undone, or asks first, or says Retry. */
+  const undoReply = useCallback(
+    async function again(turnId: string, confirmed = false): Promise<void> {
+      // A second press while the first is out sends nothing.
+      if (undoing.current.has(turnId)) return;
+      undoing.current.add(turnId);
+      try {
+        const turn = shownTurns.current.find((one) => one.from === "you" && one.turnId === turnId);
+        if (!turn) return;
+        const mark = (patch: Partial<Turn>) =>
+          setTurns((current) => current.map((one) => (one.from === "you" && one.turnId === turnId ? { ...one, ...patch } : one)));
+        setUndoable((current) => (current?.turnId === turnId ? null : current));
+        if (linePhase(turn, shownTurns.current, Date.now()) === "early") {
+          const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+          if (!stayed) return mark({ undoFailed: true });
+          setFiled({ threadIds: [], at: Date.now() });
+          const line = stayedForgotten(stayed);
+          if (line) notify(line);
+          return;
+        }
+        mark({ undoFailed: false, undoAsk: undefined });
+        const out = await askUndo(turnId, confirmed).catch(() => null);
+        if (out && !out.undone && out.confirm) return mark({ undoAsk: out.confirm });
+        if (!out?.undone) return mark({ undoFailed: true });
+        mark({ folded: changedLine(out.changed ?? []) });
+        setFiled({ threadIds: [], at: Date.now() });
+        const line = stayedForgotten(out.stayed);
+        if (line) notify(line);
+      } finally {
+        undoing.current.delete(turnId);
+      }
+    },
+    [notify],
+  );
+  const declineUndo = useCallback((messageId: string) => {
+    setTurns((current) => current.map((one) => (one.id === messageId ? { ...one, undoAsk: undefined } : one)));
+  }, []);
+  const pillConfirm = useCallback((messageId: string, asked: { confirm: string; pendingId: string }) => {
+    setTurns((current) =>
+      current.map((one) =>
+        one.id === messageId ? { ...one, waiting: { id: asked.pendingId, because: asked.confirm, kind: "calendar" as const, action: "create" as const } } : one,
+      ),
+    );
+  }, []);
+
   const undo = useCallback(async (): Promise<void> => {
     if (!undoable) return;
     const { turnId } = undoable;
@@ -1804,6 +1882,9 @@ export function ConversationProvider({
         openQuestion,
         answerOpen,
         tickFound,
+        undoReply,
+        declineUndo,
+        pillConfirm,
         retry,
         provisional,
         adoptProvisional,

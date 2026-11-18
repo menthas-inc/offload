@@ -11,6 +11,25 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-17 · Replies in place (052)
+**Surface:** iOS, Android, web; the conversation (the reply under a dump or a question)
+**Raised by:** the product owner: *"done" with some pills is not very nice*; a reply should be made of native elements. Off a design round on a canvas the same day (four directions, then C, revised, with the owner's changes), board copied into `docs/specs/052-replies-in-place/design/`.
+
+**Was:** a filing turn drew `TurnFooter`: the Done mark, a pill per thread, time chips and source chips. An answer drew `AnswerResult` cards under its sentence. Undo was a plate line or a toast for eight seconds.
+
+**Is:** a reply is a stack in a fixed order, every part optional: what offload says, then up to three **slices** of where the dump landed, the turn's new rows marked with the change mark; a line *Also in* for any further threads; at most two **pills**; a quiet **source line**; an **undo line**; then a question, if one was asked.
+- **A list slice** is `AnswerResult`, now with the thread's open count (hidden at zero), the marked rows and a Notes section, with up to two open rows from before the turn above the turn's own.
+- **A new thread** shows its inside: its icon, the eyebrow *New thread* in moss, its name, then what the turn put in it.
+- **Memories** shows the kind's group, headed *Memories, {kind}*.
+- **A calendar** is the built `MonthGrid` in a new `still` mode, with no arrows, no Today control and no swipe: two weeks or the month, today outlined, the day shown filled blue, lifted days dotted by kind, with *in 19 weeks* beside a far month's name. The day's entries are listed in full under the grid; tapping one opens its details in place (span, place with Directions, thread, the calendar's dot and name).
+- **Pills** use `Chip`'s geometry with a leading glyph, 30 tall in 44: *Add a date*, *Add to {calendar}*, *Remind me*, *Share with {name}*, *Directions*. Code chooses and words them; none appears on a turn that asks.
+- **The source line** is the `link` glyph and up to three domains in `--text-tertiary` at `--size-caption`, no border, then *and N more*. It sits under the pills and is still the one external link in the conversation.
+- **The undo line** is `UndoLine`'s new fourth form, **turn**: the glyph, the summary in moss (*4 new*, *2 filed*, *Moved*, *Started*, *Remembered*), and Undo. It carries 043's clock for its first eight seconds and stays without one until the next dump. After the eight seconds Undo keeps the dump and the slices fold to *Undone*.
+
+**Considered and not taken:** A, objects with no slice context; B, a sentence with live tokens; D, one receipt card per turn. The board's week strip with titled blocks (titles do not fit at phone width, and the readme draws no week rail); grid arrows and a Today control inside a reply; a *Remind me the day before* moment (042 chooses when); a gallery-shaped slice for a gallery thread (rows for now).
+
+**Design system impact:** `components/conversation/TurnFooter` is retired: remove it from the components and the kits' conversations (`mobile_app/LiveConversation.jsx`, `android_app/M3LiveConversation.jsx`, `web_app/WMisc.jsx` `WTurns`). `AnswerResult` gains `count` (open, hidden at zero), `marked` and `notes`. `UndoLine` gains the `turn` form. `MonthGrid` gains `still`. Kits should draw replies as above, from the board in `docs/specs/052-replies-in-place/design/final-board.dc.html`. No new token: the change mark, moss, the attention fill and the tertiary ink are all existing aliases. From the device passes (2026-11-18): on the phones `MonthGrid`'s day name and number stay one line under `maxFontSizeMultiplier` 1.3, the house cap the thread tiles use, so seven columns hold at large text on Today as well as in a reply; on the web a picked day gone by keeps its white on the fill.
+
 ### 2026-11-17 · A thread's ticks and moves draw no Undo line
 **Surface:** iOS, Android, web; the thread page (rows and notes)
 **Raised by:** the product owner: *obvious changes don't need an undo, user can figure out how to undo them.*
@@ -21,7 +40,7 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Considered and not taken:** keeping the move's line, since a move to another thread takes the row off the page; the owner counted it obvious too.
 
-**Design system impact:** in `handoff/APPLY-2026-10-18-undo-in-place.md` section 3, drop the thread page's tick (Todo list), move-to-thread and reorder rows, for rows and notes. Kits that draw an Undo line for these on a thread page (`ui_kits/*` thread screens, `UndoInPlace.jsx`) should stop. No token or component change; `UndoLine` keeps its three forms.
+**Design system impact:** in `handoff/APPLY-2026-10-18-undo-in-place.md` section 3, drop the thread page's tick (Todo list), move-to-thread and reorder rows, for rows and notes. Kits that draw an Undo line for these on a thread page (`ui_kits/*` thread screens, `UndoInPlace.jsx`) should stop. No token or component change; this change leaves `UndoLine` itself as it is.
 
 ### 2026-11-17 · A birthday's calendar question, and who a memory came from (051)
 **Surface:** iOS, Android, web (the conversation's question chips; the Memories tab's origin line)

@@ -40,10 +40,9 @@ import Animated, {
 import { threadLookOf } from "../../lib/threads";
 import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
-import { ThreadPill } from "./ThreadPill";
-import { LabelMark } from "../labels/LabelMark";
-import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
+import { ReplyParts } from "./ReplyParts";
+import { transcriptMoved } from "../../lib/reply";
 import { isRich } from "@offload/markup";
 import { atOpacity, useColors } from "../../lib/colors";
 import { backPull, progress } from "../../lib/sheet";
@@ -55,11 +54,9 @@ import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
 import { answerShare } from "../../lib/people";
-import { openLink } from "../../lib/links";
 import { SHARE_LINE } from "../people/ShareSheet";
 import { QuickReplies } from "./QuickReplies";
 import { Thinking } from "./Thinking";
-import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
 import { Actions } from "./Actions";
@@ -68,7 +65,6 @@ import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
-import { threadHref } from "../../lib/loose";
 import { outElsewhere } from "../../lib/live";
 import { atEnd, sentBy, yours } from "../../lib/transcript-follow";
 
@@ -187,6 +183,14 @@ export function Conversation() {
     },
   );
   const shownPin = pin ?? heldPin;
+  // 052. Settled open: a reply's calendar laid out while the sheet was away
+  // can see now whether it is on screen.
+  useAnimatedReaction(
+    () => sheetY.value <= 0.5,
+    (open, was) => {
+      if (open && !was) runOnJS(transcriptMoved)();
+    },
+  );
 
   const held = useSharedValue(0);
   const leave = useCallback(() => {
@@ -311,6 +315,8 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
   const toEnd = useCallback(() => {
     ref.current?.scrollToEnd({ animated: opened.current });
     opened.current = true;
+    // 052. A scroll of ours ends no drag, so a reply's calendar looks once it has.
+    setTimeout(transcriptMoved, 400);
   }, [ref]);
 
   const sent = useRef(yours(turns));
@@ -340,12 +346,15 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
     // read as the reader's would stop following halfway to the end.
     onEndDrag: () => {
       driven.value = false;
+      // 052. A reply's calendar not yet read looks again whether it is on screen.
+      runOnJS(transcriptMoved)();
     },
     onMomentumBegin: () => {
       driven.value = true;
     },
     onMomentumEnd: () => {
       driven.value = false;
+      runOnJS(transcriptMoved)();
     },
   });
 
@@ -431,30 +440,25 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
             <Fragment key={turn.id}>
               <Yours
                 turn={turn}
-                // **Only when nothing answered it.** The footer belongs to the turn,
-                // and the turn ends at the reply when there is one: drawn on the
-                // sent bubble regardless, the sources for an answer sat above the
-                // answer they were sources for.
-                footer={!replied.has(turn.id) && !turn.question}
                 onFinish={() => void finish(turn.id)}
                 onOpenPhoto={(index) => openPhoto(turn.id, index)}
                 onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
                 onRetry={() => retry(turn.id)}
                 recording={recording}
               />
+              {/* 052. **Only when nothing answered it.** The reply belongs to
+                  the turn, and the turn ends at offload's bubble when there is
+                  one, so it is drawn there. */}
+              {!replied.has(turn.id) ? <ReplyParts turn={turn} /> : null}
               {/* 018. A turn that filed silently and asked back has no reply
                   bubble to hold the question, so the question gets one of its
                   own, in place: offload's sentence and the chips, nothing else.
-                  After the footer, as on web, in the turn's order: what
-                  happened, then what is still open. The sent bubble hands its
-                  footer down so the footer can sit between them. */}
+                  After the reply, in the turn's order: what happened, then what
+                  is still open. */}
               {!replied.has(turn.id) && turn.question ? (
-                <>
-                  <TurnFooter turn={turn} />
-                  <Bubble>
-                    <Question turn={turn} first />
-                  </Bubble>
-                </>
+                <Bubble>
+                  <Question turn={turn} first />
+                </Bubble>
               ) : null}
               {/* 019. A tapped calendar answer that turned into a proposal: the
                   control sits on the person's own turn, in a bubble of its own,
@@ -479,7 +483,6 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
 
 function Yours({
   turn,
-  footer,
   onFinish,
   onOpenPhoto,
   onOpenPdf,
@@ -487,7 +490,6 @@ function Yours({
   recording,
 }: {
   turn: Turn;
-  footer: boolean;
   onOpenPhoto: (index: number) => void;
   /** 041. A PDF the message carried, opened in the platform's viewer. */
   onOpenPdf: (pdf: PhotoOnWire) => void;
@@ -567,14 +569,6 @@ function Yours({
           </View>
         ))}
       </View>
-
-      {/* Everything about this turn that is not a sentence, in one row that
-          belongs to the turn rather than to either bubble. The marks used to be
-          positioned into this bubble's bottom corner and the pills drawn under
-          whichever turn happened to carry them; a turn with a source as well
-          has three things to report and, on an ordinary filing, no reply to
-          report them in. */}
-      {footer ? <TurnFooter turn={turn} /> : null}
 
       {/* The readme's own words, and the same ones web uses. They diverged
           here: this said "Saved what landed. The rest didn't come through."
@@ -677,135 +671,7 @@ function Yours({
 }
 
 
-/** Where it actually filed, from the content rows rather than from the
- *  sentence, so a chip can never point somewhere nothing landed.
- *
- *  **On either turn.** It used to belong to the reply, and a dump that was
- *  simply filed says nothing back, so the thread it went to was named nowhere
- *  at all. Drawn under whichever turn carries the threads: the reply when there
- *  is one, the message somebody sent when there is not. */
-/** One height for everything in the footer.
- *
- *  It held three: 24 for the Done mark, 26 for a thread, 26 for a source. Side
- *  by side on web that read as a mistake, which is what it was, and the phones
- *  had the same shape one pixel apart. 30, because that is the governed `Chip`
- *  the thread pills come from and the height the filter chips already use.
- *
- *  Named rather than repeated, so the next mark added to this row cannot be a
- *  fourth height. */
-const CHIP_H = 30;
-
-function TurnFooter({ turn }: { turn: Turn }) {
-  const COLOR = useColors();
-  const router = useRouter();
-  const { lower } = useConversation();
-
-  const sources = turn.sources ?? [];
-  // Three, then a count. Six reads are possible in one turn and six chips under
-  // a one sentence reply is a footnote section.
-  const shown = sources.slice(0, 3);
-  const hidden = sources.length - shown.length;
-  // **Done means the turn finished and did something**, which is why
-  // `answered` is in the condition and not just `did`. A partial turn that filed
-  // one row wore a Done mark and the "Didn't finish that one." line at the same
-  // time, which is the screen contradicting itself.
-  const state = turn.state === "answered" && turn.did ? "done" : null;
-  const refs = turn.threads ?? [];
-  // 025. What the turn applied, after the thread pill at the footer's own
-  // height, three and then a count as the sources are.
-  const labels = turn.labels ?? [];
-  const marks = labels.slice(0, 3);
-  const unmarked = labels.length - marks.length;
-
-  // An empty footer is no footer, never a 26px gap.
-  if (!state && refs.length === 0 && sources.length === 0 && labels.length === 0) return null;
-
-  return (
-    <View className="mt-space-3 flex-row flex-wrap items-center gap-space-2">
-      {/* Order is fixed: what happened, where it landed, where it came from.
-
-          **There is no `seen` mark any more.** 👀 sat here from 003 until 15
-          September, and it was the product's only emoji. It said "offload has
-          this and has not answered yet", which is exactly what the writing
-          indicator says, at the same moment, a few lines below. Two marks for
-          one state, and the one that stayed is the one that also says work is
-          happening. */}
-      {state === "done" ? (
-        <View
-          className="flex-row items-center gap-space-2 rounded-pill bg-moss-600 px-space-4"
-          style={{ height: CHIP_H }}
-        >
-          <Glyph name="check" size={11} color={COLOR.onBrand} />
-          <Text
-            className="font-core font-medium text-text-on-solid"
-            style={{ fontSize: 11 }}
-          >
-            Done
-          </Text>
-        </View>
-      ) : null}
-
-      {refs.map((thread) => (
-        // Tappable, and it puts the conversation away on the way out. A reply
-        // naming where it filed something and not taking you there is a
-        // sentence about a place rather than a way to it. The conversation is
-        // kept: the composer brings it back. 027: Today's pill, at the
-        // footer's height.
-        <ThreadPill key={thread.id} id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={CHIP_H} onOpen={lower} />
-      ))}
-
-      {marks.map((label) => (
-        <LabelMark key={label.id} color={label.colour} size={30}>
-          {label.name}
-        </LabelMark>
-      ))}
-      {unmarked > 0 ? (
-        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
-          and {unmarked} more
-        </Text>
-      ) : null}
-
-      {/* **Outline, never moss.** Moss means "offload did this, you didn't"
-          everywhere in this system, and a citation is the opposite: evidence of
-          where a fact came from rather than something offload worked out.
-          It is also the only thing in a conversation that leaves the app, and
-          what makes that allowable is the source of the string: a domain from
-          the record of what was read, not a word the page chose. */}
-      {shown.map((source) => (
-        <Pressable
-          key={source.url}
-          onPress={() => void openLink(source.url)}
-          accessibilityRole="link"
-          accessibilityLabel={`Open ${source.domain}`}
-          className="flex-row items-center gap-space-2 rounded-pill border border-border-strong px-space-4"
-          style={{ height: CHIP_H, maxWidth: 220 }}
-        >
-          <Glyph name="link" size={12} color={COLOR.iconOnWell} />
-          <Text
-            className="font-core text-text-secondary"
-            style={{ fontSize: 12.5 }}
-            numberOfLines={1}
-          >
-            {source.domain}
-          </Text>
-        </Pressable>
-      ))}
-
-      {/* Text, not a chip and not a control: there is no screen listing what a
-          turn read, and a chip would promise one. */}
-      {hidden > 0 ? (
-        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
-          and {hidden} more
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
 function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
-  const COLOR = useColors();
-  const router = useRouter();
-  const { lower, tickFound } = useConversation();
   // The proposal rides the reply while the turn is live and the person's own
   // message after a reload, where a reply hides it. Either is this reply's.
   const waitingTurn = turn.waiting ? turn : sent?.waiting ? sent : null;
@@ -840,37 +706,26 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           announced and then expires an hour later having done nothing. */}
       {waitingTurn ? <Waiting turn={waitingTurn} /> : null}
 
-      {/* 018. The question, under the sentence and after any proposal, which
-          keeps its own life. On the message that was sent, because that is the
-          turn that asked. */}
-      {sent?.question ? <Question turn={sent} /> : null}
-
     </View>
 
-      {/* The turn's footer, under the thing it describes and **outside the
-          bubble**, which is the whole point of it: it is not a quotation and
-          nothing in it is offload speaking. Inside, the chips were enclosed by
-          the reply and read as part of the sentence.
+      {/* 052. The turn's reply, under the thing it describes and **outside
+          the bubble**: it is not a quotation and nothing in it is offload
+          speaking. From the message that was sent, since what offload did is a
+          fact about the turn. An answer's rows are its slices now, below the
+          bubble for the reason 013 gave: a row's press fill bleeds to its
+          pane's padded edge, which inside a bubble runs out square under a
+          rounded corner. */}
+      {sent ? <ReplyParts turn={sent} /> : null}
 
-          The state and the pills come from the message that was sent, not from
-          this reply: what offload did is a fact about the turn. */}
-      {sent ? <TurnFooter turn={sent} /> : null}
-
-      {/* **Below the bubble, not inside it.** A row's press fill bleeds to its
-          pane's padded edge by one space step, which is a turn's own padding,
-          so inside a bubble the two cancel and a square fill runs out under a
-          rounded corner. The calendar proposal stays inside because it is one
-          fixed control acting on the sentence; this is a list with a surface of
-          its own. */}
-      {turn.found && turn.found.length > 0 ? (
-        <AnswerResults
-          found={turn.found}
-          onToggle={(row) => void tickFound(turn.id, row)}
-          onOpenThread={(threadId, threadName) => {
-            lower();
-            router.push(threadHref(threadId, threadName));
-          }}
-        />
+      {/* 018, 052. The question, last and in a bubble of its own, so its
+          answers never sit beside the reply's pills. On the message that was
+          sent, because that is the turn that asked. */}
+      {sent?.question ? (
+        <View className="mt-space-4">
+          <Bubble>
+            <Question turn={sent} first />
+          </Bubble>
+        </View>
       ) : null}
     </View>
   );

@@ -74,6 +74,7 @@ import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import { tickIn } from "../threads/tick.js";
+import { CONTENT_EDITED, contentNow, recordChange } from "../dumps/turn-changes.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, pdfForRow, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
@@ -1077,7 +1078,7 @@ function parseDates(
 /** The series a calendar is told about: the stored rule, parsed and
  *  re-serialised once more rather than concatenated as it lies in the column,
  *  which the check constraint bounds more loosely than the grammar does. */
-function seriesFor(stored: string | null): string[] | null {
+export function seriesFor(stored: string | null): string[] | null {
   if (!stored) return null;
   const parsed = parseRule(stored);
   return parsed.ok ? [`RRULE:${formatRule(parsed.rule)}`] : null;
@@ -1269,7 +1270,9 @@ async function existing(
   scopeThreadId: string | null,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
-    await editThread(accountId, call.threadId, { name: call.name }, trx);
+    const { previous } = await editThread(accountId, call.threadId, { name: call.name }, trx);
+    // 052. The name as it was, for the turn's Undo.
+    await recordChange(trx, { messageId, accountId, kind: "thread", targetId: call.threadId, tool: call.tool, previous: { name: previous.name } });
     return { ok: true, done: true };
   }
 
@@ -1295,6 +1298,12 @@ async function existing(
     // Co-owned, like the name. `readPreference` drops anything it does not
     // recognise, so a widget kind the model invented is ignored rather than
     // stored and rendered as nothing later.
+    // 052. The widgets as they were, for the turn's Undo, read before the write.
+    const held = await trx.selectFrom("threads").select("attrs").where("id", "=", call.threadId).executeTakeFirst();
+    if (held) {
+      const widgets = (held.attrs as { widgets?: unknown } | null)?.widgets ?? null;
+      await recordChange(trx, { messageId, accountId, kind: "thread", targetId: call.threadId, tool: call.tool, previous: { widgets } });
+    }
     await setPreference(accountId, call.threadId, {
       ...(call.widgets === undefined ? {} : { widgets: call.widgets }),
     });
@@ -1661,6 +1670,7 @@ async function existing(
   if (!ref) return { ok: false, error: "unknown_content" };
 
   if (call.tool === "complete_content") {
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, ["done_at", "due_at", "occurs_at"]) });
     await tickIn(trx, accountId, ref.id, call.done);
     await touchThread(ref.threadId, trx);
     await noteThread(messageId, ref.threadId, true, trx);
@@ -1670,6 +1680,7 @@ async function existing(
   if (call.tool === "archive_content") {
     // The person's archive, step for step: the count, `put_back` on a row
     // put back so the hourly pass leaves it, and the share proposal re-checked.
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, ["archived_at"]) });
     await setArchivedIn(trx as Transaction<Database>, accountId, ref.id, call.archived);
     await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };
@@ -1683,6 +1694,10 @@ async function existing(
   if (ref.authorId !== accountId && !unowned(ref)) return { ok: false, error: "not_yours" };
 
   if (call.tool === "move_content") {
+    // `moveContent` runs outside this transaction, so the record goes first; a
+    // move that then fails leaves a value equal to the current one, and putting
+    // it back changes nothing.
+    await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: { thread_id: ref.threadId } });
     try {
       await moveContent(accountId, ref.id, call.threadId);
     } catch (error) {
@@ -1745,6 +1760,10 @@ async function existing(
   // kept for this turn's Undo.
   const placeChange = await placeEdit(trx, call, ref.id, messageId);
   if (placeChange && "error" in placeChange) return { ok: false, error: placeChange.error };
+
+  // 052. The columns this can change, as they were, for the turn's Undo. The
+  // place is 030's `place_prior`, kept as it is.
+  await recordChange(trx, { messageId, accountId, kind: "content", targetId: ref.id, tool: call.tool, previous: await contentNow(trx, ref.id, CONTENT_EDITED) });
 
   await trx
     .updateTable("content")
@@ -1974,6 +1993,9 @@ export async function toolRoutes(app: App): Promise<void> {
             })
             .returning(["id", "name"])
             .executeTakeFirstOrThrow();
+
+          // 052. The turn that made it, so its reply shows the thread's inside.
+          await recordChange(trx, { messageId, accountId, kind: "thread", targetId: thread.id, tool: "create_thread", previous: {} });
 
           await trx
             .insertInto("thread_members")

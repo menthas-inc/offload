@@ -114,12 +114,18 @@ export function Shell() {
   // Undo above the composer, as Saved to the thread: nothing on the screen
   // shows the new row by its id. With the conversation up, the reply is the
   // conversation's own report and keeps the toast, as does a turn that filed
-  // nothing.
+  // nothing, unless its reply draws the Undo (052, below).
   const shownUndo = useRef<string | null>(null);
   useEffect(() => {
     const undoable = conversation.undoable;
     if (!undoable || shownUndo.current === undoable.turnId) return;
     shownUndo.current = undoable.turnId;
+    // 052. A dump whose reply is up in the conversation carries its own Undo
+    // at the reply's foot, so neither the toast nor 043's plate line is drawn.
+    // A dump that settled with the conversation put away, under a Today,
+    // Threads or Memories plate that shows none of it, keeps its plate line.
+    const turn = conversation.turns.find((one) => one.from === "you" && one.turnId === undoable.turnId);
+    if (conversation.raised && turn?.parts?.summary) return;
     const undo = { label: "Undo", onPress: () => void conversation.undo() };
     const filed = conversation.turns.find((turn) => turn.turnId === undoable.turnId && (turn.threads?.length ?? 0) > 0)?.threads;
     if (conversation.raised || !filed) return toast.show(undoable.message, undo);

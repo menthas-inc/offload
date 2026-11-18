@@ -158,6 +158,25 @@ const lookups = z
 // Strict, for the reason the header states. Without it "a body naming an
 // account is refused, not ignored" was a claim about a schema that silently
 // dropped the field instead.
+/** 052. A calendar day as the worker sends it: a real date, nothing else. */
+const isoDay = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((day) => {
+    const at = new Date(`${day}T12:00:00Z`);
+    return !Number.isNaN(at.getTime()) && at.toISOString().slice(0, 10) === day;
+  }, "not a day");
+/** 052. What an answer showed beside its words, bounded so a calendar is one
+ *  day or a span of at most 62 days, start first. */
+const shown = z.union([
+  z.strictObject({ on: isoDay }),
+  z.strictObject({
+    span: z
+      .strictObject({ from: isoDay, to: isoDay })
+      .refine(({ from, to }) => from <= to && (Date.parse(to) - Date.parse(from)) / 86_400_000 <= 62, "a span of at most 62 days"),
+  }),
+]);
+
 const body = z.discriminatedUnion("outcome", [
   z.strictObject({
     outcome: z.literal("answered"),
@@ -192,6 +211,8 @@ const body = z.discriminatedUnion("outcome", [
       )
       .max(3)
       .optional(),
+    /** 052. A day or a span the answer showed, which the reply draws as a calendar. */
+    shown: shown.optional(),
     sources,
     lookups,
     usage,
@@ -847,6 +868,16 @@ export async function internalRoutes(app: App): Promise<void> {
               .execute();
           }
 
+          // 052. What the answer showed, on the reply that shows it; a re-answer
+          // replaces it, and one that showed nothing clears it.
+          if (reply) {
+            await trx
+              .updateTable("messages")
+              .set({ shown: result.outcome === "answered" && result.shown ? (JSON.stringify(result.shown) as never) : null })
+              .where("id", "=", reply.id)
+              .execute();
+          }
+
           if (result.outcome === "answered" && reply && result.found?.length) {
             const ids = result.found.flatMap((r) => r.contentIds);
             // Membership-checked again on the way in. The ids came from a read
@@ -972,7 +1003,7 @@ export async function internalRoutes(app: App): Promise<void> {
 
           await trx
             .updateTable("messages")
-            .set({ state: result.outcome, step: null, step_at: null })
+            .set({ state: result.outcome, step: null, step_at: null, settled_at: sql`now()` })
             .where("id", "=", person.id)
             .execute();
 
@@ -993,7 +1024,7 @@ export async function internalRoutes(app: App): Promise<void> {
           // press rather than on the worker noticing.
           await trx
             .updateTable("messages")
-            .set({ state: result.outcome === "cancelled" ? "cancelled" : "failed", step: null, step_at: null })
+            .set({ state: result.outcome === "cancelled" ? "cancelled" : "failed", step: null, step_at: null, settled_at: sql`now()` })
             .where("id", "=", person.id)
             .execute();
 

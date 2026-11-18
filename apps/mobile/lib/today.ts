@@ -19,6 +19,8 @@ export interface TodayRow extends ContentRow {
   /** 037. Null with the name. */
   threadIcon: string | null;
   threadHue: number | null;
+  /** 052. The calendar the row is on, when it is one of this account's. */
+  calendar?: { name: string; colour: string | null } | null;
 }
 
 export interface TodayEvent {
@@ -36,6 +38,12 @@ export interface TodayEvent {
   threadIcon: string | null;
   threadHue: number | null;
   authorName: string | null;
+  /** 052. An offload event's own words for where it is, and the place they
+   *  resolved to, for the reply's Directions. */
+  location?: string | null;
+  place?: { lat: number | null; lng: number | null; approximate: boolean } | null;
+  /** 052. The calendar an offload event is on, when it is one of this account's. */
+  calendar?: { name: string; colour: string | null } | null;
 }
 
 export interface Day {
@@ -52,16 +60,18 @@ export interface Day {
   threadLabels: { id: string; name: string; colour: number }[];
 }
 
-/** One day, or null when it did not come back. */
-export async function fetchDay(date: string): Promise<Day | null> {
-  const sent = await send<Day>(`/v1/today/day?date=${encodeURIComponent(date)}`);
+/** One day, or null when it did not come back. 052: `past` for a reply's
+ *  calendar, which may show a day gone by. */
+export async function fetchDay(date: string, past = false): Promise<Day | null> {
+  const sent = await send<Day>(`/v1/today/day?date=${encodeURIComponent(date)}${past ? "&past=1" : ""}`);
   return sent.status === 200 ? sent.data : null;
 }
 
 /** 2026-10-18. What each day in a window holds, for Today's month; null when
  *  it did not come back, so the grid draws without dots. */
-export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
-  const sent = await send<{ days: MonthCount[] }>(`/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+export async function fetchMonth(from: string, to: string, past = false): Promise<MonthCount[] | null> {
+  // 052. `past`: a reply's grid, which may show days gone by.
+  const sent = await send<{ days: MonthCount[] }>(`/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${past ? "&past=1" : ""}`);
   return sent.status === 200 ? (sent.data?.days ?? null) : null;
 }
 

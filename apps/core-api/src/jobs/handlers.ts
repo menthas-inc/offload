@@ -378,11 +378,17 @@ const contentPurge: Handler = async () => {
 
     /** One batch from one table. True when it was full, so more may be due. */
     const batch = async (table: "content" | "notes" | "messages", when: typeof due): Promise<boolean> => {
-      const result = await sql`
-        delete from ${sql.table(table)}
-        where id in (select id from ${sql.table(table)} where ${when} limit ${PURGE_BATCH})
+      // 052. `turn_changes.target_id` is polymorphic and has no foreign key,
+      // so a purged row's earlier values go with it here, by name.
+      const result = await sql<{ id: string }>`
+        with gone as (
+          delete from ${sql.table(table)}
+          where id in (select id from ${sql.table(table)} where ${when} limit ${PURGE_BATCH})
+          returning id
+        ), records as (delete from turn_changes where target_id in (select id from gone))
+        select id from gone
       `.execute(trx);
-      return Number(result.numAffectedRows ?? 0) >= PURGE_BATCH;
+      return result.rows.length >= PURGE_BATCH;
     };
 
     // Content first. `derived_from_message_id` is on delete set null, so the
@@ -423,7 +429,9 @@ const contentPurge: Handler = async () => {
         await deleteNotesForThread(thread.id, trx);
       }
       if (deadThreads.length > 0) {
-        await trx.deleteFrom("threads").where("id", "in", deadThreads.map((thread) => thread.id)).execute();
+        const ids = deadThreads.map((thread) => thread.id);
+        await trx.deleteFrom("turn_changes").where("target_id", "in", ids).execute();
+        await trx.deleteFrom("threads").where("id", "in", ids).execute();
       }
       more = more || deadThreads.length >= PURGE_BATCH;
     }

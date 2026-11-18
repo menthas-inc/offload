@@ -29,6 +29,8 @@ import {
   resumeDump,
   sendDump,
   undoTurn,
+  undoAnswer,
+  tapPill,
   cancelTurn,
   uploadPhoto,
   refuseFile,
@@ -38,14 +40,14 @@ import {
   PhotoRefused,
   UnknownBlob,
   type Answer,
-  type FoundResult,
   type FoundRow,
+  type Parts,
   type MessageState,
   type PhotoOnWire,
   type QuestionOnWire,
   type Sent,
   type WaitingOn,
-  type TouchedThread,
+  type Source,
   uploadVoice,
   VoiceRefused,
   type VoiceOnWire,
@@ -60,16 +62,18 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { MAX_PHOTOS, answeredWaiting, isFinal, isPdf, labelQuery, nameList, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply, type Place } from "@offload/widgets";
-import { fetchThread } from "../../lib/threads";
+import { MAX_PHOTOS, UNDO_MS, answeredWaiting, changedLine, isFinal, isPdf, labelQuery, stayedForgotten, staysOpen, summaryWords, takeFiles, turnUndoable, undoShown, withReply, type Pill } from "@offload/widgets";
+import { fetchOne, fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
-import { TurnFooter, type TurnSource } from "./TurnFooter";
 import { Thinking } from "./Thinking";
-import { AnswerResults } from "./AnswerResult";
+import { ReplyParts } from "./ReplyParts";
 import { Reply } from "./Reply";
+import { ShareModal } from "../people/ShareModal";
+import { useTodayRows } from "../today/useTodayRows";
+import { currentMe } from "../../lib/use-me";
 import { isRich, plainText } from "@offload/markup";
 import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
@@ -88,14 +92,23 @@ interface Turn {
   text: string;
   state?: MessageState;
   turnId?: string;
-  /** Where offload actually filed things, from the record rather than from the
-   *  sentence. This is what makes the reply's thread names clickable and what
-   *  makes them true. */
-  threads?: TouchedThread[];
-  /** 016. Where a fact in this turn came from, for the chips in its footer.
+  /** 052. The turn's reply beside its words: slices, pills and the summary,
+   *  from the record. On the person's message, never on offload's. */
+  parts?: Parts | null;
+  /** 052. When the result arrived on this screen, or the server's time on a
+   *  load: the undo line's clock runs for eight seconds from it. */
+  settledAt?: number;
+  /** 052. The result arrived on this screen, so the change mark plays once. */
+  live?: boolean;
+  /** 052. The undo line: the Undo did not land, a late one landed and the
+   *  slices fold to this line, or a late one asks first. */
+  undoFailed?: boolean;
+  undone?: string | null;
+  undoAsk?: string | null;
+  /** 016. Where a fact in this turn came from, for the source line.
    *  Empty on every turn that read nothing, which is nearly all of them. */
-  sources?: TurnSource[];
-  /** 025. The labels the turn applied, for the footer's marks. */
+  sources?: Source[];
+  /** 025. The labels the turn applied, drawn as marks in the reply. */
   labels?: { id: string; name: string; colour: number }[];
   /** 017. When this turn started waiting, for the two thresholds. On a turn
    *  loaded from the tail it is when the page loaded rather than when the dump
@@ -110,18 +123,6 @@ interface Turn {
    *  while it is open. Drawn inside the reply's bubble when there is one and
    *  in a bubble of its own when the turn filed silently. */
   question?: QuestionOnWire | null;
-  /** Whether the turn actually did something, as opposed to answering.
-   *
-   *  From the same record the reply's links come from, never from the reply
-   *  text: a sentence saying it did something is exactly what this exists to
-   *  check rather than to trust. */
-  did?: boolean;
-  /** What an answer showed.
-   *
-   *  Only ever set on an answering turn, and empty on a dump. Resolved by the
-   *  server on every read, so a row ticked or deleted elsewhere is never stale
-   *  inside a reply from last week. */
-  found?: FoundResult[];
   /** 020. The photos this message carried. Only ever on a message you sent. */
   photos?: PhotoOnWire[];
   /** 021. The voice note it carried, with its transcript once written. */
@@ -367,23 +368,18 @@ export function Composer({
       state: message.state,
       turnId: message.turnId,
       since: Date.now(),
-      // **Both of these were dropped here, and the server had always sent
-      // them.** A reload turned an answer back into its sentence with no
-      // rows beside it, and left a reply saying offload is waiting with
-      // nothing to answer it, which is the dead end 012 exists to remove.
-      // The phones drew the same answer correctly, which is what made this
-      // a web bug rather than a server one.
-      found: message.found,
+      // **Dropped here once, and the server had always sent it.** A reload
+      // left a reply saying offload is waiting with nothing to answer it,
+      // which is the dead end 012 exists to remove.
       waiting: message.waiting,
       question: message.question ?? null,
-      // **And the footer.** Same sentence as the two above: the server has
-      // always resolved these on the other two reads, and a reload emptied
-      // every settled turn's footer without them. `did` comes from the
-      // record the pills come from, never from the reply.
-      threads: message.threads,
+      // 052. The reply beside the words, and an answer's rows with it: a
+      // reload drew the sentence alone without them. The server's time, so
+      // a reply loaded an hour later is past its first eight seconds.
+      parts: message.parts ?? null,
+      settledAt: message.parts?.resultAt ? Date.parse(message.parts.resultAt) : 0,
       sources: message.sources,
       labels: message.labels,
-      did: turnDid(message),
     }));
   }
 
@@ -440,19 +436,12 @@ export function Composer({
     // messages already being watched.
   }, []);
 
-  /** 2026-10-18. A dump filed into a thread says where in a line under the
-   *  composer, since nothing on the screen you are on changed; a turn that
-   *  only changed things is the conversation's own report and stays the toast.
-   *  A row the turn filed has no id here to draw the line under, so a dump
-   *  filed into the thread on screen takes the same line. */
-  function offerUndo(turnId: string | undefined, reply: string, threads: readonly TouchedThread[] = []): void {
+  /** The conversation's own report, in the toast, for a turn whose reply has
+   *  no undo line: a tapped answer, or a turn the record has no summary for.
+   *  052: a dump filed here carries its Undo on its reply, so no plate line. */
+  function offerUndo(turnId: string | undefined, reply: string): void {
     if (!turnId) return;
-    const at: Place | undefined = threads.length > 0 ? { id: `turn:${turnId}`, icon: "lasso", form: "plate" } : undefined;
-    toast.show(
-      at ? `Saved to ${nameList(threads.map((thread) => thread.name))}` : reply,
-      { label: "Undo", onPress: () => undo(turnId, at) },
-      at,
-    );
+    toast.show(reply, { label: "Undo", onPress: () => undo(turnId) });
   }
 
   /** Wait for one message's answer, wherever the waiting started.
@@ -467,18 +456,19 @@ export function Composer({
         (answer: Answer) => {
         cancels.current.delete(messageId);
         setTurns((current) => {
-          const filed = turnDid(answer);
           const next = current.map((turn) =>
             turn.id === messageId
               ? {
                   ...turn,
                   state: answer.state,
-                  did: filed,
-                  // **Always, not only when there is no reply.** The footer
-                  // belongs to the turn rather than to either bubble, so the
-                  // pills and the sources land here whether or not offload
-                  // said anything, and the reply no longer draws them.
-                  threads: answer.threads,
+                  // **Always, not only when there is no reply.** The parts
+                  // belong to the turn rather than to either bubble, so they
+                  // land here whether or not offload said anything. 052: the
+                  // result arrived on this screen, so its marks play and the
+                  // clock starts now, by this device's own time.
+                  parts: answer.parts ?? null,
+                  settledAt: Date.now(),
+                  live: true,
                   sources: answer.sources,
                   labels: answer.labels ?? [],
                   question: answer.question ?? null,
@@ -507,7 +497,6 @@ export function Composer({
                 from: "offload" as const,
                 text: answer.reply,
                 turnId,
-                found: answer.found,
               })
             : next;
         });
@@ -525,17 +514,19 @@ export function Composer({
         // "I could not find that" is a control that would do nothing, sitting
         // under a sentence that already said nothing happened. `turnUndoable`
         // is what was filed and everywhere `changed` names, so a move or a
-        // delete that filed nothing still gets Undo. `turnDid` is narrower and
-        // decides Done only.
+        // delete that filed nothing still gets Undo.
         //
         // Only a finished turn, too. A partial one offers a way forward, and
         // both at once asks somebody to choose between finishing and undoing
         // inside eight seconds.
         // 048. And only on the device that sent it.
-        if (!elsewhere && answer.state === "answered" && answer.reply && turnUndoable(answer))
+        //
+        // 052. A reply with a summary carries its own Undo, so the toast is
+        // only for a turn the record has no words for.
+        if (!elsewhere && answer.state === "answered" && answer.reply && turnUndoable(answer) && !answer.parts?.summary)
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.
-          offerUndo(turnId, plainText(answer.reply), answer.threads);
+          offerUndo(turnId, plainText(answer.reply));
         },
         (text) => setStep(text),
         // 021. Drawn the moment it is written, ahead of the reply.
@@ -976,15 +967,17 @@ export function Composer({
     const apply = (done: boolean) =>
       setTurns((current) =>
         current.map((turn) =>
-          turn.id === turnId
+          turn.id === turnId && turn.parts
             ? {
                 ...turn,
-                found: turn.found?.map((result) => ({
-                  ...result,
-                  rows: result.rows.map((r) =>
-                    r.contentId === row.contentId ? { ...r, done } : r,
+                parts: {
+                  ...turn.parts,
+                  slices: turn.parts.slices.map((slice) =>
+                    slice.kind === "list" || slice.kind === "newThread"
+                      ? { ...slice, rows: slice.rows.map((r) => (r.contentId === row.contentId ? { ...r, done } : r)) }
+                      : slice,
                   ),
-                })),
+                },
               }
             : turn,
         ),
@@ -1055,13 +1048,19 @@ export function Composer({
     watch(messageId, sent.turnId);
   }
 
-  async function undo(turnId: string, at?: Place): Promise<void> {
+  /** 052. The person's message of a turn, changed in place. */
+  const markTurn = (turnId: string, change: Partial<Turn>) =>
+    setTurns((current) => current.map((turn) => (turn.from === "you" && turn.turnId === turnId ? { ...turn, ...change } : turn)));
+
+  async function undo(turnId: string): Promise<void> {
     // Optimistic: the turn goes on the press and comes back if the server
     // refuses, since what it filed is still filed. The refusal is drawn where
-    // its Undo was.
-    const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+    // its Undo was: on the reply's own line when it has one.
+    const before = shownTurns.current;
+    const stayed = await undoShown(turnId, before, setTurns, undoTurn);
     if (!stayed) {
-      toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId, at) }, at);
+      if (before.some((turn) => turn.turnId === turnId && turn.parts?.summary)) markTurn(turnId, { undoFailed: true });
+      else toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId) });
       return;
     }
     const line = stayedForgotten(stayed);
@@ -1071,6 +1070,86 @@ export function Composer({
     // itself, so this asks every open screen to refetch rather than naming
     // them: an empty list is "something changed, work out what".
     onFiled([]);
+  }
+
+  const undoing = useRef(new Set<string>());
+
+  /** 052. The reply's Undo. Its first eight seconds are 004's whole-turn
+   *  Undo; after that, until the next dump, the server takes back the filing
+   *  and keeps the dump, and the slices fold to what it says. The server
+   *  decides which by its own clock; this only decides what to draw. */
+  async function undoPressed(turn: Turn, confirmed = false): Promise<void> {
+    const turnId = turn.turnId;
+    // A second press while the first is out sends nothing.
+    if (!turnId || undoing.current.has(turnId)) return;
+    undoing.current.add(turnId);
+    if (!confirmed && Date.now() - (turn.settledAt ?? 0) < UNDO_MS) {
+      markTurn(turnId, { undoFailed: false });
+      return undo(turnId).finally(() => undoing.current.delete(turnId));
+    }
+    markTurn(turnId, { undoFailed: false, undoAsk: null });
+    const answer = await undoAnswer(turnId, confirmed).finally(() => undoing.current.delete(turnId));
+    if (answer && !answer.undone && answer.confirm) return markTurn(turnId, { undoAsk: answer.confirm });
+    if (!answer || !answer.undone) return markTurn(turnId, { undoFailed: true });
+    markTurn(turnId, { undone: changedLine(answer.changed ?? []) });
+    const line = stayedForgotten(answer.stayed);
+    if (line) toast.show(line);
+    onFiled([]);
+  }
+
+  // 052. Add a date opens the row's edit modal, as Today's rows do.
+  const noLabels = useRef(new Map()).current;
+  const rowTools = useTodayRows(async () => onFiled([]), noLabels);
+  const [sharing, setSharing] = useState<{ threadId: string; threadName: string; accountId: string } | null>(null);
+
+  /** 052. A pill tapped. Date, share and directions open what already exists;
+   *  calendar and remind send the turn and the kind, and the server works out
+   *  the row again. True when the pill has done its job. */
+  /** 052. A reply's row, or its Add a date, opens the row's edit modal as Today's rows do. */
+  async function openRow(contentId: string): Promise<void> {
+    const row = await fetchOne(contentId);
+    if (row) rowTools.handlers.onEdit(row);
+  }
+
+  async function pillPressed(turn: Turn, pill: Pill): Promise<boolean> {
+    const turnId = turn.turnId;
+    if (!turnId) return false;
+    if (pill.kind === "date") {
+      if (pill.rowId) await openRow(pill.rowId);
+      return false;
+    }
+    if (pill.kind === "share") {
+      const made = turn.parts?.slices.find((slice) => slice.kind === "newThread");
+      if (made?.kind !== "newThread" || !pill.person) return false;
+      setSharing({ threadId: made.thread.id, threadName: made.thread.name ?? "", accountId: pill.person.accountId });
+      return false;
+    }
+    if (pill.kind !== "calendar" && pill.kind !== "remind") return false;
+    const kind = pill.kind;
+    const at = { id: `pill:${turnId}`, icon: kind === "remind" ? "bell" : "calendar", form: "under" as const };
+    const got = await tapPill(turnId, kind);
+    if (got === "refused") {
+      toast.show("That didn't go through", undefined, at);
+      return true;
+    }
+    if (!got) {
+      toast.show("That didn't go through", { label: "Retry", onPress: () => void pillPressed(turn, pill) }, at);
+      return false;
+    }
+    if ("confirm" in got) {
+      // 019's pending write: the same control as offload's own proposal.
+      markTurn(turnId, { waiting: { id: got.pendingId, because: got.confirm, kind: "calendar", action: "create" } });
+      return true;
+    }
+    onFiled([]);
+    const takeBack = async (): Promise<void> => {
+      const back = await tapPill(turnId, kind, true);
+      if (back === "refused") toast.show("Couldn't put that back", undefined, at);
+      else if (back) onFiled([]);
+      else toast.show("Couldn't put that back", { label: "Retry", onPress: takeBack }, at);
+    };
+    toast.show(kind === "remind" ? "Reminder on" : summaryWords({ kind: "added", count: 1 }), { label: "Undo", onPress: takeBack }, at);
+    return true;
   }
 
   const live = turns.length > 0;
@@ -1140,10 +1219,6 @@ export function Composer({
           since: Date.now(),
           // The turn's second question, if the first had one behind it.
           question: sent.question ?? null,
-          // The thread the answer changed: the Done mark and the pill, now
-          // rather than after a reload.
-          threads: sent.threads ?? [],
-          did: turnDid(sent),
           // 019. A tapped calendar answer that needs their say-so: the
           // proposal sits on their own turn.
           waiting: sent.waiting ?? null,
@@ -1161,12 +1236,35 @@ export function Composer({
     if (question?.field !== "country") offerUndo(sent.turnId, option.label);
   }
 
-  const footerFor = (turn: Turn) => ({
-    state: turn.state === "answered" && turn.did ? ("done" as const) : null,
-    refs: turn.threads ?? [],
-    sources: turn.sources ?? [],
-    labels: turn.labels ?? [],
-  });
+  // 052. The next dump retires the last one's Undo: only the latest turn sent
+  // here draws it.
+  const latest = [...turns].reverse().find((turn) => turn.from === "you")?.id;
+  /** The reply beside a turn's words, from its record. A cancelled or failed
+   *  turn draws none; a partial one draws its slices and offers Finish, not
+   *  Undo, since both at once is a choice nobody should have to make. */
+  const partsFor = (turn: Turn) =>
+    turn.parts && turn.turnId && (turn.state === "answered" || turn.state === "partial") ? (
+      <ReplyParts
+        turnId={turn.turnId}
+        parts={turn.state === "partial" ? { ...turn.parts, pills: [], summary: null } : turn.parts}
+        sources={turn.sources ?? []}
+        labels={turn.labels ?? []}
+        live={turn.live === true}
+        undo={{
+          open: turn.id === latest && !turn.elsewhere,
+          since: turn.settledAt ?? 0,
+          failed: turn.undoFailed === true,
+          undone: turn.undone ?? null,
+          ask: turn.undoAsk ?? null,
+        }}
+        onUndo={() => void undoPressed(turn)}
+        onAsk={(yes) => (yes ? void undoPressed(turn, true) : markTurn(turn.turnId!, { undoAsk: null }))}
+        onToggle={(row) => void tick(turn.id, row)}
+        onPill={(pill) => pillPressed(turn, pill)}
+        onOpen={(row) => void openRow(row.contentId)}
+        onChanged={() => onFiled([])}
+      />
+    ) : null;
 
   return (
     <div className={styles.composer} data-map-column={mapColumn ? true : undefined}>
@@ -1320,16 +1418,15 @@ export function Composer({
                   <p className={styles.turnStopped}>Stopped.</p>
                 ) : null}
               </div>
-              {/* **Only when nothing answered it.** The footer belongs to the
-                  turn, and the turn ends at the reply when there is one: drawn
-                  here regardless, the sources for an answer sat above the answer
-                  they were sources for. So a turn with a reply hangs its footer
-                  off that instead, further down. */}
-              {!replies.has(turn.id) ? <TurnFooter {...footerFor(turn)} /> : null}
+              {/* **Only when nothing answered it.** The reply's parts belong to
+                  the turn, and the turn ends at offload's sentence when there
+                  is one, so a turn with a sentence hangs them off that instead,
+                  further down. */}
+              {!replies.has(turn.id) ? partsFor(turn) : null}
               {/* 018. A turn that filed silently and asked back has no reply
                   bubble to hold the question, so the question gets one of its
                   own: offload's sentence and the chips, nothing else. After
-                  the footer, in the turn's order: what happened, then what is
+                  the parts, in the turn's order: what happened, then what is
                   still open. The filing is done and the question is not. */}
               {!replies.has(turn.id) && turn.question ? (
                 <div className={styles.turn}>
@@ -1384,31 +1481,22 @@ export function Composer({
                     }}
                   />
                 ) : null}
-                {/* 018. The question, under the sentence and after any
-                    proposal, which keeps its own life. */}
-                {answered.get(turn.id)?.question ? (
-                  <Question turn={answered.get(turn.id)!} onAnswered={answeredQuestion} own={own} />
-                ) : null}
-                {/* The pills used to be here, inside the reply. They are in
-                    the turn's footer now, with the Done mark and the sources,
-                    because a filing turn has all three to report and no reply
-                    to put them in. Where they came from has not changed: the
-                    record of what was written, never the sentence. */}
               </div>
-              {/* **Below the bubble, not inside it.** A row's hover fill bleeds
-                  to its pane's padded edge by one space step, and a turn's own
-                  horizontal padding is that same step, so inside a bubble the
-                  two cancel and a square fill runs out under an 18px corner.
-                  012's confirmation stays inside because it is one fixed
-                  control; this is an unbounded list with a surface of its own. */}
-              {turn.found && turn.found.length > 0 ? (
-                <AnswerResults found={turn.found} onToggle={(row) => void tick(turn.id, row)} />
+              {/* 052. The parts, **below the bubble, not inside it.** A row's
+                  hover fill bleeds to its pane's padded edge by one space step,
+                  and a turn's own horizontal padding is that same step, so
+                  inside a bubble the two cancel and a square fill runs out
+                  under an 18px corner. They come from the message that was
+                  sent, not from this reply: what offload did is a fact about
+                  the turn, and an answer's rows ride the same record. */}
+              {answered.get(turn.id) ? partsFor(answered.get(turn.id)!) : null}
+              {/* 018. The question, a bubble of its own and last: what
+                  happened, then what is still open. */}
+              {answered.get(turn.id)?.question ? (
+                <div className={styles.turnOffload}>
+                  <Question turn={answered.get(turn.id)!} onAnswered={answeredQuestion} own={own} />
+                </div>
               ) : null}
-
-              {/* The turn's footer, under the thing it describes. The state and
-                  the pills come from the message that was sent, not from this
-                  reply: what offload did is a fact about the turn. */}
-              {answered.get(turn.id) ? <TurnFooter {...footerFor(answered.get(turn.id)!)} /> : null}
               </div>
             ),
           )}
@@ -1664,6 +1752,19 @@ export function Composer({
             ) : null;
           })()
         : null}
+
+      {/* 052. What Add a date and Share with open. */}
+      {rowTools.overlays}
+      {sharing ? (
+        <ShareModal
+          threadId={sharing.threadId}
+          threadName={sharing.threadName}
+          viewerId={currentMe()?.accountId ?? null}
+          preselect={sharing.accountId}
+          onClose={() => setSharing(null)}
+          onChanged={() => onFiled([sharing.threadId])}
+        />
+      ) : null}
 
       {tooLong ? (
         <p className={styles.composerError} role="alert">

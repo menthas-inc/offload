@@ -359,7 +359,7 @@ describe("the archive", () => {
       const page = bytes.toString();
       expect(page).not.toMatch(/<script/i);
       expect(page).not.toMatch(/\son\w+=/i);
-      expect(page).not.toMatch(/[–—]/);
+      expect(page).not.toMatch(/[\u2013\u2014]/);
     }
     const page = [...files.values()].map(String).find((text) => text.includes("Book the ferry"))!;
     expect(page).toContain("Book the ferry &lt;script&gt;alert(1)&lt;/script&gt;");
@@ -649,5 +649,41 @@ describe("how the copy is kept", () => {
     await buildCopy(id);
     expect((await db.selectFrom("exports").select("state").where("id", "=", id).executeTakeFirstOrThrow()).state).toBe("gone");
     expect(await openCopy(w.ana.id)).toBeNull();
+  });
+});
+
+describe("052 AC-27 what a turn changed", () => {
+  it("goes in the copy, on the message that changed it", async () => {
+    const me = await person("Ana Duarte");
+    const [dumpId] = await said(me, [["person", "got the milk"]]);
+    const t = await thread("Groceries", me);
+    const milk = await row(me.id, t, "Milk");
+    await sql`
+      insert into turn_changes (message_id, account_id, target_kind, target_id, tool, previous)
+      values (${dumpId!}::uuid, ${me.id}::uuid, 'content', ${milk}::uuid, 'complete_content', '{"done_at": null}'::jsonb)`.execute(db);
+    await buildCopy(await asked(me));
+    const files = await unzip(me.id);
+    const data = JSON.parse(files.get("data.json")!.toString()) as {
+      conversations: { messages: { from: string; changed?: { target: string; tool: string; previous: unknown }[] }[] }[];
+    };
+    const mine = data.conversations[0]!.messages.find((m) => m.from === "you")!;
+    expect(mine.changed).toEqual([{ target: milk, tool: "complete_content", previous: { done_at: null } }]);
+  });
+});
+
+describe("052 security review: the copy holds no previous value from a thread left", () => {
+  it("leaves out a change to a row in a thread the person is no longer in", async () => {
+    const me = await person("Ana Duarte");
+    const them = await person("Sam Ibekwe");
+    const [dumpId] = await said(me, [["person", "bins done"]]);
+    const t = await thread("Their flat", them, me);
+    const bins = await row(them.id, t, "Bins");
+    await sql`
+      insert into turn_changes (message_id, account_id, target_kind, target_id, tool, previous)
+      values (${dumpId!}::uuid, ${me.id}::uuid, 'content', ${bins}::uuid, 'edit_content', '{"title": "Old secret title"}'::jsonb)`.execute(db);
+    await db.updateTable("thread_members").set({ state: "removed" }).where("thread_id", "=", t).where("account_id", "=", me.id).execute();
+    await buildCopy(await asked(me));
+    const files = await unzip(me.id);
+    expect(files.get("data.json")!.toString()).not.toContain("Old secret title");
   });
 });

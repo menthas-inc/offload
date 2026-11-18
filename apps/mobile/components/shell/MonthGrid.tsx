@@ -27,15 +27,18 @@ export function MonthGrid({
   title,
   heading = false,
   unit = "month",
+  still = false,
+  aside,
 }: {
   grid: Month;
-  selected: string;
+  /** Null when no day is picked: a reply's span lists every day. */
+  selected: string | null;
   /** Which way the last move went: forward brings the grid up from below, back
    *  down from above. */
   went: 1 | -1;
   onPick: (iso: string) => void;
-  onStep: (by: 1 | -1) => void;
-  onToday: () => void;
+  onStep?: ((by: 1 | -1) => void) | undefined;
+  onToday?: (() => void) | undefined;
   /** A day that is drawn but does not open. */
   closed?: (iso: string) => boolean;
   /** No month before this one, or after it. */
@@ -49,6 +52,12 @@ export function MonthGrid({
   heading?: boolean;
   /** What the arrows and swipe step by, for the labels: a month, or Today's week. */
   unit?: "month" | "week";
+  /** 052. A reply's grid: only its period, so no arrows, no Today and no
+   *  swipe. Inside the conversation sheet a pan of its own would fight the
+   *  sheet's drag and the transcript's scroll. */
+  still?: boolean;
+  /** 052. Beside the month's name, how far away it is: "in 19 weeks". */
+  aside?: string | null | undefined;
 }) {
   const COLOR = useColors();
   const gutter = inset ? "px-gutter-screen" : "";
@@ -116,6 +125,8 @@ export function MonthGrid({
           // A day that does not open reads as closed: Today's past and the far edge.
           ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
+        // The seven columns hold at large text: the house cap, as the tiles have it.
+        numberOfLines={1} maxFontSizeMultiplier={1.3}
       >
         {day.dow}
       </Text>
@@ -145,6 +156,8 @@ export function MonthGrid({
           // A day that does not open reads as closed: Today's past and the far edge.
           ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
+        // The seven columns hold at large text: the house cap, as the tiles have it.
+        numberOfLines={1} maxFontSizeMultiplier={1.3}
       >
         {day.dom}
       </Text>
@@ -214,18 +227,48 @@ export function MonthGrid({
   const swipe = Gesture.Pan()
     .activeOffsetX([-20, 20])
     .onEnd((event) => {
+      if (!onStep) return;
       if (event.translationX < -40) runOnJS(onStep)(1);
       else if (event.translationX > 40) runOnJS(onStep)(-1);
     });
 
-  return (
+  const weeks =
+    unit === "week" ? (
+      <View>{grid.weeks.map(rowWeek)}</View>
+    ) : (
+      <Animated.View
+        key={grid.key}
+        entering={(fwd ? SlideInDown : SlideInUp).duration(140).reduceMotion(reduce)}
+      >
+        {grid.weeks.map(week)}
+      </Animated.View>
+    );
+
+  return still ? (
+    <>
+      <View className={`flex-row items-baseline gap-space-3 pb-space-3 ${gutter}`}>
+        <Text
+          className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+          style={{ fontSize: 14 }}
+        >
+          {title ?? grid.label}
+        </Text>
+        {aside ? (
+          <Text className="font-core text-text-secondary" style={{ fontSize: 12.5 }}>
+            {aside}
+          </Text>
+        ) : null}
+      </View>
+      <View>{grid.weeks.map(week)}</View>
+    </>
+  ) : (
     <>
       {/* A month at a time. The controls are the ones a calendar always has,
         and Today is the way back from wherever stepping through months left
         somebody. */}
       <View className={`flex-row items-center gap-space-2 pb-space-3 ${gutter}`}>
         <Pressable
-          onPress={() => onStep(-1)}
+          onPress={() => onStep?.(-1)}
           disabled={first}
           hitSlop={10}
           accessibilityLabel={`Previous ${unit}`}
@@ -257,7 +300,7 @@ export function MonthGrid({
         </View>
 
         <Pressable
-          onPress={() => onStep(1)}
+          onPress={() => onStep?.(1)}
           disabled={last}
           hitSlop={10}
           accessibilityLabel={`Next ${unit}`}
@@ -280,16 +323,7 @@ export function MonthGrid({
             month grid changes wholesale, so it remounts and slides up or down
             as one. Keyed so it remounts and the animation runs; without the key
             the element is rewritten in place and nothing moves. */}
-        {unit === "week" ? (
-          <View>{grid.weeks.map(rowWeek)}</View>
-        ) : (
-          <Animated.View
-            key={grid.key}
-            entering={(fwd ? SlideInDown : SlideInUp).duration(140).reduceMotion(reduce)}
-          >
-            {grid.weeks.map(week)}
-          </Animated.View>
-        )}
+        {weeks}
       </GestureDetector>
 
     </>

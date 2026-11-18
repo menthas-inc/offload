@@ -31,10 +31,10 @@ import { useColors } from "../../lib/colors";
 const isAndroid = Platform.OS === "android";
 
 /** The Chip contract's drawn height, the same 30 the thread pills use. */
-const CHIP_H = 30;
+export const CHIP_H = 30;
 /** The 44 target, cancelled so wrapped lines meet at 44 and sit 30 apart. */
-const TAP_MIN = 44;
-const CANCEL = -(TAP_MIN - CHIP_H) / 2;
+export const TAP_MIN = 44;
+export const CANCEL = -(TAP_MIN - CHIP_H) / 2;
 
 export interface QuickReplyOption {
   label: string;
