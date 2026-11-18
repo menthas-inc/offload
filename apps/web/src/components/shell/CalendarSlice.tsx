@@ -121,7 +121,7 @@ export function CalendarSlice({ slice, live, onChanged }: { slice: CalendarSlice
         <MonthGrid
           grid={grid}
           unit={two ? "week" : "month"}
-          selected={picked ?? slice.day}
+          selected={picked}
           went={1}
           still
           aside={periodLabel(slice.day, today)}

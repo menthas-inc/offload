@@ -239,6 +239,8 @@ describe("a reply's calendar", () => {
     expect(host.textContent).toContain("Swim");
     // Only the span's own week is drawn, as on the phones.
     expect(host.querySelectorAll("[data-day]")).toHaveLength(7);
+    // Nothing is picked until a day is tapped: the list is every day.
+    expect(host.querySelector("[data-on]")).toBeNull();
   });
 
   it("lists the first seven days of a span with something on them, as the phones do", async () => {

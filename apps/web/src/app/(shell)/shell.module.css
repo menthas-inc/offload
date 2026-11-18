@@ -2967,9 +2967,10 @@ a.settingsRow:hover,
   box-shadow: inset 0 0 0 1px var(--text-on-solid);
 }
 
-/* Gone, not closed. It reads as past and it behaves like any other day. */
-.railDay[data-past] .railDom,
-.railDay[data-past] .railDow {
+/* Gone, not closed. It reads as past and it behaves like any other day. The
+   picked day keeps its white: a reply's grid can pick a day gone by. */
+.railDay[data-past]:not([data-on]) .railDom,
+.railDay[data-past]:not([data-on]) .railDow {
   color: var(--text-tertiary);
 }
 

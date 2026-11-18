@@ -31,7 +31,8 @@ export function MonthGrid({
   aside,
 }: {
   grid: Month;
-  selected: string;
+  /** Null when no day is picked: a reply's span lists every day. */
+  selected: string | null;
   /** Which way the last move went: forward brings the grid up from below, back
    *  down from above. */
   went: 1 | -1;

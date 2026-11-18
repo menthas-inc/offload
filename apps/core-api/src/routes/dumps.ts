@@ -2309,6 +2309,27 @@ export async function undoTurn(
     // Undoing a calendar write has to reach Google first and only then touch
     // the local row, because the effect already left. That is a different path
     // with a different failure mode, so it is not this one's to run.
+    // 052. A row the turn made that somebody changed since stays, and the
+    // reply names it with the rows put back below.
+    const kept =
+      opts.since === undefined
+        ? []
+        : await trx
+            .selectFrom("content")
+            .select("title")
+            .where(
+              "derived_from_message_id",
+              "in",
+              live.map((row) => row.id),
+            )
+            .where("account_id", "=", accountId)
+            .where("deleted_at", "is", null)
+            .where("source_ref", "is", null)
+            .where("updated_at", ">", since)
+            .$if(unlinked.length > 0, (qb) => qb.where("id", "not in", unlinked))
+            .orderBy("created_at")
+            .execute();
+
     await trx
       .updateTable("content")
       .set({ deleted_at: stamp, purge_after: purge, updated_at: stamp })
@@ -2395,7 +2416,7 @@ export async function undoTurn(
       .execute();
 
     // 052. What the turn changed that was there before it, put back.
-    const changed = await restoreChanges(trx, accountId, owned.map((m) => m.id), opts.since);
+    const changed = [...kept.map((row) => row.title), ...(await restoreChanges(trx, accountId, owned.map((m) => m.id), opts.since))];
 
     await trx
       .updateTable("messages")

@@ -64,6 +64,16 @@ describe("a late Undo", () => {
     const milk = await db.selectFrom("content").select("done_at").where("id", "=", t.milk).executeTakeFirstOrThrow();
     expect(milk.done_at).not.toBeNull();
   });
+
+  it("leaves a row the turn made that somebody changed since, and names it too", async () => {
+    const t = await turn();
+    await settled(t.messageId, "1 minute");
+    await db.updateTable("content").set({ title: "Free range eggs", updated_at: new Date() }).where("id", "=", t.eggs).execute();
+    const res = await undo(t.me, t.turnId);
+    expect(res.json()).toMatchObject({ undone: true, changed: ["Free range eggs"] });
+    const eggs = await db.selectFrom("content").select("deleted_at").where("id", "=", t.eggs).executeTakeFirstOrThrow();
+    expect(eggs.deleted_at).toBeNull();
+  });
 });
 
 describe("an Undo inside the eight seconds", () => {

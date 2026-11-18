@@ -130,7 +130,7 @@ export function CalendarSlice({
         <MonthGrid
           grid={grid}
           still
-          selected={picked ?? slice.day}
+          selected={picked ?? (slice.span ? null : slice.day)}
           went={1}
           inset={false}
           aside={periodLabel(slice.day, today)}

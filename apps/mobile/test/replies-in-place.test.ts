@@ -198,6 +198,10 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
     expect(month.weeks.at(-1)!.days.some((d) => d.iso === "2027-05-31")).toBe(true);
   });
 
+  it("picks no day in a span until one is tapped, since its list is every day", () => {
+    expect(slice).toMatch(/selected=\{picked \?\? \(slice\.span \? null : slice\.day\)\}/);
+  });
+
   it("names the weeks away beside the month, from periodLabel", () => {
     expect(slice).toMatch(/periodLabel\(/);
   });
