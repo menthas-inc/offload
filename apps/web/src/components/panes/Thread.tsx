@@ -514,7 +514,8 @@ export function Thread({ id, onChanged, at }: Props) {
   /** 020. Move, by hand, from the viewer. The author's, like delete, and the
    *  picture goes with the row: the server adjusts its wraps in the same
    *  transaction. The row leaves this list at the press and comes back if the
-   *  server refuses; Undo is the same move back. */
+   *  server refuses. No Undo line: the person moves it back the way they
+   *  moved it (owner, 2026-11-17). */
   function move(row: ContentRow, to: { id: string; name: string }): void {
     if (isProvisional(row.id)) return;
     setViewing(null);
@@ -530,12 +531,7 @@ export function Thread({ id, onChanged, at }: Props) {
           if (thread) count({ active: thread.counts.active });
         },
         write: () => telling(moveContent(row.id, to.id).then((moved) => moved !== null)),
-        unwrite: () => telling(moveContent(row.id, id).then((moved) => moved !== null)),
-        // 028. Where it went, as every move between threads says.
-        did: `Moved to ${to.name}`,
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        place: { id: row.id, icon: "arrow-up-right", form: "slot" },
       },
       toast,
       writes,
@@ -643,40 +639,13 @@ export function Thread({ id, onChanged, at }: Props) {
     );
   }
 
-  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
-   *  list for the week fold, so the box is no longer its own undo: the tick
-   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
-   *  Un-ticking (from the week fold) and every other layout keep `sinkDone` and
-   *  stay the plain toggle. Gallery open tiles carry no tick control, so they
-   *  never reach here open. */
-  function layoutTick(row: ContentRow): void {
-    if (isProvisional(row.id)) return;
-    if (row.doneAt !== null || threadLayout !== "todo") {
-      toggle(row);
-      return;
-    }
-    void perform(
-      {
-        apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
-        revert: () => patchRow(row.id, { doneAt: null }),
-        write: () => completeContent(row.id, true),
-        unwrite: () => completeContent(row.id, false),
-        did: "Ticked off",
-        failed: "Couldn't tick that off",
-        place: { id: row.id, icon: "check", form: "slot" },
-      },
-      toast,
-      writes,
-    );
-  }
-
   /** A row was dragged somewhere else in To do.
    *
    *  The writes are priorities, computed by the list from the rows either side
    *  of the drop, and each one goes through the same endpoint a priority has
    *  always gone through, which pins it. Usually one write; a re-spread of the
-   *  list is several, and Undo puts every one of them back. Its line goes
-   *  under the row that was dragged. */
+   *  list is several. No Undo line: the drag is its own way back (owner,
+   *  2026-11-17). */
   function reorder(writes_: ReorderWrite[], moved: string): void {
     // A row drawn at the press has no priority to write yet.
     if (writes_.some((write) => isProvisional(write.id))) return;
@@ -696,11 +665,7 @@ export function Thread({ id, onChanged, at }: Props) {
         apply: () => set((write) => write.priority),
         revert: () => set((write) => write.previous),
         write: () => all((write) => write.priority),
-        unwrite: () => all((write) => write.previous),
-        did: "Moved",
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -1517,7 +1482,7 @@ export function Thread({ id, onChanged, at }: Props) {
           <NewNote actions={noteActions} onClose={() => setAddingNote(false)} />
         ) : null}
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} threadId={id} noteActions={noteActions} onEditing={setNoteEditing} />
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={toggle} threadId={id} noteActions={noteActions} onEditing={setNoteEditing} />
         ) : (
         <>
         {showArchived ? null : (

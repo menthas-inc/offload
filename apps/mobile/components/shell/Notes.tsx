@@ -42,7 +42,7 @@ import { useRowLabels } from "../labels/labels-context";
 import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
 import { perform, type Reversible, type Toaster, type Writes } from "../../lib/optimistic";
-import { duplicateCopy, moveNote, movedCopy } from "../../lib/loose";
+import { duplicateCopy, moveNote } from "../../lib/loose";
 import { useConversation } from "./conversation-context";
 import { Switch } from "../settings/Switch";
 import { noteSave } from "../../lib/reminders";
@@ -176,7 +176,7 @@ export function useNoteSheet({ threadId, notes, members, onNotes, toast, writes,
 
   /** 028. To another thread, by the same rule as a row: the author's, or
    *  anybody's once the author has left. The note leaves the section at the
-   *  press; Undo is the same move back. Its labels stay behind with the
+   *  press, with no Undo line (owner, 2026-11-17). Its labels stay behind with the
    *  thread they belong to, and show again when it comes back. */
   function move(note: Note, to: ThreadRow): void {
     setMoving(null);
@@ -196,12 +196,8 @@ export function useNoteSheet({ threadId, notes, members, onNotes, toast, writes,
         }
         return moved !== null && moved !== "duplicate";
       },
-      unwrite: () => moveNote(note.id, threadId).then((moved) => moved !== null && moved !== "duplicate"),
-      did: movedCopy(to.name),
       failed: "Couldn't move that",
-      unfailed: "Couldn't put that back",
       retry: "Try again",
-      place: { id: note.id, icon: "arrow-up-right", form: "slot" },
     };
     void perform(op, toast, writes);
   }
@@ -336,11 +332,7 @@ export function NotesSection({
         apply: () => set((write) => write.priority),
         revert: () => set((write) => write.previous),
         write: () => all((write) => write.priority),
-        unwrite: () => all((write) => write.previous),
-        did: "Moved",
         failed: "Couldn't move that",
-        unfailed: "Couldn't put that back",
-        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,

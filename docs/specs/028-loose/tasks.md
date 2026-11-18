@@ -70,7 +70,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T3.7** `app/threads/loose.tsx` and `screens/Loose.tsx`: bar, title, line, chips over the whole list, paging, the archived foot row, the four states, plate and tabs present. Component tests. *(AC-12, AC-13, AC-14, AC-15)*
 - [x] **T3.8** `Thread.tsx` replaces to `/threads/loose` when `isDefault`. Test. *(AC-4)*
 - [x] **T3.9** Null thread names: `ContentRow`, Today, the turn footer, widgets, `AnswerResult` (*Not in a thread*, *N more not in a thread.*). Component tests. *(AC-3, AC-27)*
-- [x] **T3.10** Note Move in `Notes.tsx`, toasting *Moved to X*, the reorder still *Moved*, *That's already in X* on a duplicate. Component test. *(AC-32)*
+- [x] **T3.10** Note Move in `Notes.tsx`, toasting *Moved to X*, the reorder still *Moved* (*both lines removed 2026-11-17, see 043's amendment*), *That's already in X* on a duplicate. Component test. *(AC-32)*
 - [~] **T3.11** On iOS and Android devices: the group, chips scrolling, a shared Move to on an iPhone SE width at 200% text with two faces and a 40-character name, the two targets not overlapping, the create sheet over the keyboard, predictive back on Android, the full list's paging. Screenshots for the record. *(AC-6 to AC-25)*
 
 ## 4. Web

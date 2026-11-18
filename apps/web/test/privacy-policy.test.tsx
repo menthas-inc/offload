@@ -170,8 +170,8 @@ describe("the privacy policy states intent, not implementation", () => {
 
   it("leaves no owner marker, no dated promise of a future feature, and no dash", () => {
     expect(policy).not.toMatch(/\[OWNER|We plan to encrypt|A person reads it/);
-    expect(policy).not.toMatch(/[–—]/);
-    expect(companies).not.toMatch(/[–—]|\[OWNER/);
+    expect(policy).not.toMatch(/[\u2013\u2014]/);
+    expect(companies).not.toMatch(/[\u2013\u2014]|\[OWNER/);
   });
 
   it("is shorter than the page it replaced", () => {

@@ -1,7 +1,7 @@
 // Thread layouts (045), the web client's wiring that a logic test cannot reach
 // and that the review found wrong: the two no-body POSTs must not claim a JSON
-// content type (Fastify 400s an empty JSON body), and a layout tick that takes
-// a row out of the list must carry its Undo.
+// content type (Fastify 400s an empty JSON body), the layout tick is the plain
+// tick since 2026-11-17 (thread-quiet-changes.test.ts).
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -18,16 +18,6 @@ describe("045 the web client", () => {
       expect(body, fn).toMatch(/\.\.\.send, method: "POST"/);
       expect(body, fn).not.toMatch(/\.\.\.json/);
     }
-  });
-
-  it("gives the Todo list tick an Undo, and leaves the other layouts the plain toggle", () => {
-    const thread = read("components/panes/Thread.tsx");
-    const tick = thread.slice(thread.indexOf("function layoutTick("), thread.indexOf("function layoutTick(") + 700);
-    expect(tick).toMatch(/threadLayout !== "todo"/);
-    expect(tick).not.toMatch(/gallery/);
-    expect(tick).toMatch(/unwrite: \(\) => completeContent\(row\.id, false\)/);
-    expect(tick).toMatch(/did: "Ticked off"/);
-    expect(tick).toMatch(/form: "slot"/);
   });
 
   it("draws the checkbox lead only for the big and check forms", () => {

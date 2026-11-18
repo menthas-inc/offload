@@ -28,7 +28,19 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Considered and not taken:** A, objects with no slice context; B, a sentence with live tokens; D, one receipt card per turn. The board's week strip with titled blocks (titles do not fit at phone width, and the readme draws no week rail); grid arrows and a Today control inside a reply; a *Remind me the day before* moment (042 chooses when); a gallery-shaped slice for a gallery thread (rows for now).
 
-**Design system impact:** `components/conversation/TurnFooter` is retired: remove it from the components and the kits' conversations (`mobile_app/LiveConversation.jsx`, `android_app/M3LiveConversation.jsx`, `web_app/WMisc.jsx` `WTurns`). `AnswerResult` gains `count` (open, hidden at zero), `marked` and `notes`. `UndoLine` gains the `turn` form. `MonthGrid` gains `still`. Kits should draw replies as above, from the board in `docs/specs/052-replies-in-place/design/final-board.dc.html`. No new token: the change mark, moss, the attention fill and the tertiary ink are all existing aliases.
+**Design system impact:** `components/conversation/TurnFooter` is retired: remove it from the components and the kits' conversations (`mobile_app/LiveConversation.jsx`, `android_app/M3LiveConversation.jsx`, `web_app/WMisc.jsx` `WTurns`). `AnswerResult` gains `count` (open, hidden at zero), `marked` and `notes`. `UndoLine` gains the `turn` form. `MonthGrid` gains `still`. Kits should draw replies as above, from the board in `docs/specs/052-replies-in-place/design/final-board.dc.html`. No new token: the change mark, moss, the attention fill and the tertiary ink are all existing aliases. From the device passes (2026-11-18): on the phones `MonthGrid`'s day name and number stay one line under `maxFontSizeMultiplier` 1.3, the house cap the thread tiles use, so seven columns hold at large text on Today as well as in a reply; on the web a picked day gone by keeps its white on the fill.
+
+### 2026-11-17 · A thread's ticks and moves draw no Undo line
+**Surface:** iOS, Android, web; the thread page (rows and notes)
+**Raised by:** the product owner: *obvious changes don't need an undo, user can figure out how to undo them.*
+
+**Was:** in a Todo list layout a tick took the row out to the week fold with a slot line, *Ticked off*; moving a row or a note to another thread drew a slot line, *Moved to {thread}*; dragging a row or a note within its list drew an under line, *Moved*. All three with Undo and the eight-second clock (043, handoff section 3).
+
+**Is:** none of them draws a line. The Todo list tick is the plain tick every other layout already had, unticked from the week fold. A move is undone by moving it back. A refused write still puts the thing back and its failure shows, as before. Today, Not in a thread and the conversation keep their lines.
+
+**Considered and not taken:** keeping the move's line, since a move to another thread takes the row off the page; the owner counted it obvious too.
+
+**Design system impact:** in `handoff/APPLY-2026-10-18-undo-in-place.md` section 3, drop the thread page's tick (Todo list), move-to-thread and reorder rows, for rows and notes. Kits that draw an Undo line for these on a thread page (`ui_kits/*` thread screens, `UndoInPlace.jsx`) should stop. No token or component change; this change leaves `UndoLine` itself as it is.
 
 ### 2026-11-17 · A birthday's calendar question, and who a memory came from (051)
 **Surface:** iOS, Android, web (the conversation's question chips; the Memories tab's origin line)
