@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
-import { calendarColour, dayTitle, gridFor, periodLabel, timeIn, wasLine, type MonthCount } from "@offload/widgets";
+import { calendarColour, dayTitle, gridFor, nothingLine, periodLabel, timeIn, wasLine, type MonthCount } from "@offload/widgets";
 import type { Slice } from "../../lib/dump";
 import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
@@ -152,6 +152,11 @@ export function CalendarSlice({
             >
               {dayTitle(day.date)}
             </Text>
+            {entries.length === 0 ? (
+              <Text className="border-t border-border-hairline px-space-5 py-space-3 font-quiet text-text-secondary" style={{ fontSize: 14, lineHeight: 20 }}>
+                {nothingLine(dayTitle(day.date))}
+              </Text>
+            ) : null}
             {entries.map((entry) => (
               <EntryRow
                 key={entry.id}
@@ -200,7 +205,9 @@ function EntryRow({
       ? entry.item.allDay || !entry.item.startsAt
         ? "All day"
         : timeIn(new Date(entry.item.startsAt), zone, "en-GB")
-      : null;
+      : entry.item.dueAt && !entry.item.allDay
+        ? timeIn(new Date(entry.item.dueAt), zone, "en-GB")
+        : null;
   return (
     <View className="border-t border-border-hairline">
       {marked > 0 ? <Mark left={marked} /> : null}
@@ -210,21 +217,22 @@ function EntryRow({
         accessibilityState={{ expanded: open }}
         className="min-h-tap-min flex-row items-start gap-space-4 px-space-5 py-space-3"
       >
-        {/* An event leads with its time, a to-do with its tick.
+        {/* An event leads with its time, a to-do with its tick and then its time when it has one.
             shortcut: the tick here is drawn, not tapped; the list slice above
             and Today tick; wire it to completeContent when it is seen to be tried. */}
-        {at !== null ? (
-          <Text className="font-core text-text-secondary" style={{ width: 44, fontSize: 13, lineHeight: 21 }}>
-            {at}
-          </Text>
-        ) : (
+        {entry.kind === "row" ? (
           <View
             className={`items-center justify-center rounded-a-xs ${done ? "border-moss-600 bg-moss-600" : "border-border-strong"}`}
             style={{ width: 21, height: 21, borderWidth: 1.5 }}
           >
             {done ? <Glyph name="check" size={13} color={COLOR.onBrand} /> : null}
           </View>
-        )}
+        ) : null}
+        {at !== null ? (
+          <Text className="font-core text-text-secondary" style={{ minWidth: 44, fontSize: 13, lineHeight: 21 }}>
+            {at}
+          </Text>
+        ) : null}
         {/* Titles wrap and are never shortened. */}
         <View className="flex-1">
           <Text
@@ -271,7 +279,9 @@ function EntryRow({
             >
               {details.thread.name !== null ? (
                 <ThreadIcon icon={details.thread.icon ?? ""} hue={details.thread.hue ?? 1} seed={details.thread.id} size={14} round />
-              ) : null}
+              ) : (
+                <Glyph name="lasso" size={14} color={COLOR.quiet} />
+              )}
               <Text className="flex-1 font-core text-text-secondary" style={{ fontSize: 13.5, lineHeight: 19 }}>
                 {details.thread.name !== null ? `In ${details.thread.name}` : "Not in a thread"}
               </Text>

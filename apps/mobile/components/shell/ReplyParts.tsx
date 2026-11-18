@@ -174,6 +174,7 @@ function SliceView({
       return (
         <AnswerResult
           result={asResult(slice)}
+          shown={slice.rows.length}
           count={slice.openCount}
           marked={slice.marked}
           markFor={markFor}
@@ -188,6 +189,7 @@ function SliceView({
       return (
         <AnswerResult
           result={asResult(slice)}
+          shown={slice.rows.length}
           count={0}
           marked={slice.rows.map((row) => row.contentId)}
           markFor={markFor}
@@ -358,8 +360,9 @@ function Pills({ turn, pills, onDate }: { turn: Turn; pills: Pill[]; onDate: (ro
   const left = pills.filter((pill) => !tapped.has(pill.kind));
   return (
     <View>
+      {/* The row gap keeps wrapped pills apart: each chip's hit area overhangs its pill. */}
       {left.length > 0 ? (
-        <View className="flex-row flex-wrap" style={{ columnGap: 8 }}>
+        <View className="flex-row flex-wrap" style={{ columnGap: 8, rowGap: 8 }}>
           {left.map((pill) => (
             <Pressable
               key={pill.kind}

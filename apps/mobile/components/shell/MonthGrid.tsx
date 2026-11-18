@@ -125,6 +125,8 @@ export function MonthGrid({
           // A day that does not open reads as closed: Today's past and the far edge.
           ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
+        // The seven columns hold at large text: the house cap, as the tiles have it.
+        numberOfLines={1} maxFontSizeMultiplier={1.3}
       >
         {day.dow}
       </Text>
@@ -154,6 +156,8 @@ export function MonthGrid({
           // A day that does not open reads as closed: Today's past and the far edge.
           ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
+        // The seven columns hold at large text: the house cap, as the tiles have it.
+        numberOfLines={1} maxFontSizeMultiplier={1.3}
       >
         {day.dom}
       </Text>

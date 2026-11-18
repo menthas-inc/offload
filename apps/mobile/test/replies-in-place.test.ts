@@ -198,6 +198,32 @@ describe("T5.3 the calendar slice (AC-3 to AC-6, AC-26)", () => {
     expect(month.weeks.at(-1)!.days.some((d) => d.iso === "2027-05-31")).toBe(true);
   });
 
+  it("shows every row a slice was sent, never cutting the turn's own behind a more line", () => {
+    const parts_ = code("components/shell/ReplyParts.tsx");
+    expect(parts_.match(/shown=\{slice\.rows\.length\}/g)).toHaveLength(2);
+  });
+
+  it("holds up at large text: the time grows, the grid's labels stay one line, wrapped pills keep apart", () => {
+    expect(slice).toMatch(/minWidth: 44, fontSize: 13, lineHeight: 21 \}\}>/);
+    expect(slice).not.toMatch(/width: 44, fontSize/);
+    const grid = code("components/shell/MonthGrid.tsx");
+    expect(grid.match(/numberOfLines=\{1\} maxFontSizeMultiplier=\{1\.3\}/g)).toHaveLength(2);
+    const parts_ = code("components/shell/ReplyParts.tsx");
+    expect(parts_).toMatch(/style=\{\{ columnGap: 8, rowGap: 8 \}\}/);
+  });
+
+  it("says Nothing on a day that has nothing, in widgets' words, as the web does", () => {
+    expect(slice).toMatch(/entries\.length === 0 \? \(\s*<Text[\s\S]*?\{nothingLine\(dayTitle\(day\.date\)\)\}/);
+  });
+
+  it("leads Not in a thread with the lasso glyph, so the detail lines stay in one column", () => {
+    expect(slice).toMatch(/: \(\s*<Glyph name="lasso" size=\{14\} color=\{COLOR\.quiet\} \/>\s*\)\}/);
+  });
+
+  it("gives a to-do with a time its time beside the tick, as the web does", () => {
+    expect(slice).toMatch(/entry\.item\.dueAt && !entry\.item\.allDay/);
+  });
+
   it("picks no day in a span until one is tapped, since its list is every day", () => {
     expect(slice).toMatch(/selected=\{picked \?\? \(slice\.span \? null : slice\.day\)\}/);
   });
