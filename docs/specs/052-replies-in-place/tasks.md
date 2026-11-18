@@ -173,7 +173,7 @@
 ## Close
 
 - [x] **T6.1** The checks CI runs, from the root: `pnpm typecheck`, lint, every suite, the dead-class scripts. Record each suite's exit code and vitest's Errors line.
-- [ ] **T6.2** Device pass on the Pixel and the iOS simulator. Take the `pixel` and `sim-<device>` holds. Run the twelve reference turns in `design/twelve-turns.dc.html`. On each device check:
+- [~] **T6.2** Device pass on the Pixel and the iOS simulator. Take the `pixel` and `sim-<device>` holds. Run the twelve reference turns in `design/twelve-turns.dc.html`. On each device check:
   - expanding an entry mid-scroll inside the conversation sheet;
   - a grid inside the sheet with no pan conflict;
   - larger text;
@@ -181,5 +181,7 @@
   - the late Undo after waiting past eight seconds.
 
   Leave each phone as it was found.
+
+  *2026-11-18:* the web (browser pane) and the iOS simulator are done against the dev database's seven sample turns: expansion in the sheet, the grid in the sheet, larger text from a cold launch, the late Undo. Fixes are in 416bbe15 and 88d266eb. Dark is checked on the web only. The Pixel is not done: it is the owner's daily phone and needs their go-ahead to sign it into the demo account.
 - [x] **T6.3** `security-reviewer` on the diff: authorization, the new route, `turn_changes` and the egress rule.
-- [ ] **T6.4** Update the specs if the build diverged (DEV-2), and confirm the privacy page needs no change.
+- [x] **T6.4** Update the specs if the build diverged (DEV-2), and confirm the privacy page needs no change. *(The impl-spec carries every divergence under As built. The privacy page needs no change: undo records are working records kept only as long as the feature needs them, and the purge now takes a deleted row's earlier values with it.)*
