@@ -182,6 +182,6 @@
 
   Leave each phone as it was found.
 
-  *2026-11-18:* the web (browser pane) and the iOS simulator are done against the dev database's seven sample turns: expansion in the sheet, the grid in the sheet, larger text from a cold launch, the late Undo. Fixes are in 416bbe15 and 88d266eb. Dark is checked on the web only. The Pixel is not done: it is the owner's daily phone and needs their go-ahead to sign it into the demo account.
+  *2026-11-18:* the web (browser pane) and the iOS simulator are done against the dev database's seven sample turns: expansion in the sheet, the grid in the sheet, larger text from a cold launch, the late Undo. Fixes are in 416bbe15 and 88d266eb. Dark is checked on the web only. The Pixel is not done: it runs the release build 0.3.2 (10), which cannot load a local bundle, and a dev build would mean uninstalling it and the owner's sign-in. Android parity rests on the shared code, the tests and the simulator until the next dev build on that phone.
 - [x] **T6.3** `security-reviewer` on the diff: authorization, the new route, `turn_changes` and the egress rule.
 - [x] **T6.4** Update the specs if the build diverged (DEV-2), and confirm the privacy page needs no change. *(The impl-spec carries every divergence under As built. The privacy page needs no change: undo records are working records kept only as long as the feature needs them, and the purge now takes a deleted row's earlier values with it.)*
