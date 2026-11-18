@@ -158,7 +158,7 @@ function FoldSection({ heading, rows, handlers, onToggle, countFirst }: { headin
     <section className={styles.block}>
       <button type="button" className={styles.fold} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <Icon name="check" size={16} />
-        <span>{countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}</span>
+        <span className={styles.foldLabel}>{countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}</span>
         <Icon name={open ? "chevron-down" : "chevron-right"} size={16} />
       </button>
       {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} box />) : null}
