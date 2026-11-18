@@ -88,7 +88,7 @@ Short list, kept short. Each one cost real time in this repo.
 - Pull requests open as drafts (`gh pr create --draft`) and go `gh pr ready` when done: CI runs only on a ready pull request, because the Actions budget is small (`docs/tech/ci-cd.md`).
 - The repo sweep: `/sweep`, in its own worktree. A SessionStart hook says when it is due (`.claude/scripts/sweep_due.py`); reports in `docs/sweeps/`.
 - Reviewer personas: `.claude/agents/`
-- Mechanical gates: `.claude/hooks/` (secrets, pre-commit tests and lint, design guard)
+- Mechanical gates: `.claude/hooks/` (secrets, design guard) and `.claude/gate.sh`, the commit checks the shared gate in `~/.claude/hooks/commit-gate.py` runs: only for a real commit, only what the commit reaches (turbo `...[HEAD]`), and no tests for a docs-only commit or for code that already passed
 - LLM evals: `apps/agent/evals/`, principles with cases under each, run by `/run-llm-tests`. Never automatic, and **never run without my explicit permission in the session: a full run is about $7 on Sonnet, more on Opus.** A feature that changes what the model does adds cases to it before it is done; running them is a separate ask.
 - Scripts: `.claude/scripts/new-worktree.sh`
 
@@ -114,7 +114,7 @@ If a change is both, it gets an entry in both.
   - Starting a feature: `board.py plan <impl-spec path> [note]`. Read the other sessions' impl-specs when they touch what you touch.
   - Anything another session would trip over: `board.py say "..."`. A migration number taken, a port, a shared file being edited, a device in use.
   - Before an action that cannot overlap: `board.py hold <name> "<reason>"`, and `board.py release <name>` straight after. A refusal means wait and ask again, not find a way round. Holds expire after 30 minutes (`--for N` to change it).
-  - Hold names in use: `suite` for anything that runs a suite on the shared database, **which includes every `git commit`, because the gate runs it**, so the gate takes it itself and refuses while another session has it; `sim-<device>` and `pixel` for a device test. Make up others as needed and say so.
+  - Hold names in use: `suite` for anything that runs a suite on the shared database, **which includes a commit whose run reaches the API's suite**, so the gate takes it itself then and refuses while another session has it; `sim-<device>` and `pixel` for a device test. Make up others as needed and say so.
 
 ## Status
 
