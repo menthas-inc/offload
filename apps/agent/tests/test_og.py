@@ -101,6 +101,7 @@ def public(monkeypatch):
         "::1",
         "100.64.0.1",
         "::ffff:10.0.0.1",
+        "fec0::1",
     ],
 )
 async def test_nothing_on_our_own_network_is_public(address: str, monkeypatch):
