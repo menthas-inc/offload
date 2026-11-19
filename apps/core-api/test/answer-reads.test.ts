@@ -130,6 +130,36 @@ describe("AC-5 a filtered list answers with however many there are", () => {
   });
 });
 
+describe("a filtered list across every thread", () => {
+  // 2026-11-18. "Which todos don't have due dates" names no thread and no
+  // span of time, so neither list_content nor list_agenda could answer it and
+  // search guessed.
+  it("answers which open tasks have no due date, from every thread they are in", async () => {
+    const ana = await account();
+    const stranger = await account();
+    const fixes = await thread(ana, "App fixes");
+    const home = await thread(ana, "Home");
+    const gone = await thread(ana, "Old trip");
+    const theirs = await thread(stranger, "Theirs");
+    await add(fixes, ana, "Fix the login screen");
+    await add(fixes, ana, "Ship the build", { dueAt: new Date(Date.now() + 86_400_000) });
+    await add(home, ana, "Call the plumber");
+    await add(home, ana, "Paint the hall", { done: true });
+    await add(home, ana, "Flight number", { type: "link" });
+    await add(gone, ana, "Pack");
+    await add(theirs, stranger, "Not hers");
+    await db.updateTable("threads").set({ deleted_at: sql`now()` }).where("id", "=", gone).execute();
+
+    const undated = await listContent(ana, { threadId: null, type: "task", done: false, due: false });
+    const dated = await listContent(ana, { type: "task", due: true });
+
+    expect(undated?.rows.map((r) => r.title).sort()).toEqual(["Call the plumber", "Fix the login screen"]);
+    expect(undated?.threadId).toBeNull();
+    expect(undated?.rows.find((r) => r.title === "Call the plumber")?.threadName).toBe("Home");
+    expect(dated?.rows.map((r) => r.title)).toEqual(["Ship the build"]);
+  });
+});
+
 describe("AC-4b a truncated read cannot support a no", () => {
   it("says it was truncated when there is more than a page", async () => {
     const ana = await account();
