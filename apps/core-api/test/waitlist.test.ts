@@ -8,6 +8,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { MemoryMailer } from "../src/mail/index.js";
 import { JobRunner } from "../src/jobs/runner.js";
+import { CONFIRMATIONS_PER_DAY } from "../src/routes/waitlist.js";
 
 await migrate(() => {});
 const app = await buildApp();
@@ -129,6 +130,26 @@ describe("abuse controls", () => {
   it("silently accepts and ignores a honeypot submission", async () => {
     const res = await join("bot@example.test", { company: "" });
     expect(res.statusCode).toBe(200);
+  });
+
+  it("stops sending confirmations past the daily cap, and still adds the address", async () => {
+    // Many IPs get past the per-IP limit; this bounds what they cost in mail.
+    await db.insertInto("accounts").values(
+      Array.from({ length: CONFIRMATIONS_PER_DAY }, (_, i) => ({
+        email: `earlier-${i}@example.test`,
+        state: "waitlist" as const,
+      }))
+    ).execute();
+
+    const mailer = new MemoryMailer();
+    const res = await join("past-the-cap@example.test");
+    await drain(mailer);
+
+    expect(res.json()).toEqual({ status: "ok" });
+    expect(mailer.sent).toHaveLength(0);
+    const row = await db.selectFrom("accounts").select("state")
+      .where("email", "=", "past-the-cap@example.test").executeTakeFirst();
+    expect(row?.state).toBe("waitlist");
   });
 
   it("rejects a malformed address without saying why", async () => {

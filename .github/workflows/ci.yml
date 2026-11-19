@@ -22,6 +22,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+# Read only: nothing here writes to the repository, and a pull request from a
+# fork runs this file.
+permissions:
+  contents: read
+
 concurrency:
   # A new push supersedes the run in flight for the same ref. Nothing here is
   # worth finishing for a commit that has already been replaced.

@@ -352,7 +352,7 @@ async def test_a_hostile_thread_name_is_a_label_rather_than_an_instruction():
 
 # Brevity, which is a behaviour rather than a rule the code can enforce.
 #
-# The reply that prompted these said: "Two: **owner@example.com** and
+# The reply that prompted these said: "Two: **sam@example.com** and
 # **Holidays in United States**. Only P**B files into a thread, and that one
 # goes to EU with fam." Somebody had asked which calendars were not connected.
 # The answer is two names. Everything else was a count in front, an emphasis on

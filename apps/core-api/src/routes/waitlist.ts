@@ -27,8 +27,13 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 const MIN_RESPONSE_MS = 250;
 
 /** Per address and per IP, in a rolling window. Crude on purpose: the real
- *  defence against a determined actor is Turnstile, which is a pre-public gate. */
+ *  defence against a determined actor is Turnstile, not built yet. */
 const RATE_LIMIT = { perEmailPerDay: 5, perIpPerHour: 20 };
+
+/** New waitlist addresses in a rolling day that get a confirmation. Many IPs
+ *  walk past the per-IP limit; this bounds what they cost in mail. Past it the
+ *  address still joins, it just is not mailed. */
+export const CONFIRMATIONS_PER_DAY = 100;
 
 const body = z.object({
   email: z.string().trim().toLowerCase().email().max(320),
@@ -141,7 +146,18 @@ async function joinWaitlist(email: string, log: App["log"]): Promise<void> {
     // nothing further and send nothing: telling them would be the oracle.
     if (!inserted) return;
 
-    await enqueue({
+    // accounts_state_created_idx covers this; the count includes this row.
+    const { count } = await trx
+      .selectFrom("accounts")
+      .select((eb) => eb.fn.countAll<string>().as("count"))
+      .where("state", "=", "waitlist")
+      .where("deleted_at", "is", null)
+      .where("created_at", ">", sql<Date>`now() - interval '1 day'`)
+      .executeTakeFirstOrThrow();
+    const mailed = Number(count) <= CONFIRMATIONS_PER_DAY;
+    if (!mailed) log.warn("waitlist confirmation cap reached");
+
+    if (mailed) await enqueue({
       kind: "email.waitlist_joined",
       payload: { accountId: inserted.id },
       accountId: inserted.id,
