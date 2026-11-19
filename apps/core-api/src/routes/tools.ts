@@ -295,9 +295,11 @@ const body = z.discriminatedUnion("tool", [
     tool: z.literal("list_content"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
-    threadId: z.string().uuid(),
+    /** Absent: every thread they are in. */
+    threadId: z.string().uuid().nullish(),
     type: contentType.nullish(),
     done: z.boolean().nullish(),
+    due: z.boolean().nullish(),
     /** Narrows within the thread. What makes an existence check on a long
      *  thread read the rows that mention the word rather than whichever page
      *  came back first. */
@@ -1316,10 +1318,11 @@ async function existing(
     const result =
       call.tool === "list_content"
         ? await listContent(accountId, {
-            threadId: call.threadId,
+            threadId: call.threadId ?? null,
             type: call.type ?? null,
             done: call.done ?? null,
             matching: call.matching ?? null,
+            due: call.due ?? null,
           })
         : call.tool === "list_agenda"
           ? await listAgenda(accountId, {

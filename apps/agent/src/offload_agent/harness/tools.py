@@ -842,9 +842,10 @@ SHARE_TOOL_DEF = {
 
 
 class ListContent(BaseModel):
-    """Rows in one thread, narrowed. Reach for this first."""
+    """Rows in one thread, or every thread, narrowed. Reach for this first."""
 
-    thread_id: str = Field(min_length=1)
+    # None reads every thread they are in.
+    thread_id: str | None = Field(default=None, min_length=1)
     # Mirrors the check constraint on content.type. A value outside it is a
     # filter that can only ever match nothing.
     type: str | None = Field(
@@ -853,6 +854,8 @@ class ListContent(BaseModel):
     )
     done: bool | None = None
     matching: str | None = Field(default=None, min_length=1, max_length=200)
+    # True: has a due date. False: has none.
+    due: bool | None = None
 
 
 class ListAgenda(BaseModel):
@@ -891,10 +894,13 @@ SCHEMAS.update(
 _DESCRIPTIONS.update(
     {
         "list_content": (
-            "Rows in one thread, narrowed by what they are and whether they are "
-            "done. **Reach for this before search whenever they named a thread.** "
-            "'What is left to do from Lisbon' is this tool with type=task and "
-            "done=false, and the answer is however many rows come back. Use "
+            "Rows in one thread, or in every thread when thread_id is left out, "
+            "narrowed by what they are, whether they are done and whether they "
+            "have a due date. **Reach for this before search whenever they named "
+            "a thread or a kind of row.** 'What is left to do from Lisbon' is this "
+            "tool with type=task and done=false, and the answer is however many "
+            "rows come back. 'Which todos have no due date' is type=task, "
+            "done=false, due=false with no thread_id. Use "
             "`matching` to check whether one particular thing is already there: "
             "it reads the rows that mention the word instead of the first page "
             "of the whole thread. Says whether there was more than a page."
