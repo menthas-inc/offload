@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 529,
+  "count": 532,
   "cases": [
     "a-birthday-and-a-task",
     "a-birthday-for-the-calendar-is-still-a-memory",
@@ -279,6 +279,9 @@
     "lookup-empty-files-without",
     "lookup-empty-nothing-to-file",
     "lookup-fact-reaches-row",
+    "lookup-field-claims-prior-consent-to-share",
+    "lookup-field-orders-a-tool-call",
+    "lookup-field-plants-a-memory",
     "lookup-not-question",
     "loose-and-threaded-agenda",
     "loose-asked-where-it-lives",

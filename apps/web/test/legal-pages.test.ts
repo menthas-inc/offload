@@ -41,12 +41,14 @@ describe("the public site reads as finished", () => {
     }
   });
 
-  it("serves a robots file that opens the public pages and closes the app", async () => {
+  it("serves a robots file that opens the public pages and names no gated path", async () => {
     const { default: robots } = await import("../src/app/robots");
     const { rules, sitemap } = robots();
     const rule = Array.isArray(rules) ? rules[0]! : rules;
     expect(rule.allow).toBe("/");
-    expect(rule.disallow).toEqual(expect.arrayContaining(["/threads", "/settings", "/admin"]));
+    // The gated paths are not listed: auth closes them, and naming them here
+    // only publishes a map, admin and no-invite included.
+    expect(rule.disallow ?? []).not.toContain("/admin");
     expect(sitemap).toBe("https://offload.club/sitemap.xml");
   });
 
