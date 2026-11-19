@@ -13,7 +13,7 @@ DROP = (
 STUB = (
     b"docs/sweeps/",
     b"docs/tech/going-public.md",
-    b"docs/tech/security-review-2026-09-22.md",
+    b"docs/tech/security-review-",  # every review, present and future
     b"docs/tech/vendor-terms/",
 )
 KEEP_INSIDE_STUB = (b"docs/tech/vendor-terms/README.md",)

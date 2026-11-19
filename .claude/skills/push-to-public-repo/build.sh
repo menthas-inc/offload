@@ -29,8 +29,9 @@ git filter-repo --force --quiet \
 # The callback did what it says: one dropped path gone, one stubbed doc a stub.
 [ -z "$(git log --all --format= --name-only -- .claude/skills/offload-design/uploads/ | head -1)" ] \
   || { echo "refused: a dropped path is still in the history" >&2; exit 1; }
-[ "$(git show main:docs/tech/going-public.md | head -1)" = "# Kept private" ] \
-  || { echo "refused: a stubbed doc is not a stub" >&2; exit 1; }
+for f in docs/tech/going-public.md $(git ls-tree --name-only main docs/tech/ | grep "^docs/tech/security-review-"); do
+  [ "$(git show "main:$f" | head -1)" = "# Kept private" ] || { echo "refused: $f is not a stub" >&2; exit 1; }
+done
 
 if git log -p --no-color --format='%an %ae %cn %ce%n%B' | grep -qiEf "$CONFIG/refuse.txt"; then
   echo "refused: a pattern from refuse.txt is still in the rebuilt history" >&2
