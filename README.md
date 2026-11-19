@@ -19,7 +19,7 @@ offload is in alpha, invite only, and live on iOS, Android and the web at [offlo
 - **Specs before code.** Every feature has a folder in [`docs/specs`](docs/specs), from `001-data-model` on: a feature spec, an implementation spec and a task list, checked against the enforced principles in [`docs/constitution`](docs/constitution). Decisions and the reasons behind them are kept in [`docs/tech/decisions.md`](docs/tech/decisions.md).
 - **A design system the code obeys.** [`.claude/skills/offload-design`](.claude/skills/offload-design) holds the tokens, 21 component contracts, five click-through UI kits and the brand decisions. Lint reads its generated rule file, so a screen that drifts from it fails the build.
 - **An agentic workflow.** The repository is built with Claude Code, and [`.claude`](.claude) is the harness: reviewer agents, slash commands for planning, implementing and reviewing, hooks that block secrets and refuse a commit while a test is red, and a board the parallel sessions talk through. [`CLAUDE.md`](CLAUDE.md) is the working agreement, including what has gone wrong and the rule each mistake left behind.
-- **Privacy as a claim surface.** The [privacy page](apps/web/src/app/(marketing)/privacy/page.tsx) states in public what happens to what people put in, and a change that makes a line of it untrue is treated as a defect even when the code is correct.
+- **Privacy as a claim surface.** The [privacy page](<apps/web/src/app/(marketing)/privacy/page.tsx>) states in public what happens to what people put in, and a change that makes a line of it untrue is treated as a defect even when the code is correct.
 
 ## Shape
 

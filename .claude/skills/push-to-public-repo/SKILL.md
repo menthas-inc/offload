@@ -101,9 +101,12 @@ Give the owner the pull request's link and stop. Merging is theirs to call.
 
 ```bash
 cd ~/dev/offload_public
-git push public "$branch:main"            # fast-forward
+git fetch -q public
+# the branch lives only on the remote; the local main is the same commit
+[ "$(git rev-parse main)" = "$(git rev-parse "public/$branch")" ] || echo "STOP: rebuilt main is not the PR's head"
+git push public main:main                 # fast-forward
 # diverged, and only with the owner's yes for this publish:
-# git push --force-with-lease=main:"$(git rev-parse public/main)" public "$branch:main"
+# git push --force-with-lease=main:"$(git rev-parse public/main)" public main:main
 gh pr view --repo menthas-inc/offload "$branch" --json state --jq .state   # MERGED
 git push public --delete "$branch"
 ```
