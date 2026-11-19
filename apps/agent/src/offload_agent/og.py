@@ -73,6 +73,11 @@ def _tag(
 #: which is nobody's public internet either.
 _SHARED = ipaddress.ip_network("100.64.0.0/10")
 
+#: Deprecated IPv6 site-local space (RFC 3879), which `ipaddress` counts as
+#: neither private nor reserved, so it would otherwise reach a legacy internal
+#: network the same way a private v4 address would.
+_SITE_LOCAL = ipaddress.ip_network("fec0::/10")
+
 
 def _off_limits(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     # An IPv4 address carried inside an IPv6 one is that IPv4 address; older
@@ -87,6 +92,7 @@ def _off_limits(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         or address.is_multicast
         or address.is_unspecified
         or (address.version == 4 and address in _SHARED)
+        or (address.version == 6 and address in _SITE_LOCAL)
     )
 
 
