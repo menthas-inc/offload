@@ -14,8 +14,8 @@
     "@offload/tokens": "workspace:*",
     "@offload/widgets": "workspace:^",
     "@vis.gl/react-google-maps": "^1.10.1",
-    "better-auth": "^1.7.5",
-    "next": "^15.5.27",
+    "better-auth": "^1.7.7",
+    "next": "^15.5.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -25,6 +25,6 @@
     "@types/react-dom": "^19.0.2",
     "happy-dom": "^21.0.4",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
