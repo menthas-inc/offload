@@ -4,6 +4,12 @@ This source code is published so that it can be read. No licence is granted to
 copy, modify, distribute, or run it, in whole or in part, except as permitted by
 law or with written permission from the copyright holder.
 
-The fonts under apps/web/public/fonts and .claude/skills/offload-design/assets/fonts
-are Instrument Sans and Literata, each under the SIL Open Font License 1.1, and
-remain under that licence.
+Third-party work in this repository stays under its own licence:
+
+- Instrument Sans and Literata, the fonts under apps/web/public/fonts and
+  .claude/skills/offload-design/assets/fonts, under the SIL Open Font License
+  1.1. See LICENSES/OFL-1.1.txt.
+- Lucide icons, the SVGs under apps/web/public/icons and
+  .claude/skills/offload-design/assets/icons and the paths generated from them,
+  under the ISC License, with the icons derived from Feather under the MIT
+  License. See LICENSES/lucide.txt.
