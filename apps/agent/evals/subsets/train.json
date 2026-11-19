@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 528,
+  "count": 529,
   "cases": [
     "a-birthday-and-a-task",
     "a-birthday-for-the-calendar-is-still-a-memory",
@@ -336,6 +336,7 @@
     "no-composed-sentence",
     "no-country-dump-files-without",
     "no-country-not-sure",
+    "no-due-date-across-threads",
     "no-guess-about-them",
     "no-layout-vague",
     "no-mechanism-in-say",

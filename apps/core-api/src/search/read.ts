@@ -150,7 +150,9 @@ export type ContentType =
   | "event";
 
 export interface ListContentOptions {
-  threadId: string;
+  /** Absent: every thread they are in. "Which tasks have no due date" names
+   *  none, and neither a span of time nor a search can express it. */
+  threadId?: string | null;
   type?: ContentType | null;
   done?: boolean | null;
   /** Narrows within the thread over the same text index the corpus uses.
@@ -161,21 +163,25 @@ export interface ListContentOptions {
    *  long thread is decided by whichever twenty rows came back, which is how a
    *  wrong "no" is produced. */
   matching?: string | null;
+  /** Has a due date, or has none. */
+  due?: boolean | null;
 }
 
 export async function listContent(
   accountId: string,
   options: ListContentOptions,
 ): Promise<Result | null> {
-  const thread = await db
-    .selectFrom("threads")
-    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-    .select(["threads.id as id", shownToModel("threads.id", "threads.name", accountId).as("name")])
-    .where("threads.id", "=", options.threadId)
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted")
-    .where("threads.deleted_at", "is", null)
-    .executeTakeFirst();
+  const thread = options.threadId
+    ? await db
+      .selectFrom("threads")
+      .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+      .select(["threads.id as id", shownToModel("threads.id", "threads.name", accountId).as("name")])
+      .where("threads.id", "=", options.threadId)
+      .where("thread_members.account_id", "=", accountId)
+      .where("thread_members.state", "=", "accepted")
+      .where("threads.deleted_at", "is", null)
+      .executeTakeFirst()
+    : { id: null, name: null };
   // One refusal, whatever the reason. A thread that does not exist and one you
   // are not in are the same answer, or the tool is an id oracle.
   if (!thread) return null;
@@ -199,11 +205,14 @@ export async function listContent(
       "content.created_at as created_at",
     ])
     .where("content.viewer_account_id", "=", accountId)
-    .where("content.thread_id", "=", options.threadId)
+    .where("threads.deleted_at", "is", null)
     .where("content.deleted_at", "is", null)
     .where("content.archived_at", "is", null);
 
+  if (options.threadId) query = query.where("content.thread_id", "=", options.threadId);
   if (options.type) query = query.where("content.type", "=", options.type);
+  if (options.due === true) query = query.where("content.due_at", "is not", null);
+  if (options.due === false) query = query.where("content.due_at", "is", null);
   if (options.done === true) query = query.where("content.done_at", "is not", null);
   if (options.done === false) query = query.where("content.done_at", "is", null);
   if (options.matching) {

@@ -146,3 +146,29 @@ async def test_the_same_window_written_two_ways_is_one_read():
         has_calendar=True,
     )
     assert shown_from(outcome) == {"span": {"from": "2026-11-16", "to": "2026-11-22"}}
+
+
+async def test_a_read_across_every_thread_reaches_the_core_api():
+    # 2026-11-18. "Which todos have no due date" names no thread: list_content
+    # with no thread_id, filtered by due, rather than a search that guesses.
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    ToolUse(
+                        id="r1",
+                        name="list_content",
+                        input={"type": "task", "done": False, "due": False},
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            _said,
+        ]
+    )
+    caller = Recorder([_FACTS, _read])
+    await plan_answer(model, _ctx(), "claude-haiku-5-5", caller)
+    sent = [args for tool, _, args in caller.calls if tool == "list_content"]
+    assert sent == [
+        {"thread_id": None, "type": "task", "done": False, "matching": None, "due": False}
+    ]

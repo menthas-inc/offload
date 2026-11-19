@@ -1517,6 +1517,53 @@
         ],
         "rubric": "Names the calendars offload reads. A list, no count in front."
       }
+    },
+    {
+      "id": "no-due-date-across-threads",
+      "why": "2026-11-18: a kind of row with no thread named is one read of every thread, not a search of the first one",
+      "surface": "answer",
+      "input": "which todo items don't have due dates?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "g1",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "olives",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "list_content",
+            "args": {
+              "thread_id": null,
+              "type": "task",
+              "due": false
+            }
+          }
+        ],
+        "not_called": [
+          "search"
+        ],
+        "rubric": "Answers from the rows across both threads, briefly. Never says it does not know their due dates. Rows are drawn beside the reply so titles need not be typed out."
+      }
     }
   ]
 }
